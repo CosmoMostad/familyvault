@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "FamilyVault",
-    "slug": "familyvault",
+    "name": "Rosemary",
+    "slug": "rosemary",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,23 +10,23 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1B2A4A"
+      "backgroundColor": "#FAF7F4"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.cosmoanthonymostad.familyvault",
+      "bundleIdentifier": "com.cosmo.rosemary",
       "infoPlist": {
-        "NSCameraUsageDescription": "FamilyVault uses your camera to scan and upload medical documents.",
-        "NSPhotoLibraryUsageDescription": "FamilyVault accesses your photo library to upload medical documents.",
-        "NSUserNotificationsUsageDescription": "FamilyVault sends reminders for upcoming family health appointments."
+        "NSCameraUsageDescription": "Rosemary uses your camera to scan and upload medical documents.",
+        "NSPhotoLibraryUsageDescription": "Rosemary accesses your photo library to upload medical documents.",
+        "NSUserNotificationsUsageDescription": "Rosemary sends reminders for upcoming family health appointments."
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1B2A4A"
+        "backgroundColor": "#2D6A4F"
       },
-      "package": "com.cosmoanthonymostad.familyvault"
+      "package": "com.cosmo.rosemary"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -36,14 +36,14 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "FamilyVault uses your camera to scan medical documents."
+          "cameraPermission": "Rosemary uses your camera to scan medical documents."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "FamilyVault accesses your photos to upload medical documents.",
-          "cameraPermission": "FamilyVault uses your camera to scan medical documents."
+          "photosPermission": "Rosemary accesses your photos to upload medical documents.",
+          "cameraPermission": "Rosemary uses your camera to scan medical documents."
         }
       ],
       [

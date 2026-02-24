@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,77 +7,90 @@ import {
   ScrollView,
   Alert,
   Switch,
-  Linking,
-  Modal,
-  TextInput,
-  ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
-import * as Notifications from 'expo-notifications';
-import * as Haptics from 'expo-haptics';
+import { Ionicons } from '@expo/vector-icons';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
+import { RootStackParamList } from '../../lib/types';
+import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
 
-const APP_VERSION = '1.0.0';
+type Props = {
+  navigation: NativeStackNavigationProp<RootStackParamList, 'Settings'>;
+};
 
-function SettingRow({
-  emoji,
+function SettingsRow({
+  icon,
+  iconColor = COLORS.textSecondary,
   label,
-  onPress,
   value,
-  showArrow = true,
-  right,
+  onPress,
+  isLast = false,
+  rightElement,
 }: {
-  emoji?: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor?: string;
   label: string;
-  onPress?: () => void;
   value?: string;
-  showArrow?: boolean;
-  right?: React.ReactNode;
+  onPress?: () => void;
+  isLast?: boolean;
+  rightElement?: React.ReactNode;
 }) {
-  return (
-    <TouchableOpacity style={styles.row} onPress={onPress} disabled={!onPress}>
-      {emoji && <Text style={styles.rowEmoji}>{emoji}</Text>}
-      <Text style={styles.rowLabel}>{label}</Text>
-      <View style={styles.rowRight}>
-        {value && <Text style={styles.rowValue}>{value}</Text>}
-        {right}
-        {showArrow && onPress && <Text style={styles.rowArrow}>›</Text>}
+  const content = (
+    <View style={[rowStyles.row, !isLast && rowStyles.rowBorder]}>
+      <View style={[rowStyles.iconBg, { backgroundColor: `${iconColor}18` }]}>
+        <Ionicons name={icon} size={18} color={iconColor} />
       </View>
-    </TouchableOpacity>
+      <Text style={rowStyles.label}>{label}</Text>
+      <View style={rowStyles.right}>
+        {value ? <Text style={rowStyles.value}>{value}</Text> : null}
+        {rightElement ?? (onPress ? <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} /> : null)}
+      </View>
+    </View>
   );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+  return content;
 }
 
-export default function SettingsScreen() {
-  const { profile, signOut, user, refreshProfile } = useAuth();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editName, setEditName] = useState(profile?.full_name || '');
-  const [saving, setSaving] = useState(false);
+const rowStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.base,
+    gap: SPACING.md,
+  },
+  rowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.divider,
+  },
+  iconBg: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  label: { ...FONTS.body, color: COLORS.textPrimary, flex: 1 },
+  right: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
+  value: { ...FONTS.bodySmall, color: COLORS.textSecondary },
+});
 
-  useEffect(() => {
-    checkNotifications();
-  }, []);
+export default function SettingsScreen({ navigation }: Props) {
+  const { profile, signOut } = useAuth();
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
-  async function checkNotifications() {
-    const { status } = await Notifications.getPermissionsAsync();
-    setNotificationsEnabled(status === 'granted');
-  }
-
-  async function toggleNotifications(value: boolean) {
-    if (value) {
-      const { status } = await Notifications.requestPermissionsAsync();
-      setNotificationsEnabled(status === 'granted');
-    } else {
-      // Can't disable from app — open Settings
-      Alert.alert(
-        'Disable Notifications',
-        'To disable notifications, go to Settings > FamilyVault > Notifications.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Open Settings', onPress: () => Linking.openSettings() },
-        ]
-      );
-    }
+  function getInitials(name: string): string {
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
   }
 
   async function handleSignOut() {
@@ -87,257 +100,168 @@ export default function SettingsScreen() {
         text: 'Sign Out',
         style: 'destructive',
         onPress: async () => {
-          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           try {
             await signOut();
-          } catch (error: any) {
-            Alert.alert('Error', error.message);
+          } catch (e: any) {
+            Alert.alert('Error', e.message);
           }
         },
       },
     ]);
   }
 
-  async function handleSaveProfile() {
-    if (!editName.trim()) {
-      Alert.alert('Name Required', 'Please enter your name.');
-      return;
-    }
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ full_name: editName.trim() })
-        .eq('user_id', user?.id);
-
-      if (error) throw error;
-      await refreshProfile();
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setShowEditModal(false);
-    } catch (error: any) {
-      Alert.alert('Error', error.message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function getInitials(name?: string): string {
-    if (!name) return '?';
-    const parts = name.trim().split(' ');
-    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    return name.slice(0, 2).toUpperCase();
-  }
-
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Profile header */}
-      <View style={styles.profileCard}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{getInitials(profile?.full_name)}</Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.headerArea}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.pageTitle}>Settings</Text>
         </View>
-        <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>{profile?.full_name || 'Your Name'}</Text>
-          <Text style={styles.profileEmail}>{user?.email}</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => {
-            setEditName(profile?.full_name || '');
-            setShowEditModal(true);
-          }}
-        >
-          <Text style={styles.editButtonText}>Edit</Text>
-        </TouchableOpacity>
-      </View>
 
-      {/* App Settings */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>App Settings</Text>
+        {/* Profile card */}
+        {profile && (
+          <View style={styles.profileCard}>
+            <View style={styles.profileAvatar}>
+              <Text style={styles.profileAvatarText}>{getInitials(profile.full_name)}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.profileName}>{profile.full_name}</Text>
+            </View>
+            <View style={styles.profileBadge}>
+              <Text style={styles.profileBadgeText}>Free</Text>
+            </View>
+          </View>
+        )}
+
+        {/* App settings */}
+        <Text style={styles.sectionLabel}>App</Text>
         <View style={styles.card}>
-          <SettingRow
-            emoji="🔔"
-            label="Notifications"
-            showArrow={false}
-            right={
+          <SettingsRow
+            icon="notifications-outline"
+            iconColor={COLORS.primary}
+            label="Appointment Reminders"
+            rightElement={
               <Switch
                 value={notificationsEnabled}
-                onValueChange={toggleNotifications}
-                trackColor={{ false: '#E5E7EB', true: '#00B4A6' }}
-                thumbColor="#FFFFFF"
+                onValueChange={setNotificationsEnabled}
+                trackColor={{ false: COLORS.border, true: COLORS.primaryMuted }}
+                thumbColor={notificationsEnabled ? COLORS.primary : COLORS.textTertiary}
               />
             }
           />
-        </View>
-      </View>
-
-      {/* Legal */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Legal</Text>
-        <View style={styles.card}>
-          <SettingRow
-            emoji="🔒"
+          <SettingsRow
+            icon="shield-outline"
+            iconColor={COLORS.primaryLight}
             label="Privacy Policy"
-            onPress={() => Linking.openURL('https://familyvault.app/privacy')}
-          />
-          <View style={styles.divider} />
-          <SettingRow
-            emoji="📄"
-            label="Terms of Service"
-            onPress={() => Linking.openURL('https://familyvault.app/terms')}
+            isLast
+            onPress={() => {}}
           />
         </View>
-      </View>
 
-      {/* About */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>About</Text>
+        {/* Account */}
+        <Text style={styles.sectionLabel}>Account</Text>
         <View style={styles.card}>
-          <SettingRow emoji="📱" label="App Version" value={APP_VERSION} showArrow={false} />
-          <View style={styles.divider} />
-          <SettingRow emoji="🛡️" label="FamilyVault" value="Made with ❤️" showArrow={false} />
+          <SettingsRow
+            icon="mail-outline"
+            iconColor={COLORS.textSecondary}
+            label="Email"
+            value=""
+            isLast
+          />
         </View>
-      </View>
 
-      {/* Sign Out */}
-      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-        <Text style={styles.signOutText}>Sign Out</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.footer}>Your data is encrypted and stored securely.</Text>
-
-      <View style={{ height: 40 }} />
-
-      {/* Edit name modal */}
-      <Modal visible={showEditModal} animationType="slide" presentationStyle="formSheet">
-        <View style={styles.modal}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowEditModal(false)}>
-              <Text style={styles.modalCancel}>Cancel</Text>
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Edit Profile</Text>
-            <TouchableOpacity onPress={handleSaveProfile} disabled={saving}>
-              {saving ? <ActivityIndicator color="#00B4A6" /> : <Text style={styles.modalSave}>Save</Text>}
-            </TouchableOpacity>
-          </View>
-          <View style={styles.modalContent}>
-            <Text style={styles.formLabel}>Full Name</Text>
-            <TextInput
-              style={styles.formInput}
-              value={editName}
-              onChangeText={setEditName}
-              placeholder="Your full name"
-              placeholderTextColor="#9CA3AF"
-              autoCapitalize="words"
-              autoFocus
-            />
-          </View>
+        {/* About */}
+        <Text style={styles.sectionLabel}>About</Text>
+        <View style={styles.card}>
+          <SettingsRow
+            icon="leaf-outline"
+            iconColor={COLORS.primary}
+            label="Rosemary"
+            value="v1.0.0"
+            isLast
+          />
         </View>
-      </Modal>
-    </ScrollView>
+
+        {/* Sign out */}
+        <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} activeOpacity={0.85}>
+          <Ionicons name="log-out-outline" size={18} color={COLORS.rose} />
+          <Text style={styles.signOutText}>Sign Out</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: SPACING.xxl }} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAF8' },
-  content: { padding: 16 },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  content: { paddingHorizontal: SPACING.xl, paddingTop: SPACING.base },
+  headerArea: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.base,
+    marginBottom: SPACING.xl,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pageTitle: { ...FONTS.h2, color: COLORS.textPrimary },
   profileCard: {
-    backgroundColor: '#1B2A4A',
-    borderRadius: 18,
-    padding: 20,
+    ...CARD,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    padding: SPACING.base,
+    marginBottom: SPACING.xl,
+    gap: SPACING.md,
   },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(0,180,166,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#00B4A6',
-    marginRight: 14,
-  },
-  avatarText: { color: '#FFFFFF', fontSize: 20, fontWeight: '800' },
-  profileInfo: { flex: 1 },
-  profileName: { fontSize: 18, fontWeight: '700', color: '#FFFFFF' },
-  profileEmail: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
-  editButton: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  editButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-  section: { marginBottom: 20 },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#6B7280',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-    marginLeft: 4,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  rowEmoji: { fontSize: 18, marginRight: 12 },
-  rowLabel: { flex: 1, fontSize: 15, color: '#111827', fontWeight: '500' },
-  rowRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  rowValue: { fontSize: 14, color: '#9CA3AF' },
-  rowArrow: { fontSize: 20, color: '#D1D5DB', marginLeft: 4 },
-  divider: { height: 1, backgroundColor: '#F3F4F6', marginHorizontal: 16 },
-  signOutButton: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: 14,
+  profileAvatar: {
+    width: 52,
     height: 52,
+    borderRadius: 26,
+    backgroundColor: COLORS.primaryMuted,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
-    marginBottom: 12,
   },
-  signOutText: { color: '#DC2626', fontSize: 16, fontWeight: '700' },
-  footer: { fontSize: 12, color: '#9CA3AF', textAlign: 'center', marginBottom: 8 },
-  modal: { flex: 1, backgroundColor: '#FAFAF8' },
-  modalHeader: {
+  profileAvatarText: { ...FONTS.h4, color: COLORS.primary, fontWeight: '700' },
+  profileName: { ...FONTS.h4, color: COLORS.textPrimary },
+  profileBadge: {
+    backgroundColor: COLORS.primaryMuted,
+    borderRadius: 20,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 4,
+  },
+  profileBadgeText: { ...FONTS.caption, color: COLORS.primary, fontWeight: '600' },
+  sectionLabel: {
+    ...FONTS.label,
+    color: COLORS.textTertiary,
+    textTransform: 'uppercase',
+    marginBottom: SPACING.sm,
+    marginTop: SPACING.base,
+  },
+  card: { ...CARD, overflow: 'hidden', marginBottom: SPACING.sm },
+  signOutBtn: {
+    ...CARD,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 56,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    justifyContent: 'center',
+    height: 52,
+    gap: SPACING.sm,
+    marginTop: SPACING.base,
+    backgroundColor: COLORS.roseLight,
+    borderWidth: 0,
   },
-  modalCancel: { color: '#6B7280', fontSize: 16 },
-  modalTitle: { fontSize: 17, fontWeight: '700', color: '#1B2A4A' },
-  modalSave: { color: '#00B4A6', fontSize: 16, fontWeight: '700' },
-  modalContent: { padding: 20 },
-  formLabel: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 },
-  formInput: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#111827',
-  },
+  signOutText: { ...FONTS.h4, color: COLORS.rose, fontWeight: '600' },
 });

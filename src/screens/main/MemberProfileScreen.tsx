@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,57 +9,18 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp, useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
 import { FamilyMember, HealthInfo, Document, RootStackParamList } from '../../lib/types';
+import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MemberProfile'>;
   route: RouteProp<RootStackParamList, 'MemberProfile'>;
 };
-
-function Section({
-  emoji,
-  title,
-  children,
-  empty,
-}: {
-  emoji: string;
-  title: string;
-  children?: React.ReactNode;
-  empty?: string;
-}) {
-  return (
-    <View style={sectionStyles.container}>
-      <View style={sectionStyles.header}>
-        <Text style={sectionStyles.emoji}>{emoji}</Text>
-        <Text style={sectionStyles.title}>{title}</Text>
-      </View>
-      {children || (
-        <Text style={sectionStyles.empty}>{empty || 'None on file'}</Text>
-      )}
-    </View>
-  );
-}
-
-const sectionStyles = StyleSheet.create({
-  container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-  },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  emoji: { fontSize: 20, marginRight: 8 },
-  title: { fontSize: 16, fontWeight: '700', color: '#1B2A4A' },
-  empty: { fontSize: 14, color: '#9CA3AF', fontStyle: 'italic' },
-});
 
 function getInitials(name: string): string {
   const parts = name.trim().split(' ');
@@ -77,22 +38,64 @@ function getAge(dob?: string): string {
   return `${age} years old`;
 }
 
-function formatDate(dateStr?: string): string {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+function SectionCard({
+  iconName,
+  iconColor,
+  title,
+  emptyText,
+  children,
+  action,
+}: {
+  iconName: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+  title: string;
+  emptyText: string;
+  children?: React.ReactNode;
+  action?: { label: string; onPress: () => void };
+}) {
+  return (
+    <View style={sectionStyles.card}>
+      <View style={sectionStyles.header}>
+        <View style={[sectionStyles.iconBg, { backgroundColor: `${iconColor}18` }]}>
+          <Ionicons name={iconName} size={18} color={iconColor} />
+        </View>
+        <Text style={sectionStyles.title}>{title}</Text>
+        {action && (
+          <TouchableOpacity onPress={action.onPress} style={sectionStyles.action}>
+            <Text style={sectionStyles.actionText}>{action.label}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      {children ?? <Text style={sectionStyles.empty}>{emptyText}</Text>}
+    </View>
+  );
 }
 
-const severityColors: Record<string, string> = {
-  Mild: '#D1FAE5',
-  Moderate: '#FEF3C7',
-  Severe: '#FEE2E2',
-};
-const severityTextColors: Record<string, string> = {
-  Mild: '#065F46',
-  Moderate: '#92400E',
-  Severe: '#991B1B',
-};
+const sectionStyles = StyleSheet.create({
+  card: {
+    ...CARD,
+    padding: SPACING.base,
+    marginHorizontal: SPACING.xl,
+    marginBottom: SPACING.sm,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+    gap: SPACING.sm,
+  },
+  iconBg: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: { ...FONTS.h4, color: COLORS.textPrimary, flex: 1 },
+  action: { paddingVertical: 4, paddingHorizontal: 8 },
+  actionText: { ...FONTS.caption, color: COLORS.primaryLight, fontWeight: '600' },
+  empty: { ...FONTS.bodySmall, color: COLORS.textTertiary, fontStyle: 'italic' },
+});
 
 export default function MemberProfileScreen({ navigation, route }: Props) {
   const { memberId, memberName } = route.params;
@@ -104,12 +107,15 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
   useEffect(() => {
     navigation.setOptions({
       title: memberName,
+      headerStyle: { backgroundColor: COLORS.background },
+      headerTintColor: COLORS.textPrimary,
+      headerShadowVisible: false,
       headerRight: () => (
         <TouchableOpacity
           onPress={() => navigation.navigate('AddEditMember', { memberId })}
-          style={{ marginRight: 4 }}
+          style={{ paddingHorizontal: 4 }}
         >
-          <Text style={{ color: '#00B4A6', fontSize: 16, fontWeight: '600' }}>Edit</Text>
+          <Text style={{ color: COLORS.primary, ...FONTS.body, fontWeight: '600' }}>Edit</Text>
         </TouchableOpacity>
       ),
     });
@@ -127,14 +133,15 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
       const [memberRes, healthRes, docsRes] = await Promise.all([
         supabase.from('family_members').select('*').eq('id', memberId).single(),
         supabase.from('health_info').select('*').eq('member_id', memberId).single(),
-        supabase.from('documents').select('*').eq('member_id', memberId).order('created_at', { ascending: false }),
+        supabase
+          .from('documents')
+          .select('*')
+          .eq('member_id', memberId)
+          .order('created_at', { ascending: false }),
       ]);
-
       if (memberRes.data) setMember(memberRes.data);
       if (healthRes.data) setHealthInfo(healthRes.data);
       if (docsRes.data) setDocuments(docsRes.data);
-    } catch (e) {
-      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -142,318 +149,361 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#00B4A6" />
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
 
   if (!member) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text>Member not found</Text>
+      <View style={styles.loading}>
+        <Text style={FONTS.body}>Member not found.</Text>
       </View>
     );
   }
 
+  const severityBg: Record<string, string> = {
+    Mild: COLORS.primaryMuted,
+    Moderate: COLORS.amberLight,
+    Severe: COLORS.roseLight,
+  };
+  const severityText: Record<string, string> = {
+    Mild: COLORS.primary,
+    Moderate: COLORS.amber,
+    Severe: COLORS.rose,
+  };
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Profile Header */}
-      <View style={styles.profileHeader}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{getInitials(member.full_name)}</Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      {/* Hero header */}
+      <View style={styles.hero}>
+        <View style={styles.heroAvatar}>
+          <Text style={styles.heroAvatarText}>{getInitials(member.full_name)}</Text>
         </View>
-        <Text style={styles.memberName}>{member.full_name}</Text>
-        {member.dob && <Text style={styles.memberAge}>{getAge(member.dob)} · Born {formatDate(member.dob)}</Text>}
-        {member.blood_type && (
-          <View style={styles.bloodTypeBadge}>
-            <Text style={styles.bloodTypeText}>🩸 {member.blood_type}</Text>
-          </View>
-        )}
+        <View style={styles.heroInfo}>
+          <Text style={styles.heroName}>{member.full_name}</Text>
+          {member.dob && <Text style={styles.heroAge}>{getAge(member.dob)}</Text>}
+          {member.blood_type && (
+            <View style={styles.bloodBadge}>
+              <Ionicons name="water" size={12} color={COLORS.rose} />
+              <Text style={styles.bloodText}>{member.blood_type}</Text>
+            </View>
+          )}
+        </View>
       </View>
 
-      {/* Action buttons */}
+      {/* Quick actions */}
       <View style={styles.actionRow}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            navigation.navigate('Share', { memberId, memberName });
-          }}
-        >
-          <Text style={styles.actionEmoji}>📤</Text>
-          <Text style={styles.actionLabel}>Share</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            navigation.navigate('Appointments', { memberId, memberName });
-          }}
-        >
-          <Text style={styles.actionEmoji}>📅</Text>
-          <Text style={styles.actionLabel}>Appointments</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            navigation.navigate('DocumentScanner', { memberId, memberName });
-          }}
-        >
-          <Text style={styles.actionEmoji}>📄</Text>
-          <Text style={styles.actionLabel}>Documents</Text>
-        </TouchableOpacity>
+        {[
+          { icon: 'share-outline' as const, label: 'Share', onPress: () => navigation.navigate('Share', { memberId, memberName }) },
+          { icon: 'calendar-outline' as const, label: 'Appointments', onPress: () => navigation.navigate('Appointments', { memberId, memberName }) },
+          { icon: 'document-text-outline' as const, label: 'Documents', onPress: () => navigation.navigate('DocumentScanner', { memberId, memberName }) },
+        ].map((a, i) => (
+          <TouchableOpacity
+            key={i}
+            style={styles.actionBtn}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              a.onPress();
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.actionIconBg}>
+              <Ionicons name={a.icon} size={20} color={COLORS.primary} />
+            </View>
+            <Text style={styles.actionLabel}>{a.label}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Allergies */}
-      <Section emoji="⚠️" title="Allergies" empty="No known allergies">
-        {healthInfo?.allergies && healthInfo.allergies.length > 0 ? (
-          <View style={styles.chipContainer}>
+      <SectionCard
+        iconName="warning-outline"
+        iconColor={COLORS.amber}
+        title="Allergies"
+        emptyText="No known allergies"
+      >
+        {healthInfo?.allergies?.length ? (
+          <View style={styles.chips}>
             {healthInfo.allergies.map((a, i) => (
               <View
                 key={i}
-                style={[styles.chip, { backgroundColor: severityColors[a.severity] || '#F3F4F6' }]}
+                style={[styles.chip, { backgroundColor: severityBg[a.severity] || COLORS.surfaceAlt }]}
               >
-                <Text style={[styles.chipText, { color: severityTextColors[a.severity] || '#374151' }]}>
+                <Text style={[styles.chipText, { color: severityText[a.severity] || COLORS.textSecondary }]}>
                   {a.name}
                 </Text>
-                <Text style={[styles.chipSeverity, { color: severityTextColors[a.severity] || '#374151' }]}>
+                <Text style={[styles.chipSeverity, { color: severityText[a.severity] || COLORS.textTertiary }]}>
                   {a.severity}
                 </Text>
               </View>
             ))}
           </View>
         ) : null}
-      </Section>
+      </SectionCard>
 
       {/* Medications */}
-      <Section emoji="💊" title="Medications" empty="No medications listed">
-        {healthInfo?.medications && healthInfo.medications.length > 0 ? (
-          <View style={styles.listItems}>
+      <SectionCard
+        iconName="medkit-outline"
+        iconColor={COLORS.primary}
+        title="Medications"
+        emptyText="No medications listed"
+      >
+        {healthInfo?.medications?.length ? (
+          <View style={styles.listStack}>
             {healthInfo.medications.map((m, i) => (
-              <View key={i} style={styles.listItem}>
-                <Text style={styles.listItemTitle}>{m.name}</Text>
-                <Text style={styles.listItemSub}>{m.dosage} · {m.frequency}</Text>
+              <View key={i} style={[styles.listRow, i < healthInfo.medications.length - 1 && styles.listRowBorder]}>
+                <Text style={styles.listRowTitle}>{m.name}</Text>
+                <Text style={styles.listRowSub}>{m.dosage} · {m.frequency}</Text>
               </View>
             ))}
           </View>
         ) : null}
-      </Section>
+      </SectionCard>
 
       {/* Conditions */}
-      <Section emoji="🏥" title="Medical Conditions" empty="No conditions listed">
-        {healthInfo?.conditions && healthInfo.conditions.length > 0 ? (
-          <View style={styles.listItems}>
+      <SectionCard
+        iconName="fitness-outline"
+        iconColor={COLORS.rose}
+        title="Medical Conditions"
+        emptyText="No conditions listed"
+      >
+        {healthInfo?.conditions?.length ? (
+          <View style={styles.listStack}>
             {healthInfo.conditions.map((c, i) => (
-              <View key={i} style={styles.listItem}>
-                <Text style={styles.listItemTitle}>{c.name}</Text>
-                {c.notes && <Text style={styles.listItemSub}>{c.notes}</Text>}
+              <View key={i} style={[styles.listRow, i < healthInfo.conditions.length - 1 && styles.listRowBorder]}>
+                <Text style={styles.listRowTitle}>{c.name}</Text>
+                {c.notes && <Text style={styles.listRowSub}>{c.notes}</Text>}
               </View>
             ))}
           </View>
         ) : null}
-      </Section>
-
-      {/* Primary Doctor */}
-      <Section emoji="🩺" title="Primary Doctor" empty="No doctor on file">
-        {healthInfo?.primary_doctor ? (
-          <View>
-            <Text style={styles.doctorName}>{healthInfo.primary_doctor.name}</Text>
-            {healthInfo.primary_doctor.specialty && (
-              <Text style={styles.doctorSub}>{healthInfo.primary_doctor.specialty}</Text>
-            )}
-            {healthInfo.primary_doctor.phone && (
-              <TouchableOpacity onPress={() => Linking.openURL(`tel:${healthInfo.primary_doctor!.phone}`)}>
-                <Text style={styles.doctorPhone}>📞 {healthInfo.primary_doctor.phone}</Text>
-              </TouchableOpacity>
-            )}
-            {healthInfo.primary_doctor.address && (
-              <Text style={styles.doctorSub}>📍 {healthInfo.primary_doctor.address}</Text>
-            )}
-          </View>
-        ) : null}
-      </Section>
+      </SectionCard>
 
       {/* Insurance */}
-      <Section emoji="📋" title="Insurance" empty="No insurance on file">
+      <SectionCard
+        iconName="shield-checkmark-outline"
+        iconColor={COLORS.primaryLight}
+        title="Insurance"
+        emptyText="No insurance on file"
+      >
         {healthInfo?.insurance ? (
           <View style={styles.infoGrid}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Carrier</Text>
-              <Text style={styles.infoValue}>{healthInfo.insurance.carrier}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Policy #</Text>
-              <Text style={styles.infoValue}>{healthInfo.insurance.policy_number}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Group #</Text>
-              <Text style={styles.infoValue}>{healthInfo.insurance.group_number}</Text>
-            </View>
-            {healthInfo.insurance.member_id && (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Member ID</Text>
-                <Text style={styles.infoValue}>{healthInfo.insurance.member_id}</Text>
-              </View>
-            )}
+            {[
+              { label: 'Carrier', value: healthInfo.insurance.carrier },
+              { label: 'Policy #', value: healthInfo.insurance.policy_number },
+              { label: 'Group #', value: healthInfo.insurance.group_number },
+              { label: 'Member ID', value: healthInfo.insurance.member_id },
+            ]
+              .filter((r) => r.value)
+              .map((r, i) => (
+                <View key={i} style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>{r.label}</Text>
+                  <Text style={styles.infoValue}>{r.value}</Text>
+                </View>
+              ))}
           </View>
         ) : null}
-      </Section>
+      </SectionCard>
 
       {/* Emergency Contacts */}
-      <Section emoji="📞" title="Emergency Contacts" empty="No emergency contacts">
-        {healthInfo?.emergency_contacts && healthInfo.emergency_contacts.length > 0 ? (
-          <View style={styles.listItems}>
+      <SectionCard
+        iconName="call-outline"
+        iconColor={COLORS.rose}
+        title="Emergency Contacts"
+        emptyText="No emergency contacts"
+      >
+        {healthInfo?.emergency_contacts?.length ? (
+          <View style={styles.listStack}>
             {healthInfo.emergency_contacts.map((c, i) => (
-              <View key={i} style={styles.contactItem}>
-                <View style={styles.contactLeft}>
-                  <Text style={styles.listItemTitle}>{c.name}</Text>
-                  <View style={styles.relationBadge}>
-                    <Text style={styles.relationText}>{c.relationship}</Text>
-                  </View>
+              <View key={i} style={[styles.contactRow, i < healthInfo.emergency_contacts.length - 1 && styles.listRowBorder]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.listRowTitle}>{c.name}</Text>
+                  <Text style={styles.listRowSub}>{c.relationship}</Text>
                 </View>
-                <TouchableOpacity onPress={() => Linking.openURL(`tel:${c.phone}`)}>
-                  <Text style={styles.contactPhone}>{c.phone}</Text>
+                <TouchableOpacity
+                  onPress={() => Linking.openURL(`tel:${c.phone}`)}
+                  style={styles.callBtn}
+                >
+                  <Ionicons name="call" size={15} color={COLORS.primary} />
+                  <Text style={styles.callText}>{c.phone}</Text>
                 </TouchableOpacity>
               </View>
             ))}
           </View>
         ) : null}
-      </Section>
+      </SectionCard>
 
-      {/* Documents preview */}
-      {documents.length > 0 && (
-        <View style={[sectionStyles.container]}>
-          <View style={sectionStyles.header}>
-            <Text style={sectionStyles.emoji}>📄</Text>
-            <Text style={sectionStyles.title}>Documents</Text>
-            <TouchableOpacity
-              style={styles.seeAllButton}
-              onPress={() => navigation.navigate('DocumentScanner', { memberId, memberName })}
-            >
-              <Text style={styles.seeAllText}>See All ({documents.length})</Text>
-            </TouchableOpacity>
+      {/* Primary Doctor */}
+      <SectionCard
+        iconName="person-outline"
+        iconColor={COLORS.primary}
+        title="Primary Doctor"
+        emptyText="No doctor on file"
+      >
+        {healthInfo?.primary_doctor ? (
+          <View>
+            <Text style={styles.listRowTitle}>{healthInfo.primary_doctor.name}</Text>
+            {healthInfo.primary_doctor.specialty && (
+              <Text style={styles.listRowSub}>{healthInfo.primary_doctor.specialty}</Text>
+            )}
+            {healthInfo.primary_doctor.phone && (
+              <TouchableOpacity
+                onPress={() => Linking.openURL(`tel:${healthInfo.primary_doctor!.phone}`)}
+                style={[styles.callBtn, { marginTop: SPACING.sm }]}
+              >
+                <Ionicons name="call-outline" size={15} color={COLORS.primary} />
+                <Text style={styles.callText}>{healthInfo.primary_doctor.phone}</Text>
+              </TouchableOpacity>
+            )}
+            {healthInfo.primary_doctor.address && (
+              <View style={[styles.callBtn, { marginTop: SPACING.xs }]}>
+                <Ionicons name="location-outline" size={15} color={COLORS.textSecondary} />
+                <Text style={[styles.callText, { color: COLORS.textSecondary }]}>{healthInfo.primary_doctor.address}</Text>
+              </View>
+            )}
           </View>
-          <Text style={{ color: '#6B7280', fontSize: 14 }}>{documents.length} document{documents.length !== 1 ? 's' : ''} stored</Text>
-        </View>
+        ) : null}
+      </SectionCard>
+
+      {/* Documents */}
+      {documents.length > 0 && (
+        <SectionCard
+          iconName="document-text-outline"
+          iconColor={COLORS.primary}
+          title="Documents"
+          emptyText=""
+          action={{
+            label: `See All (${documents.length})`,
+            onPress: () => navigation.navigate('DocumentScanner', { memberId, memberName }),
+          }}
+        >
+          <Text style={styles.listRowSub}>
+            {documents.length} document{documents.length !== 1 ? 's' : ''} stored securely
+          </Text>
+        </SectionCard>
       )}
 
       {/* Notes */}
       {healthInfo?.notes ? (
-        <Section emoji="📝" title="Notes">
-          <Text style={styles.notesText}>{healthInfo.notes}</Text>
-        </Section>
+        <SectionCard
+          iconName="create-outline"
+          iconColor={COLORS.textSecondary}
+          title="Notes"
+          emptyText=""
+        >
+          <Text style={[styles.listRowSub, { lineHeight: 21 }]}>{healthInfo.notes}</Text>
+        </SectionCard>
       ) : null}
 
-      <View style={{ height: 32 }} />
+      <View style={{ height: SPACING.xxl }} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAF8' },
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { padding: 16 },
-  profileHeader: {
-    backgroundColor: '#1B2A4A',
-    borderRadius: 20,
-    padding: 24,
+  container: { flex: 1, backgroundColor: COLORS.background },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  content: { paddingTop: SPACING.base, paddingBottom: SPACING.xl },
+  hero: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    backgroundColor: COLORS.primary,
+    marginHorizontal: SPACING.xl,
+    borderRadius: 20,
+    padding: SPACING.xl,
+    marginBottom: SPACING.md,
+    gap: SPACING.base,
   },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(0,180,166,0.3)',
+  heroAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
-    borderWidth: 3,
-    borderColor: '#00B4A6',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.4)',
   },
-  avatarText: { color: '#FFFFFF', fontSize: 28, fontWeight: '800' },
-  memberName: { fontSize: 22, fontWeight: '800', color: '#FFFFFF', textAlign: 'center' },
-  memberAge: { fontSize: 14, color: 'rgba(255,255,255,0.6)', marginTop: 4 },
-  bloodTypeBadge: {
-    backgroundColor: '#7F1D1D',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    marginTop: 10,
+  heroAvatarText: { ...FONTS.h2, color: COLORS.textInverse, fontWeight: '800' },
+  heroInfo: { flex: 1 },
+  heroName: { ...FONTS.h3, color: COLORS.textInverse, marginBottom: 4 },
+  heroAge: { ...FONTS.bodySmall, color: 'rgba(255,255,255,0.75)', marginBottom: 8 },
+  bloodBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.roseLight,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    alignSelf: 'flex-start',
   },
-  bloodTypeText: { color: '#FEE2E2', fontSize: 15, fontWeight: '800' },
+  bloodText: { fontSize: 13, fontWeight: '700', color: COLORS.rose },
   actionRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 12,
+    marginHorizontal: SPACING.xl,
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
   },
-  actionButton: {
+  actionBtn: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
+    ...CARD,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.sm,
   },
-  actionEmoji: { fontSize: 22, marginBottom: 4 },
-  actionLabel: { fontSize: 12, fontWeight: '600', color: '#374151' },
-  chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  actionIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primaryMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.xs,
+  },
+  actionLabel: { ...FONTS.caption, color: COLORS.textSecondary, fontWeight: '600', textAlign: 'center' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
   chip: {
     borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 5,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
   chipText: { fontSize: 13, fontWeight: '600' },
-  chipSeverity: { fontSize: 11, opacity: 0.7 },
-  listItems: { gap: 10 },
-  listItem: {
-    paddingBottom: 10,
+  chipSeverity: { fontSize: 11, opacity: 0.8 },
+  listStack: { gap: SPACING.sm },
+  listRow: { paddingBottom: SPACING.sm },
+  listRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: COLORS.divider,
+    marginBottom: SPACING.sm,
   },
-  listItemTitle: { fontSize: 15, fontWeight: '600', color: '#111827' },
-  listItemSub: { fontSize: 13, color: '#6B7280', marginTop: 2 },
-  doctorName: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 4 },
-  doctorSub: { fontSize: 13, color: '#6B7280', marginTop: 4 },
-  doctorPhone: { fontSize: 14, color: '#00B4A6', fontWeight: '500', marginTop: 4 },
-  infoGrid: { gap: 8 },
+  listRowTitle: { ...FONTS.body, color: COLORS.textPrimary, fontWeight: '600' },
+  listRowSub: { ...FONTS.bodySmall, color: COLORS.textSecondary, marginTop: 2 },
+  infoGrid: { gap: SPACING.sm },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 6,
+    paddingVertical: SPACING.xs,
     borderBottomWidth: 1,
-    borderBottomColor: '#F9FAFB',
+    borderBottomColor: COLORS.divider,
   },
-  infoLabel: { fontSize: 13, color: '#6B7280', fontWeight: '500' },
-  infoValue: { fontSize: 13, color: '#111827', fontWeight: '600', maxWidth: '60%', textAlign: 'right' },
-  contactItem: {
+  infoLabel: { ...FONTS.bodySmall, color: COLORS.textSecondary },
+  infoValue: { ...FONTS.bodySmall, color: COLORS.textPrimary, fontWeight: '600', maxWidth: '60%', textAlign: 'right' },
+  contactRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingBottom: SPACING.sm,
   },
-  contactLeft: { flex: 1 },
-  contactPhone: { fontSize: 13, color: '#00B4A6', fontWeight: '500' },
-  relationBadge: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    alignSelf: 'flex-start',
-    marginTop: 3,
+  callBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 2,
   },
-  relationText: { fontSize: 11, color: '#1D4ED8', fontWeight: '500' },
-  notesText: { fontSize: 14, color: '#374151', lineHeight: 21 },
-  seeAllButton: { marginLeft: 'auto' },
-  seeAllText: { fontSize: 13, color: '#00B4A6', fontWeight: '600' },
+  callText: { ...FONTS.caption, color: COLORS.primary, fontWeight: '600' },
 });

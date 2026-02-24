@@ -6,98 +6,213 @@ import {
   StyleSheet,
   Dimensions,
   ScrollView,
-  Platform,
-  Alert,
+  SafeAreaView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../contexts/AuthContext';
+import { COLORS, FONTS, SPACING } from '../../lib/design';
 
 const { width } = Dimensions.get('window');
 
-const slides = [
+type SlideData = {
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+  iconBg: string;
+  title: string;
+  description: string;
+};
+
+const slides: SlideData[] = [
   {
-    emoji: '🏠',
-    title: 'Welcome to FamilyVault',
+    icon: 'leaf',
+    iconColor: COLORS.primary,
+    iconBg: COLORS.primaryMuted,
+    title: 'Welcome to Rosemary',
     description:
-      'Keep your entire family\'s health records in one secure, beautifully organized place. Always ready when you need it most.',
-    color: '#EEF2FF',
-    accentColor: '#818CF8',
+      'Keep your entire family\'s health records in one secure, organized place — always ready when you need it most.',
   },
   {
-    emoji: '🏥',
-    title: 'Complete Health Profiles',
+    icon: 'medkit-outline',
+    iconColor: COLORS.rose,
+    iconBg: COLORS.roseLight,
+    title: 'Complete health profiles',
     description:
-      'Store blood type, medications, allergies, insurance details, emergency contacts, and more — for every family member.',
-    color: '#ECFDF5',
-    accentColor: '#34D399',
+      'Store blood type, medications, allergies, insurance, emergency contacts, and more — for every family member.',
   },
   {
-    emoji: '🚨',
-    title: 'Ready for Any Emergency',
+    icon: 'share-social-outline',
+    iconColor: COLORS.primaryLight,
+    iconBg: COLORS.primaryMuted,
+    title: 'Ready for any emergency',
     description:
-      'Generate a secure share link in one tap. Perfect for ER visits, new doctor appointments, or when a family member needs to step in.',
-    color: '#FFF7ED',
-    accentColor: '#FB923C',
-  },
-  {
-    emoji: '✅',
-    title: "You're All Set!",
-    description:
-      "Let's add your first family member. It only takes a minute to set up a complete health profile.",
-    color: '#F0FDF4',
-    accentColor: '#00B4A6',
+      'Generate a secure share link in one tap. Perfect for ER visits, new doctors, or when a family member needs to step in.',
   },
 ];
+
+// Notification value screen — shown before the iOS system prompt
+function NotificationValueScreen({ onAllow, onSkip }: { onAllow: () => void; onSkip: () => void }) {
+  return (
+    <View style={notifStyles.container}>
+      <View style={notifStyles.iconContainer}>
+        <Ionicons name="notifications-outline" size={52} color={COLORS.primary} />
+      </View>
+
+      <Text style={notifStyles.title}>Never miss an appointment</Text>
+      <Text style={notifStyles.subtitle}>
+        Rosemary sends the notifications that actually matter.
+      </Text>
+
+      <View style={notifStyles.benefits}>
+        {[
+          { icon: 'calendar-outline' as const, text: '24-hour reminders before appointments' },
+          { icon: 'time-outline' as const, text: "Day-of reminders so you're always prepared" },
+          { icon: 'checkmark-circle-outline' as const, text: "That's it — no spam, ever" },
+        ].map((item, i) => (
+          <View key={i} style={notifStyles.benefitRow}>
+            <View style={notifStyles.benefitIcon}>
+              <Ionicons name={item.icon} size={18} color={COLORS.primary} />
+            </View>
+            <Text style={notifStyles.benefitText}>{item.text}</Text>
+          </View>
+        ))}
+      </View>
+
+      <TouchableOpacity style={notifStyles.allowButton} onPress={onAllow} activeOpacity={0.85}>
+        <Text style={notifStyles.allowButtonText}>Turn On Notifications</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={onSkip} style={notifStyles.skipButton}>
+        <Text style={notifStyles.skipText}>Maybe later</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const notifStyles = StyleSheet.create({
+  container: {
+    width,
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingHorizontal: SPACING.xxl,
+  },
+  iconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 28,
+    backgroundColor: COLORS.primaryMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.xl,
+  },
+  title: {
+    ...FONTS.h2,
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+    marginBottom: SPACING.sm,
+  },
+  subtitle: {
+    ...FONTS.body,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: SPACING.xxl,
+  },
+  benefits: {
+    width: '100%',
+    gap: SPACING.md,
+    marginBottom: SPACING.xxl,
+  },
+  benefitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    backgroundColor: COLORS.surfaceAlt,
+    borderRadius: 12,
+    padding: SPACING.base,
+  },
+  benefitIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.primaryMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  benefitText: {
+    ...FONTS.body,
+    color: COLORS.textPrimary,
+    flex: 1,
+  },
+  allowButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 14,
+    height: 52,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+    marginBottom: SPACING.base,
+  },
+  allowButtonText: {
+    color: COLORS.textInverse,
+    ...FONTS.h4,
+    fontWeight: '600',
+  },
+  skipButton: {
+    paddingVertical: SPACING.sm,
+  },
+  skipText: {
+    ...FONTS.body,
+    color: COLORS.textSecondary,
+  },
+});
 
 export default function OnboardingScreen() {
   const { completeOnboarding } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showNotifValue, setShowNotifValue] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+
+  // Total: 3 info slides + notif value screen + "You're ready" slide = 5 steps
+  const totalSlides = slides.length + 2; // +notif value +ready
+  const isNotifStep = currentIndex === slides.length;
+  const isReadyStep = currentIndex === slides.length + 1;
 
   async function requestNotifications() {
     try {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Notifications Disabled',
-          'Enable notifications in Settings to get appointment reminders.',
-          [{ text: 'OK' }]
-        );
-      }
+      await Notifications.requestPermissionsAsync();
     } catch (e) {
-      // Ignore on simulators
+      // Fine on simulators
     }
+    goToNextSlide();
   }
 
-  function handleScroll(e: any) {
-    const index = Math.round(e.nativeEvent.contentOffset.x / width);
-    if (index === 2 && currentIndex !== 2) {
-      requestNotifications();
-    }
-    setCurrentIndex(index);
+  function goToNextSlide() {
+    const next = currentIndex + 1;
+    setCurrentIndex(next);
+    scrollRef.current?.scrollTo({ x: next * width, animated: true });
   }
 
-  function goToNext() {
-    if (currentIndex < slides.length - 1) {
-      const next = currentIndex + 1;
-      scrollRef.current?.scrollTo({ x: next * width, animated: true });
-      setCurrentIndex(next);
-      if (next === 2) requestNotifications();
-    }
-  }
-
-  async function handleGetStarted() {
+  async function handleFinish() {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await completeOnboarding();
   }
 
-  const slide = slides[currentIndex];
-  const isLast = currentIndex === slides.length - 1;
+  function handleScroll(e: any) {
+    const index = Math.round(e.nativeEvent.contentOffset.x / width);
+    setCurrentIndex(index);
+  }
+
+  const progressDots = Array.from({ length: totalSlides });
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity style={styles.skipButton} onPress={handleGetStarted}>
+    <SafeAreaView style={styles.container}>
+      <TouchableOpacity style={styles.skipButton} onPress={handleFinish}>
         <Text style={styles.skipText}>Skip</Text>
       </TouchableOpacity>
 
@@ -108,21 +223,40 @@ export default function OnboardingScreen() {
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={handleScroll}
         scrollEventThrottle={16}
+        scrollEnabled={false}
       >
-        {slides.map((s, index) => (
+        {/* Info slides */}
+        {slides.map((slide, index) => (
           <View key={index} style={styles.slide}>
-            <View style={[styles.emojiContainer, { backgroundColor: s.color }]}>
-              <Text style={styles.emoji}>{s.emoji}</Text>
+            <View style={[styles.iconContainer, { backgroundColor: slide.iconBg }]}>
+              <Ionicons name={slide.icon} size={52} color={slide.iconColor} />
             </View>
-            <Text style={styles.slideTitle}>{s.title}</Text>
-            <Text style={styles.slideDescription}>{s.description}</Text>
+            <Text style={styles.slideTitle}>{slide.title}</Text>
+            <Text style={styles.slideDesc}>{slide.description}</Text>
           </View>
         ))}
+
+        {/* Notification value screen */}
+        <NotificationValueScreen
+          onAllow={requestNotifications}
+          onSkip={goToNextSlide}
+        />
+
+        {/* You're ready slide */}
+        <View style={styles.slide}>
+          <View style={[styles.iconContainer, { backgroundColor: COLORS.primaryMuted }]}>
+            <Ionicons name="checkmark-circle" size={52} color={COLORS.primary} />
+          </View>
+          <Text style={styles.slideTitle}>You're all set!</Text>
+          <Text style={styles.slideDesc}>
+            Let's add your first family member. It takes about 2 minutes to set up a complete health profile.
+          </Text>
+        </View>
       </ScrollView>
 
-      {/* Progress dots */}
-      <View style={styles.dotsContainer}>
-        {slides.map((_, i) => (
+      {/* Dots */}
+      <View style={styles.dotsRow}>
+        {progressDots.map((_, i) => (
           <View
             key={i}
             style={[
@@ -133,79 +267,77 @@ export default function OnboardingScreen() {
         ))}
       </View>
 
-      <View style={styles.buttonContainer}>
-        {isLast ? (
-          <TouchableOpacity style={styles.getStartedButton} onPress={handleGetStarted}>
-            <Text style={styles.getStartedText}>Get Started 🚀</Text>
+      {/* Bottom button */}
+      <View style={styles.buttonArea}>
+        {isReadyStep ? (
+          <TouchableOpacity style={styles.mainButton} onPress={handleFinish} activeOpacity={0.85}>
+            <Text style={styles.mainButtonText}>Get Started</Text>
+            <Ionicons name="arrow-forward" size={18} color={COLORS.textInverse} style={{ marginLeft: 6 }} />
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.nextButton} onPress={goToNext}>
-            <Text style={styles.nextText}>Next →</Text>
+        ) : isNotifStep ? null : (
+          <TouchableOpacity style={styles.mainButton} onPress={goToNextSlide} activeOpacity={0.85}>
+            <Text style={styles.mainButtonText}>Next</Text>
           </TouchableOpacity>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAF8',
+    backgroundColor: COLORS.background,
     alignItems: 'center',
   },
   skipButton: {
     position: 'absolute',
     top: 56,
-    right: 24,
+    right: SPACING.xl,
     zIndex: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
   },
   skipText: {
-    color: '#6B7280',
-    fontSize: 15,
+    ...FONTS.body,
+    color: COLORS.textSecondary,
     fontWeight: '500',
   },
   slide: {
     width,
     alignItems: 'center',
-    paddingTop: 100,
-    paddingHorizontal: 32,
+    paddingTop: 80,
+    paddingHorizontal: SPACING.xxl,
   },
-  emojiContainer: {
-    width: 120,
-    height: 120,
+  iconContainer: {
+    width: 112,
+    height: 112,
     borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 32,
+    marginBottom: SPACING.xxl,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
-  },
-  emoji: {
-    fontSize: 56,
+    elevation: 3,
   },
   slideTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#1B2A4A',
+    ...FONTS.h2,
+    color: COLORS.textPrimary,
     textAlign: 'center',
-    marginBottom: 14,
-    letterSpacing: -0.3,
+    marginBottom: SPACING.base,
   },
-  slideDescription: {
-    fontSize: 16,
-    color: '#6B7280',
+  slideDesc: {
+    ...FONTS.bodyLarge,
+    color: COLORS.textSecondary,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 26,
   },
-  dotsContainer: {
+  dotsRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 24,
+    gap: SPACING.sm,
+    marginBottom: SPACING.lg,
   },
   dot: {
     height: 8,
@@ -213,43 +345,34 @@ const styles = StyleSheet.create({
   },
   dotActive: {
     width: 24,
-    backgroundColor: '#00B4A6',
+    backgroundColor: COLORS.primary,
   },
   dotInactive: {
     width: 8,
-    backgroundColor: '#D1D5DB',
+    backgroundColor: COLORS.border,
   },
-  buttonContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 48,
+  buttonArea: {
+    paddingHorizontal: SPACING.xl,
+    paddingBottom: SPACING.xxl,
     width: '100%',
+    minHeight: 72,
   },
-  nextButton: {
-    backgroundColor: '#1B2A4A',
+  mainButton: {
+    backgroundColor: COLORS.primary,
     borderRadius: 14,
-    height: 56,
+    height: 52,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  nextText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  getStartedButton: {
-    backgroundColor: '#00B4A6',
-    borderRadius: 14,
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#00B4A6',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
+    elevation: 4,
   },
-  getStartedText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '700',
+  mainButtonText: {
+    color: COLORS.textInverse,
+    ...FONTS.h4,
+    fontWeight: '600',
   },
 });

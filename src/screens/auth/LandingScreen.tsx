@@ -5,12 +5,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
-  Dimensions,
+  SafeAreaView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../lib/types';
-
-const { height } = Dimensions.get('window');
+import { COLORS, FONTS, SPACING } from '../../lib/design';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Landing'>;
@@ -19,37 +19,58 @@ type Props = {
 export default function LandingScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1B2A4A" />
-      
-      <View style={styles.content}>
-        <View style={styles.iconContainer}>
-          <Text style={styles.iconEmoji}>🛡️</Text>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+
+      <SafeAreaView style={styles.safe}>
+        {/* Logo area */}
+        <View style={styles.logoArea}>
+          <View style={styles.iconContainer}>
+            <Ionicons name="leaf" size={44} color={COLORS.textInverse} />
+          </View>
+          <Text style={styles.appName}>Rosemary</Text>
+          <Text style={styles.tagline}>Your family's health,{'\n'}always within reach.</Text>
+          <Text style={styles.subtext}>
+            Secure health profiles for everyone you love.
+          </Text>
         </View>
-        
-        <Text style={styles.appName}>FamilyVault</Text>
-        <Text style={styles.tagline}>Your family's health, always within reach.</Text>
-        <Text style={styles.subtext}>Secure health profiles for everyone you love.</Text>
-      </View>
 
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => navigation.navigate('SignUp')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.primaryButtonText}>Create Account</Text>
-        </TouchableOpacity>
+        {/* Trust badges */}
+        <View style={styles.badgeRow}>
+          <View style={styles.badge}>
+            <Ionicons name="shield-checkmark-outline" size={14} color={COLORS.primary} />
+            <Text style={styles.badgeText}>Encrypted</Text>
+          </View>
+          <View style={styles.badgeDot} />
+          <View style={styles.badge}>
+            <Ionicons name="lock-closed-outline" size={14} color={COLORS.primary} />
+            <Text style={styles.badgeText}>Private</Text>
+          </View>
+          <View style={styles.badgeDot} />
+          <View style={styles.badge}>
+            <Ionicons name="people-outline" size={14} color={COLORS.primary} />
+            <Text style={styles.badgeText}>Family-first</Text>
+          </View>
+        </View>
 
-        <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={() => navigation.navigate('SignIn')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.secondaryButtonText}>Sign In</Text>
-        </TouchableOpacity>
+        {/* Actions */}
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => navigation.navigate('SignUp')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.primaryButtonText}>Create Account</Text>
+          </TouchableOpacity>
 
-        <Text style={styles.securityNote}>🔒 End-to-end encrypted · HIPAA-friendly storage</Text>
-      </View>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => navigation.navigate('SignIn')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.secondaryButtonText}>Sign In</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     </View>
   );
 }
@@ -57,88 +78,107 @@ export default function LandingScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1B2A4A',
-    justifyContent: 'space-between',
-    paddingBottom: 48,
+    backgroundColor: COLORS.background,
   },
-  content: {
+  safe: {
+    flex: 1,
+    paddingHorizontal: SPACING.xl,
+    justifyContent: 'space-between',
+    paddingBottom: SPACING.xxxl,
+    paddingTop: 48,
+  },
+  logoArea: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
   },
   iconContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 24,
-    backgroundColor: 'rgba(0, 180, 166, 0.2)',
+    width: 100,
+    height: 100,
+    borderRadius: 28,
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
-  },
-  iconEmoji: {
-    fontSize: 48,
+    marginBottom: SPACING.xl,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
   appName: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    ...FONTS.h1,
+    color: COLORS.textPrimary,
     letterSpacing: -0.5,
-    marginBottom: 12,
+    marginBottom: SPACING.md,
   },
   tagline: {
-    fontSize: 20,
-    fontWeight: '500',
-    color: '#FAFAF8',
+    ...FONTS.h3,
+    color: COLORS.textPrimary,
     textAlign: 'center',
-    lineHeight: 28,
-    marginBottom: 10,
+    marginBottom: SPACING.sm,
+    fontWeight: '500',
   },
   subtext: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.6)',
+    ...FONTS.body,
+    color: COLORS.textSecondary,
     textAlign: 'center',
-    lineHeight: 22,
   },
-  actions: {
-    paddingHorizontal: 24,
-    gap: 12,
-  },
-  primaryButton: {
-    backgroundColor: '#00B4A6',
-    borderRadius: 14,
-    height: 56,
+  badgeRow: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#00B4A6',
+    marginBottom: SPACING.xxl,
+    gap: SPACING.sm,
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  badgeText: {
+    ...FONTS.caption,
+    color: COLORS.primary,
+    fontWeight: '500',
+  },
+  badgeDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: COLORS.border,
+  },
+  actions: {
+    gap: SPACING.md,
+  },
+  primaryButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 14,
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
+    elevation: 4,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: 0.2,
+    color: COLORS.textInverse,
+    ...FONTS.h4,
+    fontWeight: '600',
   },
   secondaryButton: {
     borderRadius: 14,
-    height: 56,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.4)',
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
   },
   secondaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 17,
+    color: COLORS.textPrimary,
+    ...FONTS.h4,
     fontWeight: '600',
-    letterSpacing: 0.2,
-  },
-  securityNote: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 8,
   },
 });

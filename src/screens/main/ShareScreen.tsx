@@ -1,49 +1,50 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
+  FlatList,
   Alert,
   ActivityIndicator,
-  Clipboard,
   Share,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp, useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
 import { ShareLink, RootStackParamList } from '../../lib/types';
-import { useAuth } from '../../contexts/AuthContext';
+import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Share'>;
   route: RouteProp<RootStackParamList, 'Share'>;
 };
 
-function generateToken(): string {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+function formatExpiry(dateStr: string) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function isExpired(expiresAt: string): boolean {
-  return new Date(expiresAt) < new Date();
+function isExpired(dateStr: string) {
+  return new Date(dateStr) < new Date();
 }
 
 export default function ShareScreen({ navigation, route }: Props) {
   const { memberId, memberName } = route.params;
-  const { user } = useAuth();
   const [links, setLinks] = useState<ShareLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
-    navigation.setOptions({ title: `Share · ${memberName}` });
-  }, [memberName]);
+    navigation.setOptions({
+      title: 'Share Profile',
+      headerStyle: { backgroundColor: COLORS.background },
+      headerTintColor: COLORS.textPrimary,
+      headerShadowVisible: false,
+    });
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -52,13 +53,14 @@ export default function ShareScreen({ navigation, route }: Props) {
   );
 
   async function fetchLinks() {
+    setLoading(true);
     try {
       const { data } = await supabase
         .from('share_links')
         .select('*')
         .eq('member_id', memberId)
+        .eq('revoked', false)
         .order('created_at', { ascending: false });
-
       setLinks(data || []);
     } finally {
       setLoading(false);
@@ -66,256 +68,201 @@ export default function ShareScreen({ navigation, route }: Props) {
   }
 
   async function generateLink() {
-    if (!user) return;
     setGenerating(true);
-
     try {
-      const token = generateToken();
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
-
+      const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from('share_links').insert({
         member_id: memberId,
         token,
-        expires_at: expiresAt.toISOString(),
-        created_by: user.id,
+        expires_at: expiresAt,
+        created_by: user?.id,
         revoked: false,
       });
-
       if (error) throw error;
-
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       fetchLinks();
-    } catch (error: any) {
-      Alert.alert('Error', 'Failed to generate share link.');
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
     } finally {
       setGenerating(false);
     }
   }
 
-  async function revokeLink(link: ShareLink) {
-    Alert.alert(
-      'Revoke Link',
-      'This link will immediately stop working. Anyone with this link will lose access.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Revoke',
-          style: 'destructive',
-          onPress: async () => {
-            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            await supabase.from('share_links').update({ revoked: true }).eq('id', link.id);
-            fetchLinks();
-          },
+  async function revokeLink(id: string) {
+    Alert.alert('Revoke Link', 'This link will no longer work.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Revoke',
+        style: 'destructive',
+        onPress: async () => {
+          await supabase.from('share_links').update({ revoked: true }).eq('id', id);
+          fetchLinks();
         },
-      ]
-    );
-  }
-
-  function getLinkUrl(token: string): string {
-    return `https://familyvault.app/share/${token}`;
-  }
-
-  function copyLink(token: string) {
-    Clipboard.setString(getLinkUrl(token));
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert('Copied!', 'Share link copied to clipboard.');
+      },
+    ]);
   }
 
   async function shareLink(token: string) {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await Share.share({
-      message: `${memberName}'s health profile (secure, 7-day access): ${getLinkUrl(token)}`,
-      title: `Share ${memberName}'s Health Profile`,
-    });
+    const url = `https://rosemary.app/share/${token}`;
+    try {
+      await Share.share({
+        message: `${memberName}'s health profile: ${url}`,
+        url,
+        title: `${memberName}'s Health Profile`,
+      });
+    } catch {}
   }
 
-  const activeLinks = links.filter((l) => !l.revoked && !isExpired(l.expires_at));
-  const inactiveLinks = links.filter((l) => l.revoked || isExpired(l.expires_at));
-
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#00B4A6" />
-      </View>
-    );
-  }
+  const activeLinks = links.filter((l) => !isExpired(l.expires_at));
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Info card */}
+    <View style={styles.container}>
+      {/* How it works */}
       <View style={styles.infoCard}>
-        <Text style={styles.infoEmoji}>🔗</Text>
-        <Text style={styles.infoTitle}>Share {memberName}'s Health Profile</Text>
-        <Text style={styles.infoDesc}>
-          Generate a secure, read-only link that gives access to this health profile for 7 days.
-          Links expire automatically and can be revoked at any time.
-        </Text>
+        <View style={styles.infoRow}>
+          <View style={styles.infoIconBg}>
+            <Ionicons name="shield-checkmark" size={20} color={COLORS.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.infoTitle}>Secure, read-only links</Text>
+            <Text style={styles.infoDesc}>
+              Share links expire in 7 days and can only view — never edit — health info. Revoke anytime.
+            </Text>
+          </View>
+        </View>
       </View>
 
       {/* Generate button */}
       <TouchableOpacity
-        style={[styles.generateButton, generating && styles.generateButtonDisabled]}
+        style={[styles.generateBtn, generating && { opacity: 0.6 }]}
         onPress={generateLink}
         disabled={generating}
+        activeOpacity={0.85}
       >
         {generating ? (
-          <ActivityIndicator color="#FFFFFF" />
+          <ActivityIndicator color={COLORS.textInverse} />
         ) : (
-          <Text style={styles.generateButtonText}>Generate New Share Link</Text>
+          <>
+            <Ionicons name="link" size={18} color={COLORS.textInverse} />
+            <Text style={styles.generateBtnText}>Generate Share Link</Text>
+          </>
         )}
       </TouchableOpacity>
 
       {/* Active links */}
-      {activeLinks.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Active Links ({activeLinks.length})</Text>
+      {loading ? (
+        <ActivityIndicator color={COLORS.primary} style={{ marginTop: 32 }} />
+      ) : activeLinks.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Ionicons name="link-outline" size={40} color={COLORS.textTertiary} />
+          <Text style={styles.emptyText}>No active links</Text>
+          <Text style={styles.emptySubtext}>Generated links will appear here</Text>
+        </View>
+      ) : (
+        <>
+          <Text style={styles.sectionLabel}>Active Links ({activeLinks.length})</Text>
           {activeLinks.map((link) => (
             <View key={link.id} style={styles.linkCard}>
-              <View style={styles.linkInfo}>
-                <View style={styles.activeBadge}>
-                  <Text style={styles.activeBadgeText}>● Active</Text>
+              <View style={styles.linkLeft}>
+                <View style={styles.linkIconBg}>
+                  <Ionicons name="link" size={16} color={COLORS.primaryLight} />
                 </View>
-                <Text style={styles.linkDate}>Created {formatDate(link.created_at)}</Text>
-                <Text style={styles.linkExpiry}>Expires {formatDate(link.expires_at)}</Text>
-                <Text style={styles.linkUrl} numberOfLines={1}>
-                  {getLinkUrl(link.token)}
-                </Text>
+                <View>
+                  <Text style={styles.linkToken} numberOfLines={1}>
+                    ...{link.token.slice(-12)}
+                  </Text>
+                  <Text style={styles.linkExpiry}>Expires {formatExpiry(link.expires_at)}</Text>
+                </View>
               </View>
               <View style={styles.linkActions}>
-                <TouchableOpacity style={styles.copyButton} onPress={() => copyLink(link.token)}>
-                  <Text style={styles.copyText}>📋 Copy</Text>
+                <TouchableOpacity
+                  onPress={() => shareLink(link.token)}
+                  style={styles.linkActionBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="share-outline" size={18} color={COLORS.primary} />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.shareButton} onPress={() => shareLink(link.token)}>
-                  <Text style={styles.shareText}>📤 Share</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.revokeButton} onPress={() => revokeLink(link)}>
-                  <Text style={styles.revokeText}>Revoke</Text>
+                <TouchableOpacity
+                  onPress={() => revokeLink(link.id)}
+                  style={styles.linkActionBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="trash-outline" size={18} color={COLORS.rose} />
                 </TouchableOpacity>
               </View>
             </View>
           ))}
-        </View>
+        </>
       )}
-
-      {/* Expired/revoked links */}
-      {inactiveLinks.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Past Links</Text>
-          {inactiveLinks.map((link) => (
-            <View key={link.id} style={[styles.linkCard, styles.linkCardInactive]}>
-              <View style={styles.linkInfo}>
-                <View style={[styles.activeBadge, styles.inactiveBadge]}>
-                  <Text style={styles.inactiveBadgeText}>
-                    {link.revoked ? '✕ Revoked' : '⏱ Expired'}
-                  </Text>
-                </View>
-                <Text style={styles.linkDateInactive}>Created {formatDate(link.created_at)}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {links.length === 0 && (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>🔐</Text>
-          <Text style={styles.emptyTitle}>No Links Generated Yet</Text>
-          <Text style={styles.emptyDesc}>
-            Tap "Generate New Share Link" above to create a secure 7-day access link.
-          </Text>
-        </View>
-      )}
-
-      <View style={{ height: 32 }} />
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAF8' },
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { padding: 16 },
+  container: { flex: 1, backgroundColor: COLORS.background, padding: SPACING.xl },
   infoCard: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    alignItems: 'flex-start',
+    ...CARD,
+    padding: SPACING.base,
+    marginBottom: SPACING.base,
   },
-  infoEmoji: { fontSize: 32, marginBottom: 10 },
-  infoTitle: { fontSize: 17, fontWeight: '700', color: '#1B2A4A', marginBottom: 8 },
-  infoDesc: { fontSize: 14, color: '#4B5563', lineHeight: 21 },
-  generateButton: {
-    backgroundColor: '#00B4A6',
-    borderRadius: 14,
-    height: 52,
+  infoRow: { flexDirection: 'row', gap: SPACING.md, alignItems: 'flex-start' },
+  infoIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primaryMuted,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
-    shadowColor: '#00B4A6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
   },
-  generateButtonDisabled: { opacity: 0.7 },
-  generateButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  section: { marginBottom: 20 },
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
-  linkCard: {
-    backgroundColor: '#FFFFFF',
+  infoTitle: { ...FONTS.h4, color: COLORS.textPrimary, marginBottom: 4 },
+  infoDesc: { ...FONTS.bodySmall, color: COLORS.textSecondary, lineHeight: 20 },
+  generateBtn: {
+    backgroundColor: COLORS.primary,
     borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-  },
-  linkCardInactive: { opacity: 0.6 },
-  linkInfo: { marginBottom: 12 },
-  activeBadge: {
-    backgroundColor: '#D1FAE5',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    alignSelf: 'flex-start',
-    marginBottom: 8,
-  },
-  activeBadgeText: { fontSize: 12, color: '#065F46', fontWeight: '700' },
-  inactiveBadge: { backgroundColor: '#F3F4F6' },
-  inactiveBadgeText: { fontSize: 12, color: '#6B7280', fontWeight: '600' },
-  linkDate: { fontSize: 13, color: '#374151', marginBottom: 2 },
-  linkDateInactive: { fontSize: 13, color: '#9CA3AF' },
-  linkExpiry: { fontSize: 12, color: '#6B7280', marginBottom: 6 },
-  linkUrl: { fontSize: 12, color: '#9CA3AF', fontFamily: 'monospace' },
-  linkActions: { flexDirection: 'row', gap: 8 },
-  copyButton: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 8,
-    paddingVertical: 8,
+    height: 52,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    marginBottom: SPACING.xl,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  copyText: { fontSize: 13, fontWeight: '600', color: '#374151' },
-  shareButton: {
-    flex: 1,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 8,
-    paddingVertical: 8,
+  generateBtnText: { color: COLORS.textInverse, ...FONTS.h4, fontWeight: '600' },
+  sectionLabel: {
+    ...FONTS.label,
+    color: COLORS.textTertiary,
+    textTransform: 'uppercase',
+    marginBottom: SPACING.sm,
+  },
+  linkCard: {
+    ...CARD,
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.base,
+    marginBottom: SPACING.sm,
+    gap: SPACING.md,
   },
-  shareText: { fontSize: 13, fontWeight: '600', color: '#1D4ED8' },
-  revokeButton: {
-    flex: 1,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 8,
-    paddingVertical: 8,
+  linkLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
+  linkIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: COLORS.primaryMuted,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  revokeText: { fontSize: 13, fontWeight: '600', color: '#DC2626' },
-  emptyState: { alignItems: 'center', paddingTop: 40 },
-  emptyEmoji: { fontSize: 56, marginBottom: 14 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#1B2A4A', marginBottom: 8 },
-  emptyDesc: { fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 21 },
+  linkToken: { ...FONTS.body, color: COLORS.textPrimary, fontWeight: '600', maxWidth: 140 },
+  linkExpiry: { ...FONTS.caption, color: COLORS.textSecondary, marginTop: 2 },
+  linkActions: { flexDirection: 'row', gap: SPACING.md },
+  linkActionBtn: { padding: 4 },
+  emptyState: { alignItems: 'center', paddingTop: SPACING.xxl, gap: SPACING.sm },
+  emptyText: { ...FONTS.h4, color: COLORS.textSecondary },
+  emptySubtext: { ...FONTS.bodySmall, color: COLORS.textTertiary },
 });

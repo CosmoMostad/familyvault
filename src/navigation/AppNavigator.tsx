@@ -4,8 +4,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../lib/types';
+import { COLORS } from '../lib/design';
 
-// Auth screens
+// Auth
 import LandingScreen from '../screens/auth/LandingScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 import SignInScreen from '../screens/auth/SignInScreen';
@@ -14,7 +15,7 @@ import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 // Onboarding
 import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
 
-// Main screens
+// Main
 import DashboardScreen from '../screens/main/DashboardScreen';
 import MemberProfileScreen from '../screens/main/MemberProfileScreen';
 import AddEditMemberScreen from '../screens/main/AddEditMemberScreen';
@@ -30,8 +31,8 @@ export default function AppNavigator() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1B2A4A' }}>
-        <ActivityIndicator size="large" color="#00B4A6" />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background }}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -40,14 +41,15 @@ export default function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
-          headerStyle: { backgroundColor: '#1B2A4A' },
-          headerTintColor: '#FFFFFF',
-          headerTitleStyle: { fontWeight: '700' },
-          contentStyle: { backgroundColor: '#FAFAF8' },
+          headerStyle: { backgroundColor: COLORS.background },
+          headerTintColor: COLORS.textPrimary,
+          headerTitleStyle: { fontWeight: '600', fontSize: 17 },
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: COLORS.background },
+          animation: 'slide_from_right',
         }}
       >
         {!session ? (
-          // Auth flow
           <>
             <Stack.Screen name="Landing" component={LandingScreen} options={{ headerShown: false }} />
             <Stack.Screen name="SignUp" component={SignUpScreen} options={{ headerShown: false }} />
@@ -55,28 +57,19 @@ export default function AppNavigator() {
             <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
           </>
         ) : isFirstLaunch ? (
-          // Onboarding flow
           <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ headerShown: false }} />
         ) : (
-          // Main app
           <>
             <Stack.Screen name="Dashboard" component={DashboardScreen} options={{ headerShown: false }} />
             <Stack.Screen
               name="MemberProfile"
               component={MemberProfileScreen}
-              options={{
-                title: '',
-                headerStyle: { backgroundColor: '#1B2A4A' },
-                headerTintColor: '#FFFFFF',
-              }}
+              options={{ headerBackTitle: 'Back' }}
             />
             <Stack.Screen
               name="AddEditMember"
               component={AddEditMemberScreen}
-              options={{
-                title: 'Add Member',
-                presentation: 'modal',
-              }}
+              options={{ headerShown: false, presentation: 'modal' }}
             />
             <Stack.Screen
               name="DocumentScanner"
@@ -96,7 +89,7 @@ export default function AppNavigator() {
             <Stack.Screen
               name="Settings"
               component={SettingsScreen}
-              options={{ title: 'Settings' }}
+              options={{ headerShown: false }}
             />
           </>
         )}

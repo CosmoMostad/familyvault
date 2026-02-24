@@ -18,8 +18,10 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
+import { Ionicons } from '@expo/vector-icons';
 import { Document, RootStackParamList } from '../../lib/types';
 import { useAuth } from '../../contexts/AuthContext';
+import { COLORS, FONTS, SPACING } from '../../lib/design';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'DocumentScanner'>;
@@ -204,12 +206,15 @@ export default function DocumentScannerScreen({ navigation, route }: Props) {
         )}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>📄</Text>
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="document-text-outline" size={48} color={COLORS.textTertiary} />
+            </View>
             <Text style={styles.emptyTitle}>No Documents Yet</Text>
             <Text style={styles.emptyDesc}>
               Scan insurance cards, lab results, prescriptions, and other medical records.
             </Text>
             <TouchableOpacity style={styles.emptyButton} onPress={showAddOptions}>
+              <Ionicons name="camera-outline" size={18} color={COLORS.textInverse} />
               <Text style={styles.emptyButtonText}>Add First Document</Text>
             </TouchableOpacity>
           </View>
@@ -218,7 +223,7 @@ export default function DocumentScannerScreen({ navigation, route }: Props) {
 
       {documents.length > 0 && (
         <TouchableOpacity style={styles.fab} onPress={showAddOptions}>
-          <Text style={styles.fabText}>📷</Text>
+          <Ionicons name="camera-outline" size={26} color={COLORS.textInverse} />
         </TouchableOpacity>
       )}
 
@@ -285,18 +290,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 32,
     right: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#1B2A4A',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.35,
     shadowRadius: 8,
+    elevation: 6,
   },
-  fabText: { fontSize: 26 },
   emptyState: {
     flex: 1,
     alignItems: 'center',
@@ -304,11 +309,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     paddingTop: 80,
   },
-  emptyEmoji: { fontSize: 64, marginBottom: 16 },
-  emptyTitle: { fontSize: 20, fontWeight: '800', color: '#1B2A4A', marginBottom: 8 },
-  emptyDesc: { fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 21, marginBottom: 24 },
-  emptyButton: { backgroundColor: '#00B4A6', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 },
-  emptyButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
+  emptyIconWrap: {
+    width: 88, height: 88, borderRadius: 44,
+    backgroundColor: COLORS.surfaceAlt, alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+  },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 8 },
+  emptyDesc: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 21, marginBottom: 24 },
+  emptyButton: {
+    backgroundColor: COLORS.primary, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8,
+  },
+  emptyButtonText: { color: COLORS.textInverse, fontWeight: '700', fontSize: 15 },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.9)',

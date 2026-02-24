@@ -59,14 +59,23 @@ export interface Doctor {
   specialty?: string;
 }
 
+export interface HealthcareProxy {
+  name: string;
+  phone: string;
+  email: string;
+  relationship: string;
+}
+
 export interface HealthInfo {
   id: string;
   member_id: string;
   allergies: Allergy[];
   medications: Medication[];
   conditions: Condition[];
+  past_surgeries: string;
   insurance: Insurance | null;
   emergency_contacts: EmergencyContact[];
+  healthcare_proxy: HealthcareProxy | null;
   primary_doctor: Doctor | null;
   notes: string;
   updated_at?: string;

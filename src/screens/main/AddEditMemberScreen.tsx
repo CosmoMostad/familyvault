@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Platform,
   SafeAreaView,
+  Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -36,6 +37,7 @@ type Props = {
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const SEVERITIES: Allergy['severity'][] = ['Mild', 'Moderate', 'Severe'];
 const FREQUENCIES = ['Once daily', 'Twice daily', 'Three times daily', 'As needed', 'Weekly'];
+const GENDERS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
 
 function FormInput({
   label,
@@ -123,6 +125,11 @@ export default function AddEditMemberScreen({ navigation, route }: Props) {
   const [fullName, setFullName] = useState('');
   const [dob, setDob] = useState('');
   const [bloodType, setBloodType] = useState('');
+  const [relationship, setRelationship] = useState('');
+  const [gender, setGender] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [isSelf, setIsSelf] = useState(false);
 
   // Health
   const [allergies, setAllergies] = useState<Allergy[]>([]);
@@ -166,6 +173,11 @@ export default function AddEditMemberScreen({ navigation, route }: Props) {
         setFullName(m.full_name || '');
         setDob(m.dob || '');
         setBloodType(m.blood_type || '');
+        setRelationship(m.relationship || '');
+        setGender(m.gender || '');
+        setPhone(m.phone || '');
+        setAddress((m as any).address || '');
+        setIsSelf(m.is_self || false);
       }
       if (healthRes.data) {
         const h = healthRes.data;
@@ -209,6 +221,11 @@ export default function AddEditMemberScreen({ navigation, route }: Props) {
             full_name: fullName.trim(),
             dob: dob || null,
             blood_type: bloodType || null,
+            relationship: relationship || null,
+            gender: gender || null,
+            phone: phone || null,
+            address: address || null,
+            is_self: isSelf,
           })
           .select()
           .single();
@@ -221,6 +238,11 @@ export default function AddEditMemberScreen({ navigation, route }: Props) {
             full_name: fullName.trim(),
             dob: dob || null,
             blood_type: bloodType || null,
+            relationship: relationship || null,
+            gender: gender || null,
+            phone: phone || null,
+            address: address || null,
+            is_self: isSelf,
           })
           .eq('id', mId);
         if (mErr) throw mErr;
@@ -342,6 +364,9 @@ export default function AddEditMemberScreen({ navigation, route }: Props) {
         <View style={styles.card}>
           <FormInput label="Full Name *" value={fullName} onChangeText={setFullName} placeholder="First and last name" autoCapitalize="words" />
           <FormInput label="Date of Birth" value={dob} onChangeText={setDob} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" autoCapitalize="none" />
+          <FormInput label="Relationship" value={relationship} onChangeText={setRelationship} placeholder="e.g. Mother, Daughter, Husband" autoCapitalize="words" />
+          <FormInput label="Phone" value={phone} onChangeText={setPhone} placeholder="(555) 555-0100" keyboardType="phone-pad" autoCapitalize="none" />
+          <FormInput label="Address" value={address} onChangeText={setAddress} placeholder="Street, City, State, ZIP" autoCapitalize="words" />
 
           <View style={inputStyles.group}>
             <Text style={inputStyles.label}>Blood Type</Text>
@@ -356,6 +381,35 @@ export default function AddEditMemberScreen({ navigation, route }: Props) {
                 </TouchableOpacity>
               ))}
             </View>
+          </View>
+
+          <View style={inputStyles.group}>
+            <Text style={inputStyles.label}>Gender</Text>
+            <View style={styles.chipRow}>
+              {GENDERS.map((g) => (
+                <TouchableOpacity
+                  key={g}
+                  style={[styles.selectChip, gender === g && styles.selectChipActive]}
+                  onPress={() => setGender(gender === g ? '' : g)}
+                >
+                  <Text style={[styles.selectChipText, gender === g && styles.selectChipTextActive]}>{g}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.switchRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={inputStyles.label}>THIS IS MY OWN ACCOUNT</Text>
+              <Text style={styles.switchDesc}>Mark if this health account belongs to you</Text>
+            </View>
+            <Switch
+              value={isSelf}
+              onValueChange={setIsSelf}
+              trackColor={{ false: COLORS.border, true: COLORS.primaryLight }}
+              thumbColor={isSelf ? COLORS.primary : COLORS.textTertiary}
+              ios_backgroundColor={COLORS.border}
+            />
           </View>
         </View>
 
@@ -620,4 +674,11 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   saveButtonText: { color: COLORS.textInverse, ...FONTS.h4, fontWeight: '600' },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.md,
+  },
+  switchDesc: { ...FONTS.caption, color: COLORS.textTertiary, marginTop: 2 },
 });

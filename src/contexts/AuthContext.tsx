@@ -85,6 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error: profileError } = await supabase.from('profiles').insert({
         user_id: data.user.id,
         full_name: fullName,
+        email: email.trim().toLowerCase(),
       });
       if (profileError) throw profileError;
       setIsFirstLaunch(true);

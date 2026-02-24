@@ -10,14 +10,8 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
-import { RootStackParamList } from '../../lib/types';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
-
-type Props = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'Settings'>;
-};
 
 function SettingsRow({
   icon,
@@ -83,7 +77,7 @@ const rowStyles = StyleSheet.create({
   value: { ...FONTS.bodySmall, color: COLORS.textSecondary },
 });
 
-export default function SettingsScreen({ navigation }: Props) {
+export default function SettingsScreen() {
   const { profile, signOut } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
@@ -115,13 +109,6 @@ export default function SettingsScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.headerArea}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
-          </TouchableOpacity>
           <Text style={styles.pageTitle}>Settings</Text>
         </View>
 
@@ -205,18 +192,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { paddingHorizontal: SPACING.xl, paddingTop: SPACING.base },
   headerArea: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.base,
     marginBottom: SPACING.xl,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.surfaceAlt,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingTop: SPACING.sm,
   },
   pageTitle: { ...FONTS.h2, color: COLORS.textPrimary },
   profileCard: {

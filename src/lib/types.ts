@@ -13,6 +13,10 @@ export interface FamilyMember {
   dob?: string;
   blood_type?: string;
   photo_url?: string;
+  relationship?: string;
+  gender?: string;
+  phone?: string;
+  is_self?: boolean;
   created_at: string;
   health_info?: HealthInfo;
 }
@@ -89,6 +93,18 @@ export interface Appointment {
   created_at?: string;
 }
 
+export interface CalendarEvent {
+  id: string;
+  member_id: string;
+  member_name?: string;
+  title: string;
+  datetime: string;
+  doctor?: string;
+  location?: string;
+  notes?: string;
+  color?: string;
+}
+
 export interface ShareLink {
   id: string;
   member_id: string;
@@ -100,17 +116,21 @@ export interface ShareLink {
 }
 
 export type RootStackParamList = {
+  // Pre-auth
+  Onboarding: undefined;
   Landing: undefined;
   SignUp: undefined;
   SignIn: undefined;
   ForgotPassword: undefined;
-  Onboarding: undefined;
+  // Main tabs
   MainTabs: undefined;
-  Dashboard: undefined;
+  // Stack screens within main app
   MemberProfile: { memberId: string; memberName: string };
   AddEditMember: { memberId?: string };
   DocumentScanner: { memberId: string; memberName: string };
   Share: { memberId: string; memberName: string };
-  Appointments: { memberId?: string; memberName?: string };
   Settings: undefined;
+  // Legacy (keep for compat)
+  Dashboard: undefined;
+  Appointments: { memberId?: string; memberName?: string };
 };

@@ -11,7 +11,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import * as Haptics from 'expo-haptics';
-import { useAuth } from '../../contexts/AuthContext';
 import { COLORS, FONTS, SPACING } from '../../lib/design';
 
 const { width } = Dimensions.get('window');
@@ -172,8 +171,9 @@ const notifStyles = StyleSheet.create({
   },
 });
 
-export default function OnboardingScreen() {
-  const { completeOnboarding } = useAuth();
+type Props = { onComplete?: () => void; [key: string]: any };
+
+export default function OnboardingScreen({ onComplete }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showNotifValue, setShowNotifValue] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -200,7 +200,7 @@ export default function OnboardingScreen() {
 
   async function handleFinish() {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await completeOnboarding();
+    onComplete?.();
   }
 
   function handleScroll(e: any) {

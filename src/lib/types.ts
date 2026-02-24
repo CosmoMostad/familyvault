@@ -115,6 +115,20 @@ export interface ShareLink {
   created_at: string;
 }
 
+export interface SharedAccount {
+  id: string;
+  account_id: string;
+  owner_id: string;
+  recipient_id: string;
+  access_level: 'view' | 'edit';
+  shared_fields: Record<string, boolean>;
+  accepted: boolean;
+  created_at: string;
+  // Joined data
+  member?: FamilyMember;
+  owner_name?: string;
+}
+
 export type RootStackParamList = {
   // Pre-auth
   Onboarding: undefined;
@@ -129,6 +143,7 @@ export type RootStackParamList = {
   AddEditMember: { memberId?: string };
   DocumentScanner: { memberId: string; memberName: string };
   Share: { memberId: string; memberName: string };
+  ShareAccount: { memberId: string; memberName: string };
   Settings: undefined;
   // Legacy (keep for compat)
   Dashboard: undefined;

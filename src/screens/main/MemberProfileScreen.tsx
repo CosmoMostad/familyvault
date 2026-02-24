@@ -196,7 +196,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
       {/* Quick actions */}
       <View style={styles.actionRow}>
         {[
-          { icon: 'share-outline' as const, label: 'Share', onPress: () => navigation.navigate('Share', { memberId, memberName }) },
+          { icon: 'share-social-outline' as const, label: 'Share', onPress: () => navigation.navigate('ShareAccount', { memberId, memberName }) },
           { icon: 'calendar-outline' as const, label: 'Appointments', onPress: () => navigation.navigate('Appointments', { memberId, memberName }) },
           { icon: 'document-text-outline' as const, label: 'Documents', onPress: () => navigation.navigate('DocumentScanner', { memberId, memberName }) },
         ].map((a, i) => (

@@ -29,6 +29,7 @@ import MemberProfileScreen from '../screens/main/MemberProfileScreen';
 import AddEditMemberScreen from '../screens/main/AddEditMemberScreen';
 import DocumentScannerScreen from '../screens/main/DocumentScannerScreen';
 import ShareScreen from '../screens/main/ShareScreen';
+import ShareAccountScreen from '../screens/main/ShareAccountScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -58,7 +59,7 @@ function MainTabs() {
           const icons: Record<string, { active: keyof typeof Ionicons.glyphMap; inactive: keyof typeof Ionicons.glyphMap }> = {
             Family: { active: 'people', inactive: 'people-outline' },
             Calendar: { active: 'calendar', inactive: 'calendar-outline' },
-            Shared: { active: 'share', inactive: 'share-outline' },
+            Shared: { active: 'share-social', inactive: 'share-social-outline' },
             Settings: { active: 'settings', inactive: 'settings-outline' },
           };
           const icon = icons[route.name];
@@ -66,9 +67,9 @@ function MainTabs() {
         },
       })}
     >
-      <Tab.Screen name="Family" component={FamilyScreen} options={{ tabBarLabel: 'My Family' }} />
+      <Tab.Screen name="Family" component={FamilyScreen} options={{ tabBarLabel: 'My Accounts' }} />
       <Tab.Screen name="Calendar" component={CalendarScreen} options={{ tabBarLabel: 'Calendar' }} />
-      <Tab.Screen name="Shared" component={SharedScreen} options={{ tabBarLabel: 'Shared' }} />
+      <Tab.Screen name="Shared" component={SharedScreen} options={{ tabBarLabel: 'Shared With Me' }} />
       <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: 'Settings' }} />
     </Tab.Navigator>
   );
@@ -151,6 +152,11 @@ export default function AppNavigator() {
               name="Share"
               component={ShareScreen}
               options={{ title: 'Share Profile' }}
+            />
+            <Stack.Screen
+              name="ShareAccount"
+              component={ShareAccountScreen}
+              options={{ title: 'Share Account', headerShown: false, presentation: 'modal' }}
             />
           </>
         )}

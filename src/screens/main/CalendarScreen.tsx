@@ -27,6 +27,8 @@ interface MarkedDate {
   selectedColor?: string;
 }
 
+type ViewMode = 'list' | 'calendar';
+
 function formatTime(dateStr: string) {
   const d = new Date(dateStr);
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -35,6 +37,26 @@ function formatTime(dateStr: string) {
 function toDateString(dateStr: string) {
   return new Date(dateStr).toISOString().split('T')[0];
 }
+
+function formatDateHeader(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+function groupByDate(appointments: (Appointment & { member_name?: string })[]) {
+  const groups: Record<string, (Appointment & { member_name?: string })[]> = {};
+  appointments.forEach((a) => {
+    const key = toDateString(a.datetime);
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(a);
+  });
+  return groups;
+}
+
+// ── Add Event Modal ─────────────────────────────────────────────────────────
 
 function AddEventModal({
   visible,
@@ -97,12 +119,16 @@ function AddEventModal({
           </TouchableOpacity>
           <Text style={modal.title}>New Appointment</Text>
           <TouchableOpacity onPress={save} disabled={saving} style={modal.saveBtn}>
-            {saving ? <ActivityIndicator size="small" color={COLORS.primary} /> : <Text style={modal.saveBtnText}>Add</Text>}
+            {saving
+              ? <ActivityIndicator size="small" color={COLORS.primary} />
+              : <Text style={modal.saveBtnText}>Add</Text>}
           </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={modal.scroll} keyboardShouldPersistTaps="handled">
-          <Text style={modal.dateLabel}>{new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</Text>
+          <Text style={modal.dateLabel}>
+            {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </Text>
 
           {[
             { label: 'Title *', value: title, set: setTitle, placeholder: 'e.g. Annual checkup' },
@@ -179,12 +205,59 @@ const modal = StyleSheet.create({
   memberChipTextActive: { color: COLORS.primary, fontWeight: '600' },
 });
 
+// ── AppointmentCard ──────────────────────────────────────────────────────────
+
+function AppointmentCard({
+  appt,
+  memberName,
+  onDelete,
+}: {
+  appt: Appointment;
+  memberName: string;
+  onDelete: () => void;
+}) {
+  return (
+    <View style={styles.eventCard}>
+      <View style={styles.eventTime}>
+        <Text style={styles.eventTimeText}>{formatTime(appt.datetime)}</Text>
+      </View>
+      <View style={styles.eventInfo}>
+        <Text style={styles.eventTitle}>{appt.title}</Text>
+        {memberName ? (
+          <View style={styles.memberChip}>
+            <Text style={styles.memberChipText}>{memberName.split(' ')[0]}</Text>
+          </View>
+        ) : null}
+        {appt.doctor ? (
+          <View style={styles.eventMeta}>
+            <Ionicons name="person-outline" size={12} color={COLORS.textTertiary} />
+            <Text style={styles.eventMetaText}>{appt.doctor}</Text>
+          </View>
+        ) : null}
+        {appt.location ? (
+          <View style={styles.eventMeta}>
+            <Ionicons name="location-outline" size={12} color={COLORS.textTertiary} />
+            <Text style={styles.eventMetaText}>{appt.location}</Text>
+          </View>
+        ) : null}
+      </View>
+      <TouchableOpacity onPress={onDelete} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <Ionicons name="trash-outline" size={16} color={COLORS.textTertiary} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// ── CalendarScreen ───────────────────────────────────────────────────────────
+
 export default function CalendarScreen() {
   const [appointments, setAppointments] = useState<(Appointment & { member_name?: string })[]>([]);
   const [members, setMembers] = useState<{ id: string; full_name: string }[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [showPast, setShowPast] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -206,127 +279,195 @@ export default function CalendarScreen() {
     }
   }
 
-  // Build marked dates for calendar
+  async function deleteAppointment(id: string) {
+    Alert.alert('Remove', 'Remove this appointment?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          await supabase.from('appointments').delete().eq('id', id);
+          fetchData();
+        },
+      },
+    ]);
+  }
+
+  const memberName = (id: string) => members.find((m) => m.id === id)?.full_name ?? '';
+  const now = new Date();
+
+  // For LIST view
+  const upcoming = appointments.filter((a) => new Date(a.datetime) >= now);
+  const past = appointments.filter((a) => new Date(a.datetime) < now).reverse(); // most recent first
+  const upcomingGroups = groupByDate(upcoming);
+  const upcomingDates = Object.keys(upcomingGroups).sort();
+
+  // For CALENDAR view
   const markedDates: Record<string, MarkedDate> = {};
   appointments.forEach((a) => {
     const dateKey = toDateString(a.datetime);
-    markedDates[dateKey] = {
-      ...markedDates[dateKey],
-      marked: true,
-      dotColor: COLORS.primary,
-    };
+    markedDates[dateKey] = { ...markedDates[dateKey], marked: true, dotColor: COLORS.primary };
   });
   if (selectedDate) {
-    markedDates[selectedDate] = {
-      ...markedDates[selectedDate],
-      selected: true,
-      selectedColor: COLORS.primary,
-    };
+    markedDates[selectedDate] = { ...markedDates[selectedDate], selected: true, selectedColor: COLORS.primary };
   }
-
   const dayAppointments = appointments.filter((a) => toDateString(a.datetime) === selectedDate);
-  const memberName = (id: string) => members.find((m) => m.id === id)?.full_name ?? '';
+
+  function toggleView() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setViewMode((v) => (v === 'list' ? 'calendar' : 'list'));
+  }
 
   return (
     <View style={styles.container}>
       <SafeAreaView style={{ backgroundColor: COLORS.background }}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Calendar</Text>
-          <TouchableOpacity
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowAddModal(true); }}
-            style={styles.addBtn}
-          >
-            <Ionicons name="add" size={22} color={COLORS.primary} />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            {/* View toggle */}
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={toggleView}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons
+                name={viewMode === 'list' ? 'calendar-outline' : 'list-outline'}
+                size={20}
+                color={COLORS.primary}
+              />
+            </TouchableOpacity>
+            {/* Add button */}
+            <TouchableOpacity
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowAddModal(true); }}
+              style={styles.addBtn}
+            >
+              <Ionicons name="add" size={22} color={COLORS.primary} />
+            </TouchableOpacity>
+          </View>
         </View>
       </SafeAreaView>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Calendar */}
-        <Calendar
-          current={selectedDate}
-          onDayPress={(day) => setSelectedDate(day.dateString)}
-          markedDates={markedDates}
-          theme={{
-            backgroundColor: COLORS.background,
-            calendarBackground: COLORS.background,
-            selectedDayBackgroundColor: COLORS.primary,
-            selectedDayTextColor: COLORS.textInverse,
-            todayTextColor: COLORS.primary,
-            dayTextColor: COLORS.textPrimary,
-            textDisabledColor: COLORS.textTertiary,
-            dotColor: COLORS.primary,
-            selectedDotColor: COLORS.textInverse,
-            arrowColor: COLORS.primary,
-            monthTextColor: COLORS.textPrimary,
-            textMonthFontWeight: '700',
-            textMonthFontSize: 17,
-            textDayFontSize: 14,
-            textDayHeaderFontSize: 12,
-            textDayHeaderFontWeight: '600',
-          }}
-        />
-
-        {/* Selected day events */}
-        <View style={styles.eventsSection}>
-          <Text style={styles.eventsDate}>
-            {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-          </Text>
-
-          {loading ? (
-            <ActivityIndicator color={COLORS.primary} style={{ marginTop: SPACING.xl }} />
-          ) : dayAppointments.length === 0 ? (
-            <View style={styles.emptyDay}>
-              <Text style={styles.emptyDayText}>No appointments</Text>
-              <TouchableOpacity onPress={() => setShowAddModal(true)} style={styles.addEventLink}>
+      {loading ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        </View>
+      ) : viewMode === 'list' ? (
+        // ── LIST VIEW ──────────────────────────────────────────────────────
+        <ScrollView
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {upcoming.length === 0 && (
+            <View style={styles.emptyState}>
+              <Ionicons name="calendar-outline" size={48} color={COLORS.textTertiary} />
+              <Text style={styles.emptyTitle}>No upcoming appointments</Text>
+              <TouchableOpacity
+                style={styles.addEventLink}
+                onPress={() => setShowAddModal(true)}
+              >
                 <Ionicons name="add-circle-outline" size={16} color={COLORS.primary} />
-                <Text style={styles.addEventLinkText}>Add appointment</Text>
+                <Text style={styles.addEventLinkText}>Add your first appointment</Text>
               </TouchableOpacity>
             </View>
-          ) : (
-            <View style={styles.eventsList}>
-              {dayAppointments.map((a) => (
-                <View key={a.id} style={styles.eventCard}>
-                  <View style={styles.eventTime}>
-                    <Text style={styles.eventTimeText}>{formatTime(a.datetime)}</Text>
-                  </View>
-                  <View style={styles.eventInfo}>
-                    <Text style={styles.eventTitle}>{a.title}</Text>
-                    {memberName(a.member_id) && (
-                      <Text style={styles.eventMember}>{memberName(a.member_id)}</Text>
-                    )}
-                    {a.doctor && (
-                      <View style={styles.eventMeta}>
-                        <Ionicons name="person-outline" size={12} color={COLORS.textTertiary} />
-                        <Text style={styles.eventMetaText}>{a.doctor}</Text>
-                      </View>
-                    )}
-                    {a.location && (
-                      <View style={styles.eventMeta}>
-                        <Ionicons name="location-outline" size={12} color={COLORS.textTertiary} />
-                        <Text style={styles.eventMetaText}>{a.location}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => Alert.alert('Remove', 'Remove this appointment?', [
-                      { text: 'Cancel', style: 'cancel' },
-                      { text: 'Remove', style: 'destructive', onPress: async () => {
-                        await supabase.from('appointments').delete().eq('id', a.id);
-                        fetchData();
-                      }},
-                    ])}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Ionicons name="trash-outline" size={16} color={COLORS.textTertiary} />
-                  </TouchableOpacity>
-                </View>
+          )}
+
+          {upcomingDates.map((dateKey) => (
+            <View key={dateKey}>
+              <Text style={styles.dateHeader}>{formatDateHeader(dateKey)}</Text>
+              {upcomingGroups[dateKey].map((a) => (
+                <AppointmentCard
+                  key={a.id}
+                  appt={a}
+                  memberName={memberName(a.member_id)}
+                  onDelete={() => deleteAppointment(a.id)}
+                />
               ))}
             </View>
+          ))}
+
+          {/* Past appointments toggle */}
+          {past.length > 0 && (
+            <>
+              <TouchableOpacity
+                style={styles.pastToggle}
+                onPress={() => setShowPast((v) => !v)}
+              >
+                <Ionicons
+                  name={showPast ? 'chevron-up' : 'chevron-down'}
+                  size={16}
+                  color={COLORS.textTertiary}
+                />
+                <Text style={styles.pastToggleText}>
+                  {showPast ? 'Hide' : `Show ${past.length} past appointment${past.length === 1 ? '' : 's'}`}
+                </Text>
+              </TouchableOpacity>
+
+              {showPast &&
+                past.map((a) => (
+                  <AppointmentCard
+                    key={a.id}
+                    appt={a}
+                    memberName={memberName(a.member_id)}
+                    onDelete={() => deleteAppointment(a.id)}
+                  />
+                ))}
+            </>
           )}
-        </View>
-        <View style={{ height: 100 }} />
-      </ScrollView>
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      ) : (
+        // ── CALENDAR VIEW ──────────────────────────────────────────────────
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <Calendar
+            current={selectedDate}
+            onDayPress={(day) => setSelectedDate(day.dateString)}
+            markedDates={markedDates}
+            theme={{
+              backgroundColor: COLORS.background,
+              calendarBackground: COLORS.background,
+              selectedDayBackgroundColor: COLORS.primary,
+              selectedDayTextColor: COLORS.textInverse,
+              todayTextColor: COLORS.primary,
+              dayTextColor: COLORS.textPrimary,
+              textDisabledColor: COLORS.textTertiary,
+              dotColor: COLORS.primary,
+              selectedDotColor: COLORS.textInverse,
+              arrowColor: COLORS.primary,
+              monthTextColor: COLORS.textPrimary,
+              textMonthFontWeight: '700',
+              textMonthFontSize: 17,
+              textDayFontSize: 14,
+              textDayHeaderFontSize: 12,
+              textDayHeaderFontWeight: '600',
+            }}
+          />
+
+          <View style={styles.eventsSection}>
+            <Text style={styles.eventsDate}>{formatDateHeader(selectedDate)}</Text>
+            {dayAppointments.length === 0 ? (
+              <View style={styles.emptyDay}>
+                <Text style={styles.emptyDayText}>No appointments</Text>
+                <TouchableOpacity onPress={() => setShowAddModal(true)} style={styles.addEventLink}>
+                  <Ionicons name="add-circle-outline" size={16} color={COLORS.primary} />
+                  <Text style={styles.addEventLinkText}>Add appointment</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.eventsList}>
+                {dayAppointments.map((a) => (
+                  <AppointmentCard
+                    key={a.id}
+                    appt={a}
+                    memberName={memberName(a.member_id)}
+                    onDelete={() => deleteAppointment(a.id)}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      )}
 
       <AddEventModal
         visible={showAddModal}
@@ -341,23 +482,55 @@ export default function CalendarScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: SPACING.xl, paddingTop: SPACING.sm, paddingBottom: SPACING.base,
   },
   headerTitle: { ...FONTS.h2, color: COLORS.textPrimary },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
+  iconBtn: {
+    width: 36, height: 36, alignItems: 'center', justifyContent: 'center',
+  },
   addBtn: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: COLORS.primaryMuted,
     alignItems: 'center', justifyContent: 'center',
   },
+
+  // List view
+  listContent: { paddingHorizontal: SPACING.xl, paddingTop: SPACING.sm },
+  dateHeader: {
+    ...FONTS.h4,
+    color: COLORS.textPrimary,
+    marginTop: SPACING.xl,
+    marginBottom: SPACING.sm,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingTop: 60,
+    gap: SPACING.md,
+  },
+  emptyTitle: { ...FONTS.h4, color: COLORS.textTertiary },
+  addEventLink: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  addEventLinkText: { ...FONTS.body, color: COLORS.primary, fontWeight: '600' },
+  pastToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingVertical: SPACING.base,
+    marginTop: SPACING.md,
+  },
+  pastToggleText: { ...FONTS.body, color: COLORS.textTertiary },
+
+  // Calendar view
   eventsSection: { paddingHorizontal: SPACING.xl, paddingTop: SPACING.lg },
   eventsDate: { ...FONTS.h4, color: COLORS.textPrimary, marginBottom: SPACING.md },
   emptyDay: { alignItems: 'center', paddingVertical: SPACING.xl, gap: SPACING.sm },
   emptyDayText: { ...FONTS.body, color: COLORS.textTertiary },
-  addEventLink: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  addEventLinkText: { ...FONTS.body, color: COLORS.primary, fontWeight: '600' },
   eventsList: { gap: SPACING.sm },
+
+  // Appointment card
   eventCard: {
     ...CARD,
     flexDirection: 'row',
@@ -365,6 +538,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.base,
     gap: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   eventTime: {
     minWidth: 56,
@@ -377,7 +551,15 @@ const styles = StyleSheet.create({
   eventTimeText: { ...FONTS.label, color: COLORS.primary, fontSize: 11 },
   eventInfo: { flex: 1, gap: 3 },
   eventTitle: { ...FONTS.h4, color: COLORS.textPrimary },
-  eventMember: { ...FONTS.bodySmall, color: COLORS.primary, fontWeight: '600' },
+  memberChip: {
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.primaryMuted,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginTop: 2,
+  },
+  memberChipText: { fontSize: 11, fontWeight: '600', color: COLORS.primary },
   eventMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   eventMetaText: { ...FONTS.caption, color: COLORS.textSecondary },
 });

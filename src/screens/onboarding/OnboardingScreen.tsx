@@ -28,7 +28,7 @@ const slides: SlideData[] = [
     icon: 'leaf',
     iconColor: COLORS.primary,
     iconBg: COLORS.primaryMuted,
-    title: 'Welcome to Rosemary',
+    title: 'Welcome to Wren Health',
     description:
       'Keep your entire family\'s health records in one secure, organized place — always ready when you need it most.',
   },
@@ -60,7 +60,7 @@ function NotificationValueScreen({ onAllow, onSkip }: { onAllow: () => void; onS
 
       <Text style={notifStyles.title}>Never miss an appointment</Text>
       <Text style={notifStyles.subtitle}>
-        Rosemary sends the notifications that actually matter.
+        Wren Health sends the notifications that actually matter.
       </Text>
 
       <View style={notifStyles.benefits}>

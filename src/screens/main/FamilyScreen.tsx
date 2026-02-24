@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
-  FlatList,
+  ScrollView,
   TouchableOpacity,
   StyleSheet,
   StatusBar,
@@ -21,6 +21,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { FamilyMember, RootStackParamList } from '../../lib/types';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
+import NotificationsDrawer from '../../components/NotificationsDrawer';
 
 function getAge(dob?: string): string {
   if (!dob) return '';
@@ -41,22 +42,30 @@ function getInitials(name: string): string {
 function MemberCard({
   member,
   onPress,
+  onLongPress,
 }: {
   member: FamilyMember;
   onPress: () => void;
+  onLongPress?: () => void;
 }) {
   const age = getAge(member.dob);
   const conditions = member.health_info?.conditions ?? [];
   const firstCondition = conditions[0]?.name;
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
-      {/* Avatar */}
+    <TouchableOpacity
+      style={styles.card}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      activeOpacity={0.8}
+    >
       {member.photo_url ? (
         <Image source={{ uri: member.photo_url }} style={styles.avatarPhoto} />
       ) : (
         <View style={[styles.avatar, member.is_self && styles.avatarSelf]}>
-          <Text style={styles.avatarText}>{getInitials(member.full_name)}</Text>
+          <Text style={[styles.avatarText, member.is_self && styles.avatarTextSelf]}>
+            {getInitials(member.full_name)}
+          </Text>
         </View>
       )}
 
@@ -69,23 +78,21 @@ function MemberCard({
             </View>
           )}
         </View>
-
         <View style={styles.cardMeta}>
           {member.relationship && (
             <Text style={styles.cardMetaText}>{member.relationship}</Text>
           )}
           {member.relationship && age ? <Text style={styles.metaDot}>·</Text> : null}
-          {age ? <Text style={styles.cardMetaText}>{age} years old</Text> : null}
-          {member.blood_type ? (
+          {age ? <Text style={styles.cardMetaText}>{age} yrs</Text> : null}
+          {(member as any).blood_type ? (
             <>
               <Text style={styles.metaDot}>·</Text>
               <View style={styles.bloodBadge}>
-                <Text style={styles.bloodBadgeText}>{member.blood_type}</Text>
+                <Text style={styles.bloodBadgeText}>{(member as any).blood_type}</Text>
               </View>
             </>
           ) : null}
         </View>
-
         {firstCondition ? (
           <Text style={styles.conditionText} numberOfLines={1}>{firstCondition}</Text>
         ) : null}
@@ -98,20 +105,33 @@ function MemberCard({
 
 export default function FamilyScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { profile } = useAuth();
+  const { session } = useAuth();
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [notifVisible, setNotifVisible] = useState(false);
 
-  async function fetchMembers() {
+  async function fetchData() {
     try {
-      const { data, error } = await supabase
-        .from('family_members')
-        .select('*, health_info(*)')
-        .order('is_self', { ascending: false }) // Self first
-        .order('created_at', { ascending: true });
-      if (error) throw error;
-      setMembers(data || []);
+      const [membersRes, notifRes] = await Promise.all([
+        supabase
+          .from('family_members')
+          .select('*, health_info(*)')
+          .order('is_self', { ascending: false })
+          .order('created_at', { ascending: true }),
+        session?.user
+          ? supabase
+              .from('shared_accounts')
+              .select('id', { count: 'exact', head: true })
+              .eq('recipient_id', session.user.id)
+              .eq('status', 'pending')
+          : Promise.resolve({ count: 0, error: null }),
+      ]);
+
+      if (membersRes.error) throw membersRes.error;
+      setMembers(membersRes.data || []);
+      setPendingCount(notifRes.count ?? 0);
     } catch (e) {
       console.error(e);
     } finally {
@@ -122,14 +142,14 @@ export default function FamilyScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchMembers();
-    }, [])
+      fetchData();
+    }, [session])
   );
 
   async function handleDelete(member: FamilyMember) {
     Alert.alert(
       'Remove Account',
-      `Remove ${member.full_name} from Rosemary? This cannot be undone.`,
+      `Remove ${member.full_name} from Wren Health? This cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -138,21 +158,54 @@ export default function FamilyScreen() {
           onPress: async () => {
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             await supabase.from('family_members').delete().eq('id', member.id);
-            fetchMembers();
+            fetchData();
           },
         },
       ]
     );
   }
 
-  function handleAdd() {
+  function handleThreeDot() {
+    Alert.alert('Sort Accounts', '', [
+      {
+        text: 'Sort by Name',
+        onPress: () =>
+          setMembers((prev) => {
+            const self = prev.filter((m) => m.is_self);
+            const others = [...prev.filter((m) => !m.is_self)].sort((a, b) =>
+              a.full_name.localeCompare(b.full_name)
+            );
+            return [...self, ...others];
+          }),
+      },
+      {
+        text: 'Sort by Age',
+        onPress: () =>
+          setMembers((prev) => {
+            const self = prev.filter((m) => m.is_self);
+            const others = [...prev.filter((m) => !m.is_self)].sort((a, b) => {
+              const ageA = a.dob ? new Date(a.dob).getTime() : 0;
+              const ageB = b.dob ? new Date(b.dob).getTime() : 0;
+              return ageA - ageB; // oldest first
+            });
+            return [...self, ...others];
+          }),
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
+
+  function handleAddFamily() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.navigate('AddEditMember', {});
   }
 
+  const selfMember = members.find((m) => m.is_self);
+  const familyMembers = members.filter((m) => !m.is_self);
+
   if (loading) {
     return (
-      <View style={styles.loading}>
+      <View style={styles.loadingWrap}>
         <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
@@ -161,86 +214,169 @@ export default function FamilyScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
+
       <SafeAreaView style={{ backgroundColor: COLORS.background }}>
         <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>My Family</Text>
-            {profile && <Text style={styles.headerSub}>{profile.full_name}</Text>}
+          <Text style={styles.headerTitle}>My Accounts</Text>
+          <View style={styles.headerActions}>
+            {/* Bell icon with badge */}
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => setNotifVisible(true)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="notifications-outline" size={22} color={COLORS.textPrimary} />
+              {pendingCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {pendingCount > 9 ? '9+' : String(pendingCount)}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            {/* 3-dot menu */}
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={handleThreeDot}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="ellipsis-vertical" size={22} color={COLORS.textPrimary} />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            onPress={handleAdd}
-            style={styles.addBtn}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons name="add" size={22} color={COLORS.primary} />
-          </TouchableOpacity>
         </View>
       </SafeAreaView>
 
-      <FlatList
-        data={members}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); fetchData(); }}
+            tintColor={COLORS.primary}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        {/* MY HEALTH section */}
+        <Text style={styles.sectionLabel}>MY HEALTH</Text>
+        {selfMember ? (
           <MemberCard
-            member={item}
+            member={selfMember}
             onPress={() =>
               navigation.navigate('MemberProfile', {
-                memberId: item.id,
-                memberName: item.full_name,
+                memberId: selfMember.id,
+                memberName: selfMember.full_name,
               })
             }
+            onLongPress={() => handleDelete(selfMember)}
           />
-        )}
-        contentContainerStyle={members.length === 0 ? styles.emptyWrapper : styles.listContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchMembers(); }} tintColor={COLORS.primary} />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <View style={styles.emptyIcon}>
-              <Ionicons name="people-outline" size={52} color={COLORS.textTertiary} />
+        ) : (
+          <TouchableOpacity
+            style={styles.setupCard}
+            onPress={() => navigation.navigate('AddEditMember', { isSelf: true })}
+            activeOpacity={0.8}
+          >
+            <View style={styles.setupIconWrap}>
+              <Ionicons name="person-circle-outline" size={36} color={COLORS.rose} />
             </View>
-            <Text style={styles.emptyTitle}>Add your family</Text>
-            <Text style={styles.emptyDesc}>
-              Create health accounts for each family member. Start with yourself.
-            </Text>
-            <TouchableOpacity style={styles.emptyButton} onPress={handleAdd} activeOpacity={0.85}>
-              <Ionicons name="add" size={18} color={COLORS.textInverse} />
-              <Text style={styles.emptyButtonText}>Add First Account</Text>
-            </TouchableOpacity>
-          </View>
-        }
-      />
+            <View style={styles.setupText}>
+              <Text style={styles.setupTitle}>Set up your health account</Text>
+              <Text style={styles.setupDesc}>Start with your own profile</Text>
+            </View>
+            <View style={styles.setupBtn}>
+              <Text style={styles.setupBtnText}>Get Started</Text>
+            </View>
+          </TouchableOpacity>
+        )}
 
-      {members.length > 0 && (
-        <TouchableOpacity style={styles.fab} onPress={handleAdd} activeOpacity={0.85}>
-          <Ionicons name="add" size={28} color={COLORS.textInverse} />
+        {/* FAMILY MEMBERS section */}
+        <Text style={[styles.sectionLabel, { marginTop: SPACING.xl }]}>FAMILY MEMBERS</Text>
+
+        {familyMembers.length === 0 ? (
+          <Text style={styles.emptyFamilyText}>No family members added yet</Text>
+        ) : (
+          familyMembers.map((member) => (
+            <MemberCard
+              key={member.id}
+              member={member}
+              onPress={() =>
+                navigation.navigate('MemberProfile', {
+                  memberId: member.id,
+                  memberName: member.full_name,
+                })
+              }
+              onLongPress={() => handleDelete(member)}
+            />
+          ))
+        )}
+
+        {/* Add Family Member button */}
+        <TouchableOpacity
+          style={styles.addFamilyBtn}
+          onPress={handleAddFamily}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="add" size={18} color={COLORS.primary} />
+          <Text style={styles.addFamilyBtnText}>Add Family Member</Text>
         </TouchableOpacity>
-      )}
+      </ScrollView>
+
+      <NotificationsDrawer
+        visible={notifVisible}
+        onClose={() => setNotifVisible(false)}
+        onCountChange={(count) => setPendingCount(count)}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.xl,
     paddingTop: SPACING.sm,
-    paddingBottom: SPACING.lg,
+    paddingBottom: SPACING.md,
   },
   headerTitle: { ...FONTS.h2, color: COLORS.textPrimary },
-  headerSub: { ...FONTS.caption, color: COLORS.textSecondary, marginTop: 2 },
-  addBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: COLORS.primaryMuted,
-    alignItems: 'center', justifyContent: 'center',
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
   },
-  listContent: { paddingHorizontal: SPACING.xl, paddingBottom: 100, gap: SPACING.sm },
-  emptyWrapper: { flex: 1 },
+  badge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#E53E3E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: COLORS.background,
+  },
+  badgeText: { fontSize: 9, fontWeight: '700', color: '#fff' },
+  scrollContent: {
+    paddingHorizontal: SPACING.xl,
+    paddingBottom: 100,
+  },
+  sectionLabel: {
+    ...FONTS.caption,
+    color: COLORS.textTertiary,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    marginBottom: SPACING.sm,
+  },
   card: {
     ...CARD,
     flexDirection: 'row',
@@ -248,6 +384,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.base,
     paddingHorizontal: SPACING.base,
     gap: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   avatar: {
     width: 52, height: 52, borderRadius: 26,
@@ -257,6 +394,7 @@ const styles = StyleSheet.create({
   avatarSelf: { backgroundColor: COLORS.primary },
   avatarPhoto: { width: 52, height: 52, borderRadius: 26, flexShrink: 0 },
   avatarText: { ...FONTS.h4, color: COLORS.primary, fontWeight: '700' },
+  avatarTextSelf: { color: COLORS.textInverse },
   cardInfo: { flex: 1 },
   cardNameRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: 4 },
   cardName: { ...FONTS.h4, color: COLORS.textPrimary },
@@ -269,34 +407,60 @@ const styles = StyleSheet.create({
   cardMetaText: { ...FONTS.bodySmall, color: COLORS.textSecondary },
   metaDot: { ...FONTS.bodySmall, color: COLORS.textTertiary },
   bloodBadge: {
-    backgroundColor: COLORS.roseLight, borderRadius: 6,
+    backgroundColor: COLORS.roseLight ?? `${COLORS.rose}20`, borderRadius: 6,
     paddingHorizontal: 6, paddingVertical: 2,
   },
   bloodBadgeText: { fontSize: 11, fontWeight: '700', color: COLORS.rose },
   conditionText: { ...FONTS.bodySmall, color: COLORS.textSecondary },
-  emptyState: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: SPACING.xxxl, paddingTop: 80,
+
+  // Setup card (no self account)
+  setupCard: {
+    ...CARD,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    padding: SPACING.base,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surfaceAlt ?? COLORS.background,
+    marginBottom: SPACING.sm,
   },
-  emptyIcon: {
-    width: 96, height: 96, borderRadius: 48,
-    backgroundColor: COLORS.surfaceAlt,
-    alignItems: 'center', justifyContent: 'center', marginBottom: SPACING.xl,
+  setupIconWrap: {
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: `${COLORS.rose}15`,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  emptyTitle: { ...FONTS.h3, color: COLORS.textPrimary, textAlign: 'center', marginBottom: SPACING.sm },
-  emptyDesc: { ...FONTS.body, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 23, marginBottom: SPACING.xxl },
-  emptyButton: {
-    backgroundColor: COLORS.primary, borderRadius: 14, height: 52,
-    paddingHorizontal: SPACING.xl, flexDirection: 'row',
-    alignItems: 'center', justifyContent: 'center', gap: SPACING.sm,
+  setupText: { flex: 1 },
+  setupTitle: { ...FONTS.h4, color: COLORS.textPrimary, marginBottom: 2 },
+  setupDesc: { ...FONTS.bodySmall, color: COLORS.textSecondary },
+  setupBtn: {
+    backgroundColor: COLORS.primary, borderRadius: 10,
+    paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm,
   },
-  emptyButtonText: { color: COLORS.textInverse, ...FONTS.h4, fontWeight: '600' },
-  fab: {
-    position: 'absolute', bottom: 16, right: SPACING.xl,
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35, shadowRadius: 8, elevation: 6,
+  setupBtnText: { ...FONTS.bodySmall, color: COLORS.textInverse, fontWeight: '600' },
+
+  // Family section
+  emptyFamilyText: {
+    ...FONTS.body,
+    color: COLORS.textTertiary,
+    textAlign: 'center',
+    paddingVertical: SPACING.lg,
+  },
+  addFamilyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    borderRadius: 14,
+    height: 50,
+    marginTop: SPACING.md,
+  },
+  addFamilyBtnText: {
+    ...FONTS.h4,
+    color: COLORS.primary,
+    fontWeight: '600',
   },
 });

@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../lib/types';
 import { COLORS, FONTS } from '../lib/design';
+import { supabase } from '../lib/supabase';
 
 // Auth
 import LandingScreen from '../screens/auth/LandingScreen';
@@ -17,6 +18,7 @@ import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 
 // Onboarding
 import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
+import SetupSelfScreen from '../screens/onboarding/SetupSelfScreen';
 
 // Main tabs
 import FamilyScreen from '../screens/main/FamilyScreen';
@@ -34,7 +36,7 @@ import ShareAccountScreen from '../screens/main/ShareAccountScreen';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
-const ONBOARDING_KEY = 'rosemary_onboarding_seen';
+const ONBOARDING_KEY = 'wrenhealth_onboarding_seen';
 
 function MainTabs() {
   return (
@@ -55,7 +57,7 @@ function MainTabs() {
           fontSize: 11,
           fontWeight: '600',
         },
-        tabBarIcon: ({ color, size, focused }) => {
+        tabBarIcon: ({ color, focused }) => {
           const icons: Record<string, { active: keyof typeof Ionicons.glyphMap; inactive: keyof typeof Ionicons.glyphMap }> = {
             Family: { active: 'people', inactive: 'people-outline' },
             Calendar: { active: 'calendar', inactive: 'calendar-outline' },
@@ -63,6 +65,7 @@ function MainTabs() {
             Settings: { active: 'settings', inactive: 'settings-outline' },
           };
           const icon = icons[route.name];
+          if (!icon) return null;
           return <Ionicons name={focused ? icon.active : icon.inactive} size={22} color={color} />;
         },
       })}
@@ -78,14 +81,43 @@ function MainTabs() {
 export default function AppNavigator() {
   const { session, loading } = useAuth();
   const [onboardingSeen, setOnboardingSeen] = useState<boolean | null>(null);
+  const [selfChecked, setSelfChecked] = useState(false);
+  const [hasSelf, setHasSelf] = useState(false);
 
+  // Load onboarding flag
   useEffect(() => {
     AsyncStorage.getItem(ONBOARDING_KEY).then((val) => {
       setOnboardingSeen(!!val);
     });
   }, []);
 
-  if (loading || onboardingSeen === null) {
+  // When session appears, check if user has a self account
+  useEffect(() => {
+    if (!session?.user) {
+      setSelfChecked(false);
+      setHasSelf(false);
+      return;
+    }
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('family_members')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .eq('is_self', true)
+          .limit(1);
+        setHasSelf(!!(data && data.length > 0));
+      } catch {
+        setHasSelf(false);
+      } finally {
+        setSelfChecked(true);
+      }
+    })();
+  }, [session]);
+
+  const isReady = !loading && onboardingSeen !== null && (!session || selfChecked);
+
+  if (!isReady) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background }}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -106,7 +138,7 @@ export default function AppNavigator() {
         }}
       >
         {!onboardingSeen ? (
-          // Step 1: Onboarding (before any auth)
+          // Step 1: App intro onboarding (before any auth)
           <Stack.Screen
             name="Onboarding"
             options={{ headerShown: false }}
@@ -130,8 +162,30 @@ export default function AppNavigator() {
             <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
           </>
         ) : (
-          // Step 3: Main app (after auth)
+          // Step 3: Main app
           <>
+            {/* If user has no self-account yet, show setup prompt first */}
+            {!hasSelf ? (
+              <Stack.Screen
+                name="SetupSelf"
+                options={{ headerShown: false }}
+              >
+                {(props) => (
+                  <SetupSelfScreen
+                    {...props}
+                    navigation={{
+                      ...props.navigation,
+                      navigate: (screen: any, params?: any) => {
+                        if (screen === 'MainTabs') {
+                          setHasSelf(true); // skip setup on next load
+                        }
+                        props.navigation.navigate(screen, params);
+                      },
+                    }}
+                  />
+                )}
+              </Stack.Screen>
+            ) : null}
             <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
             <Stack.Screen
               name="MemberProfile"

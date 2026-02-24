@@ -1,5 +1,5 @@
-// Rosemary Design System
-// Warm, trustworthy, mom-friendly health app
+// Wren Health Design System
+// Warm, trustworthy, family health app
 
 export const COLORS = {
   // Backgrounds

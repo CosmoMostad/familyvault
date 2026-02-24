@@ -149,7 +149,8 @@ export type RootStackParamList = {
   MainTabs: undefined;
   // Stack screens within main app
   MemberProfile: { memberId: string; memberName: string };
-  AddEditMember: { memberId?: string };
+  AddEditMember: { memberId?: string; isSelf?: boolean };
+  SetupSelf: undefined;
   DocumentScanner: { memberId: string; memberName: string };
   Share: { memberId: string; memberName: string };
   ShareAccount: { memberId: string; memberName: string };

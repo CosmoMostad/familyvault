@@ -115,7 +115,7 @@ const secStyles = StyleSheet.create({
 
 export default function AddEditMemberScreen({ navigation, route }: Props) {
   const { user } = useAuth();
-  const { memberId } = route.params ?? {};
+  const { memberId, isSelf: isSelfParam } = route.params ?? {};
   const isEditing = !!memberId;
 
   const [saving, setSaving] = useState(false);
@@ -129,7 +129,7 @@ export default function AddEditMemberScreen({ navigation, route }: Props) {
   const [gender, setGender] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
-  const [isSelf, setIsSelf] = useState(false);
+  const [isSelf, setIsSelf] = useState(!!isSelfParam);
 
   // Health
   const [allergies, setAllergies] = useState<Allergy[]>([]);
@@ -398,19 +398,30 @@ export default function AddEditMemberScreen({ navigation, route }: Props) {
             </View>
           </View>
 
-          <View style={styles.switchRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={inputStyles.label}>THIS IS MY OWN ACCOUNT</Text>
-              <Text style={styles.switchDesc}>Mark if this health account belongs to you</Text>
+          {!isSelfParam && (
+            <View style={styles.switchRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={inputStyles.label}>THIS IS MY OWN ACCOUNT</Text>
+                <Text style={styles.switchDesc}>Mark if this health account belongs to you</Text>
+              </View>
+              <Switch
+                value={isSelf}
+                onValueChange={setIsSelf}
+                trackColor={{ false: COLORS.border, true: COLORS.primaryLight }}
+                thumbColor={isSelf ? COLORS.primary : COLORS.textTertiary}
+                ios_backgroundColor={COLORS.border}
+              />
             </View>
-            <Switch
-              value={isSelf}
-              onValueChange={setIsSelf}
-              trackColor={{ false: COLORS.border, true: COLORS.primaryLight }}
-              thumbColor={isSelf ? COLORS.primary : COLORS.textTertiary}
-              ios_backgroundColor={COLORS.border}
-            />
-          </View>
+          )}
+          {!!isSelfParam && (
+            <View style={styles.switchRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={inputStyles.label}>THIS IS MY OWN ACCOUNT</Text>
+                <Text style={styles.switchDesc}>This profile belongs to you</Text>
+              </View>
+              <Ionicons name="checkmark-circle" size={24} color={COLORS.primary} />
+            </View>
+          )}
         </View>
 
         {/* Allergies */}

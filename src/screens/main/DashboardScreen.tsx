@@ -111,7 +111,7 @@ export default function DashboardScreen({ navigation }: Props) {
   async function handleDelete(member: FamilyMember) {
     Alert.alert(
       'Remove Member',
-      `Remove ${member.full_name} from Rosemary? This cannot be undone.`,
+      `Remove ${member.full_name} from Wren Health? This cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {

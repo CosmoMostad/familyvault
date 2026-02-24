@@ -75,7 +75,7 @@ export default function SignUpScreen({ navigation }: Props) {
           <View style={styles.titleArea}>
             <Text style={styles.title}>Create your account</Text>
             <Text style={styles.subtitle}>
-              Join Rosemary and keep your family's health organized.
+              Join Wren Health and keep your family's health organized.
             </Text>
           </View>
 

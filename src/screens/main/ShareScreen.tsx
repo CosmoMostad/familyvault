@@ -105,7 +105,7 @@ export default function ShareScreen({ navigation, route }: Props) {
   }
 
   async function shareLink(token: string) {
-    const url = `https://rosemary.app/share/${token}`;
+    const url = `https://wrenhealth.app/share/${token}`;
     try {
       await Share.share({
         message: `${memberName}'s health profile: ${url}`,

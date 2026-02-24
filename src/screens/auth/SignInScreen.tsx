@@ -68,7 +68,7 @@ export default function SignInScreen({ navigation }: Props) {
 
           <View style={styles.titleArea}>
             <Text style={styles.title}>Welcome back</Text>
-            <Text style={styles.subtitle}>Sign in to your Rosemary account.</Text>
+            <Text style={styles.subtitle}>Sign in to your Wren Health account.</Text>
           </View>
 
           <View style={styles.form}>

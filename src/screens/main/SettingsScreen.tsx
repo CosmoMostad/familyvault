@@ -170,7 +170,7 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="leaf-outline"
             iconColor={COLORS.primary}
-            label="Rosemary"
+            label="Wren Health"
             value="v1.0.0"
             isLast
           />

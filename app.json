@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Rosemary",
-    "slug": "rosemary",
+    "name": "Wren Health",
+    "slug": "wren-health",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,11 +14,11 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.cosmo.rosemary",
+      "bundleIdentifier": "app.wrenhealth",
       "infoPlist": {
-        "NSCameraUsageDescription": "Rosemary uses your camera to scan and upload medical documents.",
-        "NSPhotoLibraryUsageDescription": "Rosemary accesses your photo library to upload medical documents.",
-        "NSUserNotificationsUsageDescription": "Rosemary sends reminders for upcoming family health appointments."
+        "NSCameraUsageDescription": "Wren Health uses your camera to scan and upload medical documents.",
+        "NSPhotoLibraryUsageDescription": "Wren Health accesses your photo library to upload medical documents.",
+        "NSUserNotificationsUsageDescription": "Wren Health sends reminders for upcoming family health appointments."
       }
     },
     "android": {
@@ -26,7 +26,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#2D6A4F"
       },
-      "package": "com.cosmo.rosemary"
+      "package": "app.wrenhealth"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -36,14 +36,14 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Rosemary uses your camera to scan medical documents."
+          "cameraPermission": "Wren Health uses your camera to scan medical documents."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Rosemary accesses your photos to upload medical documents.",
-          "cameraPermission": "Rosemary uses your camera to scan medical documents."
+          "photosPermission": "Wren Health accesses your photos to upload medical documents.",
+          "cameraPermission": "Wren Health uses your camera to scan medical documents."
         }
       ],
       [

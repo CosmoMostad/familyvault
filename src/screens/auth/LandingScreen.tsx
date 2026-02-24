@@ -27,7 +27,7 @@ export default function LandingScreen({ navigation }: Props) {
           <View style={styles.iconContainer}>
             <Ionicons name="leaf" size={44} color={COLORS.textInverse} />
           </View>
-          <Text style={styles.appName}>Rosemary</Text>
+          <Text style={styles.appName}>Wren Health</Text>
           <Text style={styles.tagline}>Your family's health,{'\n'}always within reach.</Text>
           <Text style={styles.subtext}>
             Secure health profiles for everyone you love.

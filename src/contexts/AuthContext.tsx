@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../lib/types';
 
-const ONBOARDING_KEY = 'familyvault_onboarding_complete';
+const ONBOARDING_KEY = 'wrenhealth_onboarding_complete';
 
 interface AuthContextType {
   session: Session | null;

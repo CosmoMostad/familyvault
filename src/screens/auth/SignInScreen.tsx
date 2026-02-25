@@ -17,8 +17,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
 import { RootStackParamList } from '../../lib/types';
 import { COLORS, FONTS, SPACING } from '../../lib/design';
+import AuthBotanical from '../../components/AuthBotanical';
 
-const { height } = Dimensions.get('window');
+const { width: screenWidth, height } = Dimensions.get('window');
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'SignIn'> };
 
@@ -49,6 +50,7 @@ export default function SignInScreen({ navigation }: Props) {
       >
         {/* Green header */}
         <View style={[styles.greenHeader, { paddingTop: insets.top + SPACING.base }]}>
+          <AuthBotanical width={screenWidth} height={190} />
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={22} color="rgba(255,255,255,0.9)" />
           </TouchableOpacity>
@@ -139,6 +141,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingHorizontal: SPACING.xl,
     paddingBottom: 48,
+    overflow: 'hidden',
   },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,

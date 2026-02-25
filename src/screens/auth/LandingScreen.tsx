@@ -12,8 +12,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../lib/types';
 import { COLORS, FONTS, SPACING } from '../../lib/design';
+import AuthBotanical from '../../components/AuthBotanical';
 
-const { height } = Dimensions.get('window');
+const { width: screenWidth, height } = Dimensions.get('window');
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Landing'>;
@@ -30,12 +31,16 @@ export default function LandingScreen({ navigation }: Props) {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
-      {/* Green hero background */}
-      <View style={styles.heroBg} />
+      {/* Green hero background with botanical decoration */}
+      <View style={styles.heroBg}>
+        <AuthBotanical width={screenWidth} height={height * 0.52} />
+      </View>
 
       <SafeAreaView style={styles.safe}>
         {/* ── Hero section ── */}
         <View style={styles.hero}>
+          {/* Soft halo glow behind the logo */}
+          <View style={styles.logoHalo} />
           <View style={styles.logoRing}>
             <Ionicons name="leaf" size={40} color={COLORS.primary} />
           </View>
@@ -101,6 +106,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
+    overflow: 'hidden',
   },
   safe: { flex: 1 },
 
@@ -110,6 +116,15 @@ const styles = StyleSheet.create({
     paddingTop: height * 0.07,
     paddingBottom: height * 0.04,
     paddingHorizontal: SPACING.xxl,
+  },
+  logoHalo: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    top: 0,
+    alignSelf: 'center',
   },
   logoRing: {
     width: 76,

@@ -11,6 +11,8 @@ import {
   ActivityIndicator,
   SafeAreaView,
   Image,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -111,6 +113,7 @@ export default function FamilyScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [notifVisible, setNotifVisible] = useState(false);
+  const [showDotMenu, setShowDotMenu] = useState(false);
 
   async function fetchData() {
     try {
@@ -166,33 +169,32 @@ export default function FamilyScreen() {
   }
 
   function handleThreeDot() {
-    Alert.alert('Sort Accounts', '', [
-      {
-        text: 'Sort by Name',
-        onPress: () =>
-          setMembers((prev) => {
-            const self = prev.filter((m) => m.is_self);
-            const others = [...prev.filter((m) => !m.is_self)].sort((a, b) =>
-              a.full_name.localeCompare(b.full_name)
-            );
-            return [...self, ...others];
-          }),
-      },
-      {
-        text: 'Sort by Age',
-        onPress: () =>
-          setMembers((prev) => {
-            const self = prev.filter((m) => m.is_self);
-            const others = [...prev.filter((m) => !m.is_self)].sort((a, b) => {
-              const ageA = a.dob ? new Date(a.dob).getTime() : 0;
-              const ageB = b.dob ? new Date(b.dob).getTime() : 0;
-              return ageA - ageB; // oldest first
-            });
-            return [...self, ...others];
-          }),
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShowDotMenu(true);
+  }
+
+  function sortByName() {
+    setMembers((prev) => {
+      const self = prev.filter((m) => m.is_self);
+      const others = [...prev.filter((m) => !m.is_self)].sort((a, b) =>
+        a.full_name.localeCompare(b.full_name)
+      );
+      return [...self, ...others];
+    });
+    setShowDotMenu(false);
+  }
+
+  function sortByAge() {
+    setMembers((prev) => {
+      const self = prev.filter((m) => m.is_self);
+      const others = [...prev.filter((m) => !m.is_self)].sort((a, b) => {
+        const ageA = a.dob ? new Date(a.dob).getTime() : 0;
+        const ageB = b.dob ? new Date(b.dob).getTime() : 0;
+        return ageA - ageB;
+      });
+      return [...self, ...others];
+    });
+    setShowDotMenu(false);
   }
 
   function handleAddFamily() {
@@ -326,6 +328,28 @@ export default function FamilyScreen() {
         onClose={() => setNotifVisible(false)}
         onCountChange={(count) => setPendingCount(count)}
       />
+
+      {/* ── Three-dot dropdown menu ── */}
+      <Modal
+        visible={showDotMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDotMenu(false)}
+      >
+        <Pressable style={dotMenu.backdrop} onPress={() => setShowDotMenu(false)}>
+          <View style={dotMenu.menu}>
+            <TouchableOpacity style={dotMenu.item} onPress={sortByName} activeOpacity={0.7}>
+              <Ionicons name="text-outline" size={16} color={COLORS.textPrimary} />
+              <Text style={dotMenu.itemText}>Sort by Name</Text>
+            </TouchableOpacity>
+            <View style={dotMenu.divider} />
+            <TouchableOpacity style={dotMenu.item} onPress={sortByAge} activeOpacity={0.7}>
+              <Ionicons name="calendar-outline" size={16} color={COLORS.textPrimary} />
+              <Text style={dotMenu.itemText}>Sort by Age</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -462,5 +486,44 @@ const styles = StyleSheet.create({
     ...FONTS.h4,
     color: COLORS.primary,
     fontWeight: '600',
+  },
+});
+
+const dotMenu = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+  },
+  menu: {
+    position: 'absolute',
+    top: 96,
+    right: SPACING.xl,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.14,
+    shadowRadius: 20,
+    elevation: 12,
+    minWidth: 180,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    paddingVertical: SPACING.base,
+    paddingHorizontal: SPACING.base,
+  },
+  itemText: {
+    ...FONTS.body,
+    color: COLORS.textPrimary,
+    fontWeight: '500',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginHorizontal: SPACING.sm,
   },
 });

@@ -211,7 +211,7 @@ const modal = StyleSheet.create({
 
 function CalendarSetup({ pendingInvites, onCreated, onJoined }: {
   pendingInvites: PendingInvite[];
-  onCreated: () => void;
+  onCreated: (cal: any) => void;
   onJoined: () => void;
 }) {
   const { session } = useAuth();
@@ -226,13 +226,13 @@ function CalendarSetup({ pendingInvites, onCreated, onJoined }: {
     setSavingCreate(true);
     try {
       const userId = session?.user.id;
-      const { error } = await supabase.from('family_calendars').insert({
-        title: calName.trim(),
-        owner_id: userId,
-        color: calColor,
-      });
+      const { data: newCal, error } = await supabase
+        .from('family_calendars')
+        .insert({ title: calName.trim(), owner_id: userId, color: calColor })
+        .select()
+        .single();
       if (error) throw error;
-      onCreated();
+      onCreated(newCal);
     } catch (e: any) {
       Alert.alert('Error', e.message);
     } finally { setSavingCreate(false); }
@@ -779,7 +779,16 @@ export default function CalendarScreen() {
       </SafeAreaView>
 
       {!hasCalendars ? (
-        <CalendarSetup pendingInvites={pendingInvites} onCreated={loadAll} onJoined={loadAll} />
+        <CalendarSetup
+          pendingInvites={pendingInvites}
+          onCreated={(newCal: any) => {
+            // Optimistically add the created calendar so UI transitions immediately
+            setCalendars(prev => [...prev, { ...newCal, is_owner: true }]);
+            // Also reload in background to get full state
+            setTimeout(loadAll, 800);
+          }}
+          onJoined={loadAll}
+        />
       ) : (
         <ScrollView
           contentContainerStyle={styles.listContent}

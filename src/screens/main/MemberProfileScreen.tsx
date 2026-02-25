@@ -162,7 +162,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
   const [editingSection, setEditingSection] = useState<Section>(null);
   const [saving, setSaving] = useState(false);
   const ALL_SECTIONS: NonNullable<Section>[] = ['personal','allergies','medications','conditions','insurance','emergency','proxy','doctor','notes'];
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set(ALL_SECTIONS));
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set(['personal']));
 
   function toggleSection(section: NonNullable<Section>) {
     setOpenSections((prev) => {

@@ -50,7 +50,7 @@ export default function SignInScreen({ navigation }: Props) {
       >
         {/* Green header */}
         <View style={[styles.greenHeader, { paddingTop: insets.top + SPACING.base }]}>
-          <AuthBotanical width={screenWidth} height={190} />
+          <AuthBotanical width={screenWidth} height={240} />
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={22} color="rgba(255,255,255,0.9)" />
           </TouchableOpacity>
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   greenHeader: {
     backgroundColor: COLORS.primary,
     paddingHorizontal: SPACING.xl,
-    paddingBottom: 48,
+    paddingBottom: 64,
     overflow: 'hidden',
   },
   backBtn: {

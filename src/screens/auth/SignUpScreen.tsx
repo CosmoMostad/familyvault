@@ -9,19 +9,21 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  SafeAreaView,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
 import { RootStackParamList } from '../../lib/types';
 import { COLORS, FONTS, SPACING } from '../../lib/design';
 
-type Props = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'SignUp'>;
-};
+const { height } = Dimensions.get('window');
+
+type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'SignUp'> };
 
 export default function SignUpScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const { signUp } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -31,93 +33,61 @@ export default function SignUpScreen({ navigation }: Props) {
   const [error, setError] = useState('');
 
   async function handleSignUp() {
-    if (!fullName.trim() || !email.trim() || !password.trim()) {
-      setError('Please fill in all fields.');
-      return;
-    }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
-      return;
-    }
-    setError('');
-    setLoading(true);
-    try {
-      await signUp(email.trim(), password, fullName.trim());
-    } catch (e: any) {
-      setError(e.message || 'Sign up failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    if (!fullName.trim() || !email.trim() || !password.trim()) { setError('Please fill in all fields.'); return; }
+    if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    setError(''); setLoading(true);
+    try { await signUp(email.trim(), password, fullName.trim()); }
+    catch (e: any) { setError(e.message || 'Sign up failed. Please try again.'); }
+    finally { setLoading(false); }
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: COLORS.background }}
+        contentContainerStyle={{ minHeight: height }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backButton}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
-            </TouchableOpacity>
+        {/* Green header */}
+        <View style={[styles.greenHeader, { paddingTop: insets.top + SPACING.base }]}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={22} color="rgba(255,255,255,0.9)" />
+          </TouchableOpacity>
+          <View style={styles.headerTextBlock}>
+            <Text style={styles.headerTitle}>Create account</Text>
+            <Text style={styles.headerSub}>Your family's health, all in one place</Text>
           </View>
+        </View>
 
-          <View style={styles.titleArea}>
-            <Text style={styles.title}>Create your account</Text>
-            <Text style={styles.subtitle}>
-              Join Wren Health and keep your family's health organized.
-            </Text>
-          </View>
-
-          {/* Form */}
+        {/* Card */}
+        <View style={styles.card}>
           <View style={styles.form}>
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Full Name</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="person-outline" size={18} color={COLORS.textTertiary} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Your full name"
-                  placeholderTextColor={COLORS.textTertiary}
-                  value={fullName}
-                  onChangeText={setFullName}
-                  autoCapitalize="words"
-                  autoCorrect={false}
-                />
+            {[
+              { label: 'Full Name', icon: 'person-outline', value: fullName, onChange: setFullName, placeholder: 'Your full name', props: { autoCapitalize: 'words' as const } },
+              { label: 'Email', icon: 'mail-outline', value: email, onChange: setEmail, placeholder: 'your@email.com', props: { keyboardType: 'email-address' as const, autoCapitalize: 'none' as const } },
+            ].map((f) => (
+              <View key={f.label} style={{ gap: 6 }}>
+                <Text style={styles.fieldLabel}>{f.label.toUpperCase()}</Text>
+                <View style={styles.inputWrap}>
+                  <Ionicons name={f.icon as any} size={18} color={COLORS.textTertiary} style={{ marginRight: 10 }} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder={f.placeholder}
+                    placeholderTextColor={COLORS.textTertiary}
+                    value={f.value}
+                    onChangeText={f.onChange}
+                    autoCorrect={false}
+                    {...f.props}
+                  />
+                </View>
               </View>
-            </View>
+            ))}
 
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Email</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="mail-outline" size={18} color={COLORS.textTertiary} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="your@email.com"
-                  placeholderTextColor={COLORS.textTertiary}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Password</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="lock-closed-outline" size={18} color={COLORS.textTertiary} style={styles.inputIcon} />
+            <View style={{ gap: 6 }}>
+              <Text style={styles.fieldLabel}>PASSWORD</Text>
+              <View style={styles.inputWrap}>
+                <Ionicons name="lock-closed-outline" size={18} color={COLORS.textTertiary} style={{ marginRight: 10 }} />
                 <TextInput
                   style={[styles.input, { flex: 1 }]}
                   placeholder="At least 8 characters"
@@ -127,42 +97,28 @@ export default function SignUpScreen({ navigation }: Props) {
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                 />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeButton}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Ionicons
-                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={18}
-                    color={COLORS.textTertiary}
-                  />
+                <TouchableOpacity onPress={() => setShowPassword(v => !v)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={COLORS.textTertiary} />
                 </TouchableOpacity>
               </View>
             </View>
 
             {error ? (
               <View style={styles.errorBox}>
-                <Ionicons name="alert-circle-outline" size={16} color={COLORS.rose} />
+                <Ionicons name="alert-circle-outline" size={15} color={COLORS.rose} />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
 
-            <TouchableOpacity
-              style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-              onPress={handleSignUp}
-              disabled={loading}
-              activeOpacity={0.85}
-            >
-              {loading ? (
-                <ActivityIndicator color={COLORS.textInverse} />
-              ) : (
-                <Text style={styles.submitButtonText}>Create Account</Text>
-              )}
+            <TouchableOpacity style={[styles.submitBtn, loading && { opacity: 0.65 }]} onPress={handleSignUp} disabled={loading} activeOpacity={0.85}>
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Create Account</Text>}
             </TouchableOpacity>
 
             <Text style={styles.legal}>
-              By creating an account, you agree to our Privacy Policy.
+              By creating an account you agree to our{' '}
+              <Text style={{ color: COLORS.primary }}>Privacy Policy</Text>
+              {' & '}
+              <Text style={{ color: COLORS.primary }}>Terms</Text>
             </Text>
           </View>
 
@@ -172,95 +128,64 @@ export default function SignUpScreen({ navigation }: Props) {
               <Text style={styles.footerLink}>Sign In</Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  scroll: { paddingHorizontal: SPACING.xl, paddingBottom: SPACING.xxxl },
-  header: { paddingTop: SPACING.base, paddingBottom: SPACING.lg },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.surfaceAlt,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  titleArea: { marginBottom: SPACING.xxl },
-  title: { ...FONTS.h2, color: COLORS.textPrimary, marginBottom: SPACING.sm },
-  subtitle: { ...FONTS.body, color: COLORS.textSecondary },
-  form: { gap: SPACING.lg },
-  fieldGroup: { gap: SPACING.xs },
-  fieldLabel: {
-    ...FONTS.label,
-    color: COLORS.textSecondary,
-    textTransform: 'uppercase',
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    paddingHorizontal: SPACING.base,
-    height: 52,
-  },
-  inputIcon: { marginRight: SPACING.sm },
-  input: {
-    flex: 1,
-    ...FONTS.body,
-    color: COLORS.textPrimary,
-  },
-  eyeButton: { padding: 4 },
-  errorBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-    backgroundColor: COLORS.roseLight,
-    borderRadius: 10,
-    paddingHorizontal: SPACING.base,
-    paddingVertical: SPACING.sm,
-  },
-  errorText: {
-    ...FONTS.caption,
-    color: COLORS.rose,
-    flex: 1,
-  },
-  submitButton: {
+  greenHeader: {
     backgroundColor: COLORS.primary,
-    borderRadius: 14,
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-    marginTop: SPACING.sm,
+    paddingHorizontal: SPACING.xl,
+    paddingBottom: 48,
   },
-  submitButtonDisabled: { opacity: 0.6 },
-  submitButtonText: {
-    color: COLORS.textInverse,
-    ...FONTS.h4,
-    fontWeight: '600',
+  backBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: SPACING.xl,
   },
-  legal: {
-    ...FONTS.caption,
-    color: COLORS.textTertiary,
-    textAlign: 'center',
+  headerTextBlock: { gap: 4 },
+  headerTitle: { fontSize: 28, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+  headerSub: { fontSize: 15, color: 'rgba(255,255,255,0.75)', fontWeight: '400' },
+  card: {
+    backgroundColor: COLORS.background,
+    marginHorizontal: SPACING.xl,
+    marginTop: -28,
+    borderRadius: 24,
+    padding: SPACING.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.09,
+    shadowRadius: 20,
+    elevation: 8,
+    marginBottom: SPACING.xxl,
   },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: SPACING.xxl,
+  form: { gap: SPACING.lg },
+  fieldLabel: { fontSize: 11, fontWeight: '700', color: COLORS.textTertiary, letterSpacing: 0.6 },
+  inputWrap: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border,
+    paddingHorizontal: SPACING.base, height: 52,
   },
-  footerText: { ...FONTS.body, color: COLORS.textSecondary },
-  footerLink: { ...FONTS.body, color: COLORS.primary, fontWeight: '600' },
+  input: { flex: 1, fontSize: 15, color: COLORS.textPrimary },
+  errorBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: COLORS.roseLight, borderRadius: 10,
+    paddingHorizontal: SPACING.base, paddingVertical: 10,
+  },
+  errorText: { fontSize: 13, color: COLORS.rose, flex: 1 },
+  submitBtn: {
+    backgroundColor: COLORS.primary, borderRadius: 14, height: 54,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25, shadowRadius: 10, elevation: 4, marginTop: 4,
+  },
+  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  legal: { fontSize: 12, color: COLORS.textTertiary, textAlign: 'center', lineHeight: 18 },
+  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: SPACING.xl },
+  footerText: { fontSize: 14, color: COLORS.textSecondary },
+  footerLink: { fontSize: 14, color: COLORS.primary, fontWeight: '600' },
 });

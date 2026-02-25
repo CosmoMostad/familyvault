@@ -42,7 +42,7 @@ const slides: SlideData[] = [
   },
   {
     icon: 'share-social-outline',
-    iconColor: COLORS.primaryLight,
+    iconColor: COLORS.primary,
     iconBg: COLORS.primaryMuted,
     title: 'Ready for any emergency',
     description:
@@ -99,8 +99,10 @@ const notifStyles = StyleSheet.create({
   iconContainer: {
     width: 100,
     height: 100,
-    borderRadius: 28,
-    backgroundColor: COLORS.primaryMuted,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SPACING.xl,
@@ -228,8 +230,10 @@ export default function OnboardingScreen({ onComplete }: Props) {
         {/* Info slides */}
         {slides.map((slide, index) => (
           <View key={index} style={styles.slide}>
-            <View style={[styles.iconContainer, { backgroundColor: slide.iconBg }]}>
-              <Ionicons name={slide.icon} size={52} color={slide.iconColor} />
+            <View style={styles.iconRingOuter}>
+              <View style={styles.iconRingInner}>
+                <Ionicons name={slide.icon} size={52} color={slide.iconColor} />
+              </View>
             </View>
             <Text style={styles.slideTitle}>{slide.title}</Text>
             <Text style={styles.slideDesc}>{slide.description}</Text>
@@ -244,8 +248,10 @@ export default function OnboardingScreen({ onComplete }: Props) {
 
         {/* You're ready slide */}
         <View style={styles.slide}>
-          <View style={[styles.iconContainer, { backgroundColor: COLORS.primaryMuted }]}>
-            <Ionicons name="checkmark-circle" size={52} color={COLORS.primary} />
+          <View style={styles.iconRingOuter}>
+            <View style={styles.iconRingInner}>
+              <Ionicons name="checkmark-circle" size={52} color={COLORS.primary} />
+            </View>
           </View>
           <Text style={styles.slideTitle}>You're all set!</Text>
           <Text style={styles.slideDesc}>
@@ -309,18 +315,28 @@ const styles = StyleSheet.create({
     paddingTop: 80,
     paddingHorizontal: SPACING.xxl,
   },
-  iconContainer: {
-    width: 112,
-    height: 112,
-    borderRadius: 32,
+  iconRingOuter: {
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SPACING.xxl,
+  },
+  iconRingInner: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   slideTitle: {
     ...FONTS.h2,

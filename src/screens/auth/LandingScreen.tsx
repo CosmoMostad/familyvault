@@ -6,69 +6,84 @@ import {
   StyleSheet,
   StatusBar,
   SafeAreaView,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../lib/types';
 import { COLORS, FONTS, SPACING } from '../../lib/design';
 
+const { height } = Dimensions.get('window');
+
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Landing'>;
 };
 
+const TRUST_ITEMS = [
+  { icon: 'shield-checkmark-outline' as const, label: 'End-to-end encrypted' },
+  { icon: 'lock-closed-outline' as const, label: 'HIPAA-ready' },
+  { icon: 'eye-off-outline' as const, label: 'Private by default' },
+];
+
 export default function LandingScreen({ navigation }: Props) {
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+
+      {/* Green hero background */}
+      <View style={styles.heroBg} />
 
       <SafeAreaView style={styles.safe}>
-        {/* Logo area */}
-        <View style={styles.logoArea}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="leaf" size={44} color={COLORS.textInverse} />
+        {/* ── Hero section ── */}
+        <View style={styles.hero}>
+          <View style={styles.logoRing}>
+            <Ionicons name="leaf" size={40} color={COLORS.primary} />
           </View>
-          <Text style={styles.appName}>Wren Health</Text>
-          <Text style={styles.tagline}>Your family's health,{'\n'}always within reach.</Text>
-          <Text style={styles.subtext}>
-            Secure health profiles for everyone you love.
+          <Text style={styles.brand}>Wren Health</Text>
+          <Text style={styles.tagline}>Your family's health,{'\n'}organized and secure.</Text>
+        </View>
+
+        {/* ── Floating card ── */}
+        <View style={styles.card}>
+          {/* Trust rows */}
+          <View style={styles.trustList}>
+            {TRUST_ITEMS.map((item, i) => (
+              <View key={i} style={styles.trustRow}>
+                <View style={styles.trustIconBg}>
+                  <Ionicons name={item.icon} size={18} color={COLORS.primary} />
+                </View>
+                <Text style={styles.trustLabel}>{item.label}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* CTA buttons */}
+          <View style={styles.actions}>
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={() => navigation.navigate('SignUp')}
+              activeOpacity={0.88}
+            >
+              <Text style={styles.primaryBtnText}>Create Account</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              onPress={() => navigation.navigate('SignIn')}
+              activeOpacity={0.88}
+            >
+              <Text style={styles.secondaryBtnText}>Sign In</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.legal}>
+            By continuing you agree to our{' '}
+            <Text style={styles.legalLink}>Terms</Text>
+            {' & '}
+            <Text style={styles.legalLink}>Privacy Policy</Text>
           </Text>
-        </View>
-
-        {/* Trust badges */}
-        <View style={styles.badgeRow}>
-          <View style={styles.badge}>
-            <Ionicons name="shield-checkmark-outline" size={14} color={COLORS.primary} />
-            <Text style={styles.badgeText}>Encrypted</Text>
-          </View>
-          <View style={styles.badgeDot} />
-          <View style={styles.badge}>
-            <Ionicons name="lock-closed-outline" size={14} color={COLORS.primary} />
-            <Text style={styles.badgeText}>Private</Text>
-          </View>
-          <View style={styles.badgeDot} />
-          <View style={styles.badge}>
-            <Ionicons name="people-outline" size={14} color={COLORS.primary} />
-            <Text style={styles.badgeText}>Family-first</Text>
-          </View>
-        </View>
-
-        {/* Actions */}
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={() => navigation.navigate('SignUp')}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.primaryButtonText}>Create Account</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={() => navigation.navigate('SignIn')}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.secondaryButtonText}>Sign In</Text>
-          </TouchableOpacity>
         </View>
       </SafeAreaView>
     </View>
@@ -76,109 +91,110 @@ export default function LandingScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  safe: {
-    flex: 1,
-    paddingHorizontal: SPACING.xl,
-    justifyContent: 'space-between',
-    paddingBottom: SPACING.xxxl,
-    paddingTop: 48,
-  },
-  logoArea: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 28,
+  root: { flex: 1, backgroundColor: COLORS.background },
+  heroBg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: height * 0.52,
     backgroundColor: COLORS.primary,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  safe: { flex: 1 },
+
+  // Hero
+  hero: {
+    alignItems: 'center',
+    paddingTop: height * 0.07,
+    paddingBottom: height * 0.04,
+    paddingHorizontal: SPACING.xxl,
+  },
+  logoRing: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: 'rgba(255,255,255,0.95)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: SPACING.xl,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+    marginBottom: SPACING.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  appName: {
-    ...FONTS.h1,
-    color: COLORS.textPrimary,
+  brand: {
+    fontSize: 30,
+    fontWeight: '700',
+    color: '#fff',
     letterSpacing: -0.5,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   tagline: {
-    ...FONTS.h3,
-    color: COLORS.textPrimary,
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.82)',
     textAlign: 'center',
-    marginBottom: SPACING.sm,
-    fontWeight: '500',
+    lineHeight: 24,
+    fontWeight: '400',
   },
-  subtext: {
-    ...FONTS.body,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
+
+  // Card
+  card: {
+    marginHorizontal: SPACING.xl,
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 10,
   },
-  badgeRow: {
-    flexDirection: 'row',
+  trustList: { gap: SPACING.base },
+  trustRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
+  trustIconBg: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: COLORS.primaryMuted,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: SPACING.xxl,
-    gap: SPACING.sm,
+    flexShrink: 0,
   },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  badgeText: {
-    ...FONTS.caption,
-    color: COLORS.primary,
-    fontWeight: '500',
-  },
-  badgeDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: COLORS.border,
-  },
-  actions: {
-    gap: SPACING.md,
-  },
-  primaryButton: {
+  trustLabel: { ...FONTS.body, color: COLORS.textPrimary, fontWeight: '500', flex: 1 },
+  divider: { height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.xl },
+  actions: { gap: SPACING.md },
+  primaryBtn: {
     backgroundColor: COLORS.primary,
     borderRadius: 14,
-    height: 52,
+    height: 54,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
     elevation: 4,
   },
-  primaryButtonText: {
-    color: COLORS.textInverse,
-    ...FONTS.h4,
-    fontWeight: '600',
-  },
-  secondaryButton: {
+  primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.1 },
+  secondaryBtn: {
     borderRadius: 14,
-    height: 52,
+    height: 54,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: COLORS.border,
-    backgroundColor: COLORS.surface,
   },
-  secondaryButtonText: {
-    color: COLORS.textPrimary,
-    ...FONTS.h4,
-    fontWeight: '600',
+  secondaryBtnText: { color: COLORS.textPrimary, fontSize: 16, fontWeight: '600' },
+  legal: {
+    ...FONTS.caption,
+    color: COLORS.textTertiary,
+    textAlign: 'center',
+    marginTop: SPACING.lg,
+    lineHeight: 18,
   },
+  legalLink: { color: COLORS.primary, fontWeight: '500' },
 });

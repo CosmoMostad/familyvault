@@ -60,7 +60,7 @@ function getAge(dob?: string): string {
 }
 
 function SectionHeader({
-  icon, iconColor, title, editing, onEdit, onSave, onCancel, saving,
+  icon, iconColor, title, editing, onEdit, onSave, onCancel, saving, isOpen, onToggle,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   iconColor: string;
@@ -70,9 +70,15 @@ function SectionHeader({
   onSave: () => void;
   onCancel: () => void;
   saving?: boolean;
+  isOpen: boolean;
+  onToggle: () => void;
 }) {
   return (
-    <View style={styles.secHeader}>
+    <TouchableOpacity
+      style={styles.secHeader}
+      onPress={editing ? undefined : onToggle}
+      activeOpacity={editing ? 1 : 0.7}
+    >
       <View style={[styles.secIconBg, { backgroundColor: `${iconColor}18` }]}>
         <Ionicons name={icon} size={17} color={iconColor} />
       </View>
@@ -91,11 +97,18 @@ function SectionHeader({
           </TouchableOpacity>
         </View>
       ) : (
-        <TouchableOpacity onPress={onEdit} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Ionicons name="pencil-outline" size={17} color={COLORS.textTertiary} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity onPress={onEdit} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="pencil-outline" size={17} color={COLORS.textTertiary} />
+          </TouchableOpacity>
+          <Ionicons
+            name={isOpen ? 'chevron-up' : 'chevron-down'}
+            size={17}
+            color={COLORS.textTertiary}
+          />
+        </View>
       )}
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -148,6 +161,17 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(true);
   const [editingSection, setEditingSection] = useState<Section>(null);
   const [saving, setSaving] = useState(false);
+  const ALL_SECTIONS: NonNullable<Section>[] = ['personal','allergies','medications','conditions','insurance','emergency','proxy','doctor','notes'];
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set(ALL_SECTIONS));
+
+  function toggleSection(section: NonNullable<Section>) {
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(section)) next.delete(section);
+      else next.add(section);
+      return next;
+    });
+  }
 
   // Editable state — personal
   const [eName, setEName] = useState('');
@@ -225,9 +249,11 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
   }
 
   function startEditing(section: Section) {
-    if (!member) return;
+    if (!member || !section) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setEditingSection(section);
+    // Auto-open the section when editing starts
+    setOpenSections((prev) => { const next = new Set(prev); next.add(section); return next; });
     if (section === 'personal') {
       setEName(member.full_name || '');
       setEDob(member.dob || '');
@@ -413,8 +439,10 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
             onEdit={() => startEditing('personal')}
             onSave={() => saveSection('personal')}
             onCancel={cancelEditing}
+            isOpen={openSections.has('personal')}
+            onToggle={() => toggleSection('personal')}
           />
-          {editingSection === 'personal' ? (
+          {(openSections.has('personal') || editingSection === 'personal') ? editingSection === 'personal' ? (
             <View style={styles.editBody}>
               <FieldInput label="Full Name *" value={eName} onChangeText={setEName} placeholder="First and last name" autoCapitalize="words" />
               <FieldInput label="Date of Birth" value={eDob} onChangeText={setEDob} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" autoCapitalize="none" />
@@ -462,7 +490,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
                 <Text style={styles.emptyText}>No personal details added yet. Tap the pencil to edit.</Text>
               )}
             </View>
-          )}
+          ) : null}
         </View>
 
         {/* ── Allergies ── */}
@@ -473,8 +501,10 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
             onEdit={() => startEditing('allergies')}
             onSave={() => saveSection('allergies')}
             onCancel={cancelEditing}
+            isOpen={openSections.has('allergies')}
+            onToggle={() => toggleSection('allergies')}
           />
-          {editingSection === 'allergies' ? (
+          {(openSections.has('allergies') || editingSection === 'allergies') ? editingSection === 'allergies' ? (
             <View style={styles.editBody}>
               {eAllergies.map((a, i) => (
                 <View key={i} style={styles.listEditItem}>
@@ -513,7 +543,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
                 <Text style={styles.emptyText}>No known allergies</Text>
               )}
             </View>
-          )}
+          ) : null}
         </View>
 
         {/* ── Medications ── */}
@@ -524,8 +554,10 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
             onEdit={() => startEditing('medications')}
             onSave={() => saveSection('medications')}
             onCancel={cancelEditing}
+            isOpen={openSections.has('medications')}
+            onToggle={() => toggleSection('medications')}
           />
-          {editingSection === 'medications' ? (
+          {(openSections.has('medications') || editingSection === 'medications') ? editingSection === 'medications' ? (
             <View style={styles.editBody}>
               {eMeds.map((m, i) => (
                 <View key={i} style={styles.listEditItem}>
@@ -557,7 +589,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
                 <Text style={styles.emptyText}>No medications listed</Text>
               )}
             </View>
-          )}
+          ) : null}
         </View>
 
         {/* ── Medical History ── */}
@@ -568,8 +600,10 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
             onEdit={() => startEditing('conditions')}
             onSave={() => saveSection('conditions')}
             onCancel={cancelEditing}
+            isOpen={openSections.has('conditions')}
+            onToggle={() => toggleSection('conditions')}
           />
-          {editingSection === 'conditions' ? (
+          {(openSections.has('conditions') || editingSection === 'conditions') ? editingSection === 'conditions' ? (
             <View style={styles.editBody}>
               <Text style={styles.subSectionLabel}>Conditions / Diagnoses</Text>
               {eConditions.map((c, i) => (
@@ -611,7 +645,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
                 <Text style={styles.emptyText}>No medical history on file</Text>
               )}
             </View>
-          )}
+          ) : null}
         </View>
 
         {/* ── Insurance ── */}
@@ -622,8 +656,10 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
             onEdit={() => startEditing('insurance')}
             onSave={() => saveSection('insurance')}
             onCancel={cancelEditing}
+            isOpen={openSections.has('insurance')}
+            onToggle={() => toggleSection('insurance')}
           />
-          {editingSection === 'insurance' ? (
+          {(openSections.has('insurance') || editingSection === 'insurance') ? editingSection === 'insurance' ? (
             <View style={styles.editBody}>
               <FieldInput label="Insurance Carrier" value={eInsCarrier} onChangeText={setEInsCarrier} placeholder="e.g. Blue Cross Blue Shield" />
               <FieldInput label="Policy Number" value={eInsPolicyNum} onChangeText={setEInsPolicyNum} placeholder="Policy number" autoCapitalize="none" />
@@ -643,7 +679,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
                 <Text style={styles.emptyText}>No insurance information added</Text>
               )}
             </View>
-          )}
+          ) : null}
         </View>
 
         {/* ── Emergency Contacts ── */}
@@ -654,8 +690,10 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
             onEdit={() => startEditing('emergency')}
             onSave={() => saveSection('emergency')}
             onCancel={cancelEditing}
+            isOpen={openSections.has('emergency')}
+            onToggle={() => toggleSection('emergency')}
           />
-          {editingSection === 'emergency' ? (
+          {(openSections.has('emergency') || editingSection === 'emergency') ? editingSection === 'emergency' ? (
             <View style={styles.editBody}>
               {eContacts.map((c, i) => (
                 <View key={i} style={styles.listEditItem}>
@@ -693,7 +731,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
                 <Text style={styles.emptyText}>No emergency contacts added</Text>
               )}
             </View>
-          )}
+          ) : null}
         </View>
 
         {/* ── Healthcare Proxy ── */}
@@ -704,8 +742,10 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
             onEdit={() => startEditing('proxy')}
             onSave={() => saveSection('proxy')}
             onCancel={cancelEditing}
+            isOpen={openSections.has('proxy')}
+            onToggle={() => toggleSection('proxy')}
           />
-          {editingSection === 'proxy' ? (
+          {(openSections.has('proxy') || editingSection === 'proxy') ? editingSection === 'proxy' ? (
             <View style={styles.editBody}>
               <Text style={styles.proxyHint}>A healthcare proxy can make medical decisions on behalf of this person if they are unable to.</Text>
               <FieldInput label="Proxy Name" value={eProxyName} onChangeText={setEProxyName} placeholder="Full name" autoCapitalize="words" />
@@ -726,7 +766,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
                 <Text style={styles.emptyText}>No healthcare proxy designated</Text>
               )}
             </View>
-          )}
+          ) : null}
         </View>
 
         {/* ── Primary Doctor ── */}
@@ -737,8 +777,10 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
             onEdit={() => startEditing('doctor')}
             onSave={() => saveSection('doctor')}
             onCancel={cancelEditing}
+            isOpen={openSections.has('doctor')}
+            onToggle={() => toggleSection('doctor')}
           />
-          {editingSection === 'doctor' ? (
+          {(openSections.has('doctor') || editingSection === 'doctor') ? editingSection === 'doctor' ? (
             <View style={styles.editBody}>
               <FieldInput label="Doctor Name" value={eDocName} onChangeText={setEDocName} placeholder="Dr. First Last" autoCapitalize="words" />
               <FieldInput label="Specialty" value={eDocSpecialty} onChangeText={setEDocSpecialty} placeholder="e.g. Family Medicine, Pediatrics" autoCapitalize="words" />
@@ -758,7 +800,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
                 <Text style={styles.emptyText}>No primary doctor on file</Text>
               )}
             </View>
-          )}
+          ) : null}
         </View>
 
         {/* ── Notes ── */}
@@ -769,8 +811,10 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
             onEdit={() => startEditing('notes')}
             onSave={() => saveSection('notes')}
             onCancel={cancelEditing}
+            isOpen={openSections.has('notes')}
+            onToggle={() => toggleSection('notes')}
           />
-          {editingSection === 'notes' ? (
+          {(openSections.has('notes') || editingSection === 'notes') ? editingSection === 'notes' ? (
             <View style={styles.editBody}>
               <TextInput
                 style={[styles.fieldInput, { height: 100, textAlignVertical: 'top', paddingTop: SPACING.sm }]}
@@ -789,7 +833,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
                 <Text style={styles.emptyText}>No notes added</Text>
               )}
             </View>
-          )}
+          ) : null}
         </View>
 
         {/* ── Documents ── */}

@@ -1,23 +1,8 @@
-// Additional SQL to run in Supabase (if not already done):
-// alter table public.health_info
-//   add column if not exists past_surgeries text default '',
-//   add column if not exists healthcare_proxy jsonb;
-
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Linking,
-  ActivityIndicator,
-  Alert,
-  TextInput,
-  Switch,
-  KeyboardAvoidingView,
-  Platform,
-  StatusBar,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet,
+  ActivityIndicator, Alert, TextInput, Switch, KeyboardAvoidingView,
+  Platform, StatusBar, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,8 +10,8 @@ import { RouteProp, useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
 import {
-  FamilyMember, HealthInfo, Document, RootStackParamList,
-  Allergy, Medication, Condition, Insurance, EmergencyContact, Doctor, HealthcareProxy,
+  FamilyMember, HealthInfo, RootStackParamList,
+  Allergy, Medication, Condition, EmergencyContact, Doctor,
 } from '../../lib/types';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
 
@@ -35,9 +20,7 @@ type Props = {
   route: RouteProp<RootStackParamList, 'MemberProfile'>;
 };
 
-type Section =
-  | 'personal' | 'allergies' | 'medications' | 'conditions'
-  | 'insurance' | 'emergency' | 'proxy' | 'doctor' | 'notes' | null;
+type Section = 'general' | 'medical' | 'insurance' | 'emergency' | 'physicians' | null;
 
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const SEVERITIES: Allergy['severity'][] = ['Mild', 'Moderate', 'Severe'];
@@ -56,78 +39,98 @@ function getAge(dob?: string): string {
   let age = now.getFullYear() - birth.getFullYear();
   const m = now.getMonth() - birth.getMonth();
   if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
-  return `${age} years old`;
+  return `${age} yrs`;
 }
 
-function SectionHeader({
-  icon, iconColor, title, editing, onEdit, onSave, onCancel, saving, isOpen, onToggle,
+// ── Section wrapper — clean title + chevron, no icons, no data preview ──────
+
+function SectionBlock({
+  title, isOpen, onToggle, editing, onSave, onCancel, saving, children,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
-  iconColor: string;
   title: string;
+  isOpen: boolean;
+  onToggle: () => void;
   editing: boolean;
-  onEdit: () => void;
   onSave: () => void;
   onCancel: () => void;
   saving?: boolean;
-  isOpen: boolean;
-  onToggle: () => void;
+  children: React.ReactNode;
 }) {
   return (
-    <TouchableOpacity
-      style={styles.secHeader}
-      onPress={editing ? undefined : onToggle}
-      activeOpacity={editing ? 1 : 0.7}
-    >
-      <View style={[styles.secIconBg, { backgroundColor: `${iconColor}18` }]}>
-        <Ionicons name={icon} size={17} color={iconColor} />
-      </View>
-      <Text style={styles.secTitle}>{title}</Text>
-      {editing ? (
-        <View style={styles.secActions}>
-          <TouchableOpacity onPress={onCancel} style={styles.secCancelBtn}>
-            <Text style={styles.secCancelText}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onSave} style={styles.secSaveBtn} disabled={saving}>
-            {saving ? (
-              <ActivityIndicator size="small" color={COLORS.textInverse} />
-            ) : (
-              <Text style={styles.secSaveText}>Save</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <TouchableOpacity onPress={onEdit} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="pencil-outline" size={17} color={COLORS.textTertiary} />
-          </TouchableOpacity>
+    <View style={sec.card}>
+      {/* Header row */}
+      <TouchableOpacity
+        style={sec.header}
+        onPress={editing ? undefined : onToggle}
+        activeOpacity={editing ? 1 : 0.7}
+      >
+        <Text style={sec.title}>{title}</Text>
+        {editing ? (
+          <View style={sec.editActions}>
+            <TouchableOpacity style={sec.cancelBtn} onPress={onCancel}>
+              <Text style={sec.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={sec.saveBtn} onPress={onSave} disabled={saving}>
+              {saving
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={sec.saveText}>Save</Text>}
+            </TouchableOpacity>
+          </View>
+        ) : (
           <Ionicons
             name={isOpen ? 'chevron-up' : 'chevron-down'}
-            size={17}
+            size={18}
             color={COLORS.textTertiary}
           />
+        )}
+      </TouchableOpacity>
+
+      {/* Expanded content */}
+      {(isOpen || editing) && (
+        <View style={sec.body}>
+          {children}
         </View>
       )}
-    </TouchableOpacity>
+    </View>
   );
 }
 
-function FieldInput({
-  label, value, onChangeText, placeholder, keyboardType, multiline, autoCapitalize,
-}: {
-  label?: string;
-  value: string;
-  onChangeText: (v: string) => void;
-  placeholder?: string;
-  keyboardType?: any;
-  multiline?: boolean;
-  autoCapitalize?: any;
+const sec = StyleSheet.create({
+  card: { ...CARD, overflow: 'hidden', marginBottom: SPACING.sm },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.base,
+    paddingVertical: SPACING.md,
+  },
+  title: { ...FONTS.h4, color: COLORS.textPrimary, fontWeight: '600' },
+  editActions: { flexDirection: 'row', gap: SPACING.sm },
+  cancelBtn: {
+    paddingHorizontal: SPACING.md, paddingVertical: 6,
+    borderRadius: 8, borderWidth: 1, borderColor: COLORS.border,
+  },
+  cancelText: { ...FONTS.bodySmall, color: COLORS.textSecondary, fontWeight: '500' },
+  saveBtn: {
+    paddingHorizontal: SPACING.md, paddingVertical: 6,
+    borderRadius: 8, backgroundColor: COLORS.primary, minWidth: 52,
+    alignItems: 'center',
+  },
+  saveText: { ...FONTS.bodySmall, color: '#fff', fontWeight: '700' },
+  body: { borderTopWidth: 1, borderTopColor: COLORS.border, paddingHorizontal: SPACING.base, paddingTop: SPACING.base, paddingBottom: SPACING.base },
+});
+
+// ── Field helpers ─────────────────────────────────────────────────────────────
+
+function FieldInput({ label, value, onChangeText, placeholder, keyboardType, multiline, autoCapitalize }: {
+  label?: string; value: string; onChangeText: (v: string) => void;
+  placeholder?: string; keyboardType?: any; multiline?: boolean; autoCapitalize?: any;
 }) {
   return (
-    <View style={styles.fieldGroup}>
-      {label ? <Text style={styles.fieldLabel}>{label}</Text> : null}
+    <View style={f.group}>
+      {label ? <Text style={f.label}>{label}</Text> : null}
       <TextInput
-        style={[styles.fieldInput, multiline && styles.fieldInputMulti]}
+        style={[f.input, multiline && f.inputMulti]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder ?? ''}
@@ -141,81 +144,109 @@ function FieldInput({
   );
 }
 
-function InfoRow({ label, value, onPress }: { label: string; value?: string; onPress?: () => void }) {
+function DisplayRow({ label, value, onPress }: { label: string; value?: string; onPress?: () => void }) {
   if (!value) return null;
-  const content = (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={[styles.infoValue, onPress && { color: COLORS.primary }]} numberOfLines={2}>{value}</Text>
+  const inner = (
+    <View style={f.row}>
+      <Text style={f.rowLabel}>{label}</Text>
+      <Text style={[f.rowValue, onPress && { color: COLORS.primary }]} numberOfLines={2}>{value}</Text>
     </View>
   );
-  if (onPress) return <TouchableOpacity onPress={onPress}>{content}</TouchableOpacity>;
-  return content;
+  return onPress ? <TouchableOpacity onPress={onPress}>{inner}</TouchableOpacity> : inner;
 }
+
+function EditButton({ onPress }: { onPress: () => void }) {
+  return (
+    <TouchableOpacity style={f.editBtn} onPress={onPress} activeOpacity={0.7}>
+      <Ionicons name="pencil-outline" size={14} color={COLORS.primary} />
+      <Text style={f.editBtnText}>Edit</Text>
+    </TouchableOpacity>
+  );
+}
+
+function EmptyHint({ text }: { text: string }) {
+  return <Text style={f.emptyHint}>{text}</Text>;
+}
+
+const f = StyleSheet.create({
+  group: { marginBottom: SPACING.base },
+  label: { fontSize: 11, fontWeight: '700', color: COLORS.textTertiary, letterSpacing: 0.5, marginBottom: 6 },
+  input: {
+    backgroundColor: COLORS.surface, borderRadius: 10, borderWidth: 1.5,
+    borderColor: COLORS.border, paddingHorizontal: SPACING.base, height: 46,
+    fontSize: 15, color: COLORS.textPrimary,
+  },
+  inputMulti: { height: 90, paddingTop: 12, textAlignVertical: 'top' },
+  row: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+  },
+  rowLabel: { ...FONTS.bodySmall, color: COLORS.textSecondary, flex: 1 },
+  rowValue: { ...FONTS.bodySmall, color: COLORS.textPrimary, fontWeight: '500', flex: 1.5, textAlign: 'right' },
+  editBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-end',
+    marginTop: SPACING.base, paddingVertical: 8, paddingHorizontal: SPACING.base,
+    borderRadius: 8, borderWidth: 1.5, borderColor: COLORS.primary,
+  },
+  editBtnText: { fontSize: 13, fontWeight: '600', color: COLORS.primary },
+  emptyHint: { ...FONTS.bodySmall, color: COLORS.textTertiary, fontStyle: 'italic', paddingVertical: SPACING.sm },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
+  chip: {
+    paddingHorizontal: SPACING.base, paddingVertical: 7,
+    borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.surface,
+  },
+  chipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryMuted },
+  chipText: { fontSize: 13, color: COLORS.textSecondary, fontWeight: '500' },
+  chipTextActive: { color: COLORS.primary, fontWeight: '700' },
+  listItem: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.sm,
+    paddingVertical: SPACING.sm, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+  },
+  listItemContent: { flex: 1 },
+  listItemName: { ...FONTS.body, color: COLORS.textPrimary, fontWeight: '500' },
+  listItemSub: { ...FONTS.bodySmall, color: COLORS.textSecondary, marginTop: 2 },
+  addBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingVertical: SPACING.sm, marginTop: SPACING.sm,
+  },
+  addBtnText: { ...FONTS.body, color: COLORS.primary, fontWeight: '600' },
+  removeBtn: { padding: 4 },
+});
+
+// ── Main screen ──────────────────────────────────────────────────────────────
 
 export default function MemberProfileScreen({ navigation, route }: Props) {
   const { memberId, memberName } = route.params;
   const [member, setMember] = useState<FamilyMember | null>(null);
   const [healthInfo, setHealthInfo] = useState<HealthInfo | null>(null);
-  const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingSection, setEditingSection] = useState<Section>(null);
   const [saving, setSaving] = useState(false);
-  const ALL_SECTIONS: NonNullable<Section>[] = ['personal','allergies','medications','conditions','insurance','emergency','proxy','doctor','notes'];
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set(['personal']));
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set(['general']));
 
-  function toggleSection(section: NonNullable<Section>) {
-    setOpenSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(section)) next.delete(section);
-      else next.add(section);
-      return next;
-    });
-  }
-
-  // Editable state — personal
+  // General editable state
   const [eName, setEName] = useState('');
   const [eDob, setEDob] = useState('');
-  const [eBlood, setEBlood] = useState('');
   const [eGender, setEGender] = useState('');
-  const [ePhone, setEPhone] = useState('');
-  const [eAddress, setEAddress] = useState('');
-  const [eRelationship, setERelationship] = useState('');
-  const [eIsSelf, setEIsSelf] = useState(false);
+  const [eBlood, setEBlood] = useState('');
+  const [eSsn, setESsn] = useState('');
 
-  // Editable state — allergies
+  // Medical editable state
   const [eAllergies, setEAllergies] = useState<Allergy[]>([]);
-
-  // Editable state — medications
   const [eMeds, setEMeds] = useState<Medication[]>([]);
-
-  // Editable state — conditions + past surgeries
-  const [eConditions, setEConditions] = useState<Condition[]>([]);
   const [ePastSurgeries, setEPastSurgeries] = useState('');
+  const [eConditions, setEConditions] = useState<Condition[]>([]);
 
-  // Editable state — insurance
-  const [eInsCarrier, setEInsCarrier] = useState('');
+  // Insurance editable state
+  const [eInsProvider, setEInsProvider] = useState('');
   const [eInsPolicyNum, setEInsPolicyNum] = useState('');
-  const [eInsGroupNum, setEInsGroupNum] = useState('');
-  const [eInsMemberId, setEInsMemberId] = useState('');
 
-  // Editable state — emergency contacts
+  // Emergency contacts editable state
   const [eContacts, setEContacts] = useState<EmergencyContact[]>([]);
 
-  // Editable state — healthcare proxy
-  const [eProxyName, setEProxyName] = useState('');
-  const [eProxyPhone, setEProxyPhone] = useState('');
-  const [eProxyEmail, setEProxyEmail] = useState('');
-  const [eProxyRelationship, setEProxyRelationship] = useState('');
-
-  // Editable state — doctor
+  // Physicians editable state
   const [eDocName, setEDocName] = useState('');
-  const [eDocSpecialty, setEDocSpecialty] = useState('');
   const [eDocPhone, setEDocPhone] = useState('');
-  const [eDocAddress, setEDocAddress] = useState('');
-
-  // Editable state — notes
-  const [eNotes, setENotes] = useState('');
 
   useEffect(() => {
     navigation.setOptions({
@@ -226,155 +257,114 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
     });
   }, [memberName]);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchData();
-    }, [memberId])
-  );
+  useFocusEffect(useCallback(() => { fetchData(); }, [memberId]));
 
   async function fetchData() {
     setLoading(true);
     try {
-      const [memberRes, healthRes, docsRes] = await Promise.all([
+      const [memberRes, healthRes] = await Promise.all([
         supabase.from('family_members').select('*').eq('id', memberId).single(),
         supabase.from('health_info').select('*').eq('member_id', memberId).single(),
-        supabase.from('documents').select('*').eq('member_id', memberId).order('created_at', { ascending: false }),
       ]);
       if (memberRes.data) setMember(memberRes.data);
       if (healthRes.data) setHealthInfo(healthRes.data);
-      if (docsRes.data) setDocuments(docsRes.data);
     } finally {
       setLoading(false);
     }
+  }
+
+  function toggleSection(s: string) {
+    setOpenSections(prev => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s); else next.add(s);
+      return next;
+    });
   }
 
   function startEditing(section: Section) {
     if (!member || !section) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setEditingSection(section);
-    // Auto-open the section when editing starts
-    setOpenSections((prev) => { const next = new Set(prev); next.add(section); return next; });
-    if (section === 'personal') {
+    setOpenSections(prev => new Set([...prev, section]));
+    if (section === 'general') {
       setEName(member.full_name || '');
       setEDob(member.dob || '');
-      setEBlood(member.blood_type || '');
       setEGender(member.gender || '');
-      setEPhone(member.phone || '');
-      setEAddress((member as any).address || '');
-      setERelationship(member.relationship || '');
-      setEIsSelf(member.is_self || false);
-    } else if (section === 'allergies') {
+      setEBlood(member.blood_type || '');
+      setESsn((member as any).ssn_last_four || '');
+    } else if (section === 'medical') {
       setEAllergies(JSON.parse(JSON.stringify(healthInfo?.allergies || [])));
-    } else if (section === 'medications') {
       setEMeds(JSON.parse(JSON.stringify(healthInfo?.medications || [])));
-    } else if (section === 'conditions') {
-      setEConditions(JSON.parse(JSON.stringify(healthInfo?.conditions || [])));
       setEPastSurgeries(healthInfo?.past_surgeries || '');
+      setEConditions(JSON.parse(JSON.stringify(healthInfo?.conditions || [])));
     } else if (section === 'insurance') {
-      setEInsCarrier(healthInfo?.insurance?.carrier || '');
+      setEInsProvider(healthInfo?.insurance?.carrier || '');
       setEInsPolicyNum(healthInfo?.insurance?.policy_number || '');
-      setEInsGroupNum(healthInfo?.insurance?.group_number || '');
-      setEInsMemberId(healthInfo?.insurance?.member_id || '');
     } else if (section === 'emergency') {
       setEContacts(JSON.parse(JSON.stringify(healthInfo?.emergency_contacts || [])));
-    } else if (section === 'proxy') {
-      setEProxyName(healthInfo?.healthcare_proxy?.name || '');
-      setEProxyPhone(healthInfo?.healthcare_proxy?.phone || '');
-      setEProxyEmail(healthInfo?.healthcare_proxy?.email || '');
-      setEProxyRelationship(healthInfo?.healthcare_proxy?.relationship || '');
-    } else if (section === 'doctor') {
+    } else if (section === 'physicians') {
       setEDocName(healthInfo?.primary_doctor?.name || '');
-      setEDocSpecialty(healthInfo?.primary_doctor?.specialty || '');
       setEDocPhone(healthInfo?.primary_doctor?.phone || '');
-      setEDocAddress(healthInfo?.primary_doctor?.address || '');
-    } else if (section === 'notes') {
-      setENotes(healthInfo?.notes || '');
     }
   }
 
-  function cancelEditing() {
-    setEditingSection(null);
-  }
+  function cancelEditing() { setEditingSection(null); }
 
   async function saveSection(section: Section) {
     setSaving(true);
     try {
-      if (section === 'personal') {
+      if (section === 'general') {
         await supabase.from('family_members').update({
           full_name: eName.trim(),
           dob: eDob || null,
-          blood_type: eBlood || null,
           gender: eGender || null,
-          phone: ePhone || null,
-          address: eAddress || null,
-          relationship: eRelationship || null,
-          is_self: eIsSelf,
+          blood_type: eBlood || null,
+          ssn_last_four: eSsn.replace(/\D/g, '').slice(0, 4) || null,
         }).eq('id', memberId);
       } else {
-        const current = healthInfo;
-        const insurance: Insurance | null = eInsCarrier || eInsPolicyNum || eInsGroupNum || eInsMemberId
-          ? { carrier: eInsCarrier, policy_number: eInsPolicyNum, group_number: eInsGroupNum, member_id: eInsMemberId }
+        const hi = healthInfo;
+        const insurance = eInsProvider || eInsPolicyNum
+          ? { carrier: eInsProvider, policy_number: eInsPolicyNum, group_number: hi?.insurance?.group_number || '', member_id: hi?.insurance?.member_id }
           : null;
-        const doctor: Doctor | null = eDocName
-          ? { name: eDocName, specialty: eDocSpecialty, phone: eDocPhone, address: eDocAddress }
-          : null;
-        const proxy: HealthcareProxy | null = eProxyName
-          ? { name: eProxyName, phone: eProxyPhone, email: eProxyEmail, relationship: eProxyRelationship }
-          : null;
+        const doctor = eDocName ? { name: eDocName, phone: eDocPhone, address: '', specialty: '' } : null;
 
-        const updatePayload: any = {
+        const payload: any = {
           member_id: memberId,
-          allergies: section === 'allergies' ? eAllergies : (current?.allergies || []),
-          medications: section === 'medications' ? eMeds : (current?.medications || []),
-          conditions: section === 'conditions' ? eConditions : (current?.conditions || []),
-          past_surgeries: section === 'conditions' ? ePastSurgeries : (current?.past_surgeries || ''),
-          insurance: section === 'insurance' ? insurance : (current?.insurance ?? null),
-          emergency_contacts: section === 'emergency' ? eContacts : (current?.emergency_contacts || []),
-          healthcare_proxy: section === 'proxy' ? proxy : (current?.healthcare_proxy ?? null),
-          primary_doctor: section === 'doctor' ? doctor : (current?.primary_doctor ?? null),
-          notes: section === 'notes' ? eNotes : (current?.notes || ''),
+          allergies: section === 'medical' ? eAllergies : (hi?.allergies || []),
+          medications: section === 'medical' ? eMeds : (hi?.medications || []),
+          conditions: section === 'medical' ? eConditions : (hi?.conditions || []),
+          past_surgeries: section === 'medical' ? ePastSurgeries : (hi?.past_surgeries || ''),
+          insurance: section === 'insurance' ? insurance : (hi?.insurance ?? null),
+          emergency_contacts: section === 'emergency' ? eContacts : (hi?.emergency_contacts || []),
+          primary_doctor: section === 'physicians' ? doctor : (hi?.primary_doctor ?? null),
+          healthcare_proxy: hi?.healthcare_proxy ?? null,
+          notes: hi?.notes || '',
           updated_at: new Date().toISOString(),
         };
 
         const { data: existing } = await supabase.from('health_info').select('id').eq('member_id', memberId).single();
         if (existing) {
-          await supabase.from('health_info').update(updatePayload).eq('member_id', memberId);
+          await supabase.from('health_info').update(payload).eq('member_id', memberId);
         } else {
-          await supabase.from('health_info').insert(updatePayload);
+          await supabase.from('health_info').insert(payload);
         }
       }
-
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setEditingSection(null);
       fetchData();
     } catch (e: any) {
-      Alert.alert('Save failed', e.message || 'Something went wrong.');
+      Alert.alert('Save failed', e.message);
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
-    );
-  }
-
-  if (!member) {
-    return (
-      <View style={styles.loading}>
-        <Text style={FONTS.body}>Member not found.</Text>
-      </View>
-    );
-  }
+  if (loading) return <View style={styles.loading}><ActivityIndicator size="large" color={COLORS.primary} /></View>;
+  if (!member) return <View style={styles.loading}><Text style={FONTS.body}>Member not found.</Text></View>;
 
   const hi = healthInfo;
   const age = getAge(member.dob);
-
-  const severityBg: Record<string, string> = { Mild: COLORS.primaryMuted, Moderate: COLORS.amberLight, Severe: COLORS.roseLight };
-  const severityTxt: Record<string, string> = { Mild: COLORS.primary, Moderate: COLORS.amber, Severe: COLORS.rose };
+  const ssnDisplay = (member as any).ssn_last_four ? `•••–•••–${(member as any).ssn_last_four}` : undefined;
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -385,44 +375,33 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ── Hero ── */}
+        {/* ── Avatar + name header ── */}
         <View style={styles.hero}>
-          <View style={styles.heroAvatar}>
-            <Text style={styles.heroAvatarText}>{getInitials(member.full_name)}</Text>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{getInitials(member.full_name)}</Text>
           </View>
           <View style={styles.heroInfo}>
-            <View style={styles.heroNameRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={styles.heroName}>{member.full_name}</Text>
-              {member.is_self && (
-                <View style={styles.selfBadge}><Text style={styles.selfBadgeText}>Me</Text></View>
-              )}
+              {member.is_self && <View style={styles.selfBadge}><Text style={styles.selfBadgeText}>Me</Text></View>}
             </View>
-            {member.relationship && (
-              <Text style={styles.heroRelationship}>{member.relationship}</Text>
-            )}
-            {age ? <Text style={styles.heroAge}>{age}</Text> : null}
-            {member.blood_type && (
-              <View style={styles.bloodBadge}>
-                <Ionicons name="water" size={11} color={COLORS.rose} />
-                <Text style={styles.bloodText}>{member.blood_type}</Text>
-              </View>
-            )}
+            {member.dob ? (
+              <Text style={styles.heroDob}>
+                {new Date(member.dob).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                {age ? `  ·  ${age}` : ''}
+              </Text>
+            ) : null}
           </View>
         </View>
 
-        {/* ── Quick Actions ── */}
+        {/* ── Quick action buttons ── */}
         <View style={styles.actionRow}>
           {[
             { icon: 'share-social-outline' as const, label: 'Share', onPress: () => navigation.navigate('ShareAccount', { memberId, memberName }) },
             { icon: 'calendar-outline' as const, label: 'Appointments', onPress: () => navigation.navigate('Appointments', { memberId, memberName }) },
             { icon: 'document-text-outline' as const, label: 'Documents', onPress: () => navigation.navigate('DocumentScanner', { memberId, memberName }) },
           ].map((a, i) => (
-            <TouchableOpacity
-              key={i}
-              style={styles.actionBtn}
-              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); a.onPress(); }}
-              activeOpacity={0.7}
-            >
+            <TouchableOpacity key={i} style={styles.actionBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); a.onPress(); }} activeOpacity={0.7}>
               <View style={styles.actionIconBg}>
                 <Ionicons name={a.icon} size={20} color={COLORS.primary} />
               </View>
@@ -431,451 +410,310 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
           ))}
         </View>
 
-        {/* ── Personal Info ── */}
-        <View style={styles.card}>
-          <SectionHeader
-            icon="person-outline" iconColor={COLORS.primary} title="Personal Info"
-            editing={editingSection === 'personal'} saving={saving}
-            onEdit={() => startEditing('personal')}
-            onSave={() => saveSection('personal')}
-            onCancel={cancelEditing}
-            isOpen={openSections.has('personal')}
-            onToggle={() => toggleSection('personal')}
-          />
-          {(openSections.has('personal') || editingSection === 'personal') ? editingSection === 'personal' ? (
-            <View style={styles.editBody}>
-              <FieldInput label="Full Name *" value={eName} onChangeText={setEName} placeholder="First and last name" autoCapitalize="words" />
+        {/* ────────────────────────────────────────
+            GENERAL INFORMATION
+        ──────────────────────────────────────── */}
+        <SectionBlock
+          title="General Information"
+          isOpen={openSections.has('general')}
+          onToggle={() => toggleSection('general')}
+          editing={editingSection === 'general'}
+          onSave={() => saveSection('general')}
+          onCancel={cancelEditing}
+          saving={saving}
+        >
+          {editingSection === 'general' ? (
+            <>
+              <FieldInput label="Full Name" value={eName} onChangeText={setEName} placeholder="First and last name" autoCapitalize="words" />
               <FieldInput label="Date of Birth" value={eDob} onChangeText={setEDob} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" autoCapitalize="none" />
-              <FieldInput label="Relationship" value={eRelationship} onChangeText={setERelationship} placeholder="e.g. Mother, Daughter, Husband" autoCapitalize="words" />
-              <FieldInput label="Phone" value={ePhone} onChangeText={setEPhone} placeholder="(555) 555-0100" keyboardType="phone-pad" autoCapitalize="none" />
-              <FieldInput label="Address" value={eAddress} onChangeText={setEAddress} placeholder="Street, City, State, ZIP" multiline autoCapitalize="words" />
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>Blood Type</Text>
-                <View style={styles.chipRow}>
-                  {BLOOD_TYPES.map((bt) => (
-                    <TouchableOpacity key={bt} style={[styles.optChip, eBlood === bt && styles.optChipActive]} onPress={() => setEBlood(eBlood === bt ? '' : bt)}>
-                      <Text style={[styles.optChipText, eBlood === bt && styles.optChipTextActive]}>{bt}</Text>
+              <View style={f.group}>
+                <Text style={f.label}>GENDER</Text>
+                <View style={f.chipRow}>
+                  {GENDERS.map(g => (
+                    <TouchableOpacity key={g} style={[f.chip, eGender === g && f.chipActive]} onPress={() => setEGender(eGender === g ? '' : g)}>
+                      <Text style={[f.chipText, eGender === g && f.chipTextActive]}>{g}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               </View>
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>Gender</Text>
-                <View style={styles.chipRow}>
-                  {GENDERS.map((g) => (
-                    <TouchableOpacity key={g} style={[styles.optChip, eGender === g && styles.optChipActive]} onPress={() => setEGender(eGender === g ? '' : g)}>
-                      <Text style={[styles.optChipText, eGender === g && styles.optChipTextActive]}>{g}</Text>
+              <View style={f.group}>
+                <Text style={f.label}>BLOOD TYPE</Text>
+                <View style={f.chipRow}>
+                  {BLOOD_TYPES.map(bt => (
+                    <TouchableOpacity key={bt} style={[f.chip, eBlood === bt && f.chipActive]} onPress={() => setEBlood(eBlood === bt ? '' : bt)}>
+                      <Text style={[f.chipText, eBlood === bt && f.chipTextActive]}>{bt}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               </View>
-              <View style={styles.switchRow}>
-                <Text style={styles.switchLabel}>This is my own account</Text>
-                <Switch
-                  value={eIsSelf}
-                  onValueChange={setEIsSelf}
-                  trackColor={{ false: COLORS.border, true: COLORS.primaryLight }}
-                  thumbColor={eIsSelf ? COLORS.primary : COLORS.textTertiary}
-                  ios_backgroundColor={COLORS.border}
-                />
-              </View>
-            </View>
+              <FieldInput label="SSN LAST 4" value={eSsn} onChangeText={(v) => setESsn(v.replace(/\D/g, '').slice(0, 4))} placeholder="1234" keyboardType="number-pad" autoCapitalize="none" />
+            </>
           ) : (
-            <View style={styles.viewBody}>
-              <InfoRow label="Date of Birth" value={member.dob ? new Date(member.dob).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : undefined} />
-              <InfoRow label="Gender" value={member.gender ?? undefined} />
-              <InfoRow label="Phone" value={member.phone ?? undefined} onPress={member.phone ? () => Linking.openURL(`tel:${member.phone}`) : undefined} />
-              <InfoRow label="Address" value={(member as any).address ?? undefined} />
-              {!member.dob && !member.gender && !member.phone && (
-                <Text style={styles.emptyText}>No personal details added yet. Tap the pencil to edit.</Text>
-              )}
-            </View>
-          ) : null}
-        </View>
+            <>
+              <DisplayRow label="Date of Birth" value={member.dob ? new Date(member.dob).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : undefined} />
+              <DisplayRow label="Gender" value={member.gender ?? undefined} />
+              <DisplayRow label="Blood Type" value={member.blood_type ?? undefined} />
+              <DisplayRow label="SSN" value={ssnDisplay} />
+              {!member.dob && !member.gender && !member.blood_type && <EmptyHint text="No details added yet." />}
+              <EditButton onPress={() => startEditing('general')} />
+            </>
+          )}
+        </SectionBlock>
 
-        {/* ── Allergies ── */}
-        <View style={styles.card}>
-          <SectionHeader
-            icon="warning-outline" iconColor={COLORS.amber} title="Allergies"
-            editing={editingSection === 'allergies'} saving={saving}
-            onEdit={() => startEditing('allergies')}
-            onSave={() => saveSection('allergies')}
-            onCancel={cancelEditing}
-            isOpen={openSections.has('allergies')}
-            onToggle={() => toggleSection('allergies')}
-          />
-          {(openSections.has('allergies') || editingSection === 'allergies') ? editingSection === 'allergies' ? (
-            <View style={styles.editBody}>
+        {/* ────────────────────────────────────────
+            MEDICAL INFORMATION
+        ──────────────────────────────────────── */}
+        <SectionBlock
+          title="Medical Information"
+          isOpen={openSections.has('medical')}
+          onToggle={() => toggleSection('medical')}
+          editing={editingSection === 'medical'}
+          onSave={() => saveSection('medical')}
+          onCancel={cancelEditing}
+          saving={saving}
+        >
+          {editingSection === 'medical' ? (
+            <>
+              {/* Allergies */}
+              <Text style={[f.label, { marginBottom: SPACING.sm }]}>ALLERGIES</Text>
               {eAllergies.map((a, i) => (
-                <View key={i} style={styles.listEditItem}>
-                  <View style={{ flex: 1, gap: SPACING.sm }}>
-                    <TextInput style={styles.fieldInput} value={a.name} onChangeText={(v) => { const u = [...eAllergies]; u[i].name = v; setEAllergies(u); }} placeholder="Allergy name" placeholderTextColor={COLORS.textTertiary} />
-                    <View style={styles.chipRow}>
-                      {SEVERITIES.map((s) => (
-                        <TouchableOpacity key={s} style={[styles.optChip, a.severity === s && styles.optChipActive]} onPress={() => { const u = [...eAllergies]; u[i].severity = s; setEAllergies(u); }}>
-                          <Text style={[styles.optChipText, a.severity === s && styles.optChipTextActive]}>{s}</Text>
+                <View key={i} style={{ flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.sm, alignItems: 'flex-start' }}>
+                  <View style={{ flex: 1, gap: 6 }}>
+                    <TextInput style={f.input} value={a.name} onChangeText={v => { const u = [...eAllergies]; u[i].name = v; setEAllergies(u); }} placeholder="Allergy name" placeholderTextColor={COLORS.textTertiary} />
+                    <View style={f.chipRow}>
+                      {SEVERITIES.map(s => (
+                        <TouchableOpacity key={s} style={[f.chip, a.severity === s && f.chipActive]} onPress={() => { const u = [...eAllergies]; u[i].severity = s; setEAllergies(u); }}>
+                          <Text style={[f.chipText, a.severity === s && f.chipTextActive]}>{s}</Text>
                         </TouchableOpacity>
                       ))}
                     </View>
                   </View>
-                  <TouchableOpacity onPress={() => setEAllergies(eAllergies.filter((_, idx) => idx !== i))} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <Ionicons name="close-circle" size={22} color={COLORS.textTertiary} />
+                  <TouchableOpacity onPress={() => setEAllergies(eAllergies.filter((_, j) => j !== i))} style={f.removeBtn}>
+                    <Ionicons name="close-circle-outline" size={22} color={COLORS.textTertiary} />
                   </TouchableOpacity>
                 </View>
               ))}
-              <TouchableOpacity style={styles.addRowBtn} onPress={() => setEAllergies([...eAllergies, { name: '', severity: 'Mild' }])}>
-                <Ionicons name="add-circle-outline" size={17} color={COLORS.primary} />
-                <Text style={styles.addRowText}>Add Allergy</Text>
+              <TouchableOpacity style={f.addBtn} onPress={() => setEAllergies([...eAllergies, { name: '', severity: 'Mild' }])}>
+                <Ionicons name="add-circle-outline" size={18} color={COLORS.primary} />
+                <Text style={f.addBtnText}>Add Allergy</Text>
               </TouchableOpacity>
-            </View>
+
+              <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.base }} />
+
+              {/* Medications */}
+              <Text style={[f.label, { marginBottom: SPACING.sm }]}>CURRENT MEDICATIONS</Text>
+              {eMeds.map((m, i) => (
+                <View key={i} style={{ flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.sm, alignItems: 'flex-start' }}>
+                  <View style={{ flex: 1, gap: 6 }}>
+                    <TextInput style={f.input} value={m.name} onChangeText={v => { const u = [...eMeds]; u[i].name = v; setEMeds(u); }} placeholder="Medication name" placeholderTextColor={COLORS.textTertiary} />
+                    <TextInput style={f.input} value={m.dosage} onChangeText={v => { const u = [...eMeds]; u[i].dosage = v; setEMeds(u); }} placeholder="Dosage (e.g. 10mg)" placeholderTextColor={COLORS.textTertiary} />
+                    <TextInput style={f.input} value={m.frequency} onChangeText={v => { const u = [...eMeds]; u[i].frequency = v; setEMeds(u); }} placeholder="Frequency (e.g. Once daily)" placeholderTextColor={COLORS.textTertiary} />
+                  </View>
+                  <TouchableOpacity onPress={() => setEMeds(eMeds.filter((_, j) => j !== i))} style={f.removeBtn}>
+                    <Ionicons name="close-circle-outline" size={22} color={COLORS.textTertiary} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity style={f.addBtn} onPress={() => setEMeds([...eMeds, { name: '', dosage: '', frequency: '' }])}>
+                <Ionicons name="add-circle-outline" size={18} color={COLORS.primary} />
+                <Text style={f.addBtnText}>Add Medication</Text>
+              </TouchableOpacity>
+
+              <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.base }} />
+
+              {/* Past Surgeries */}
+              <FieldInput label="PAST SURGERIES" value={ePastSurgeries} onChangeText={setEPastSurgeries} placeholder="Describe any past surgeries" multiline />
+
+              <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.base }} />
+
+              {/* Medical History */}
+              <Text style={[f.label, { marginBottom: SPACING.sm }]}>PAST MEDICAL HISTORY</Text>
+              {eConditions.map((c, i) => (
+                <View key={i} style={{ flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.sm }}>
+                  <TextInput style={[f.input, { flex: 1 }]} value={c.name} onChangeText={v => { const u = [...eConditions]; u[i].name = v; setEConditions(u); }} placeholder="Condition or diagnosis" placeholderTextColor={COLORS.textTertiary} />
+                  <TouchableOpacity onPress={() => setEConditions(eConditions.filter((_, j) => j !== i))} style={f.removeBtn}>
+                    <Ionicons name="close-circle-outline" size={22} color={COLORS.textTertiary} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity style={f.addBtn} onPress={() => setEConditions([...eConditions, { name: '' }])}>
+                <Ionicons name="add-circle-outline" size={18} color={COLORS.primary} />
+                <Text style={f.addBtnText}>Add Condition</Text>
+              </TouchableOpacity>
+            </>
           ) : (
-            <View style={styles.viewBody}>
-              {hi?.allergies?.length ? (
-                <View style={styles.chipsWrap}>
-                  {hi.allergies.map((a, i) => (
-                    <View key={i} style={[styles.chip, { backgroundColor: severityBg[a.severity] || COLORS.surfaceAlt }]}>
-                      <Text style={[styles.chipText, { color: severityTxt[a.severity] || COLORS.textSecondary }]}>{a.name}</Text>
-                      <Text style={[styles.chipSub, { color: severityTxt[a.severity] || COLORS.textTertiary }]}>{a.severity}</Text>
+            <>
+              {/* View: Allergies */}
+              {(hi?.allergies?.length ?? 0) > 0 && (
+                <View style={{ marginBottom: SPACING.base }}>
+                  <Text style={[f.label, { marginBottom: 6 }]}>ALLERGIES</Text>
+                  {hi!.allergies.map((a, i) => (
+                    <View key={i} style={f.listItem}>
+                      <View style={f.listItemContent}>
+                        <Text style={f.listItemName}>{a.name}</Text>
+                        <Text style={f.listItemSub}>{a.severity}</Text>
+                      </View>
                     </View>
                   ))}
                 </View>
-              ) : (
-                <Text style={styles.emptyText}>No known allergies</Text>
               )}
-            </View>
-          ) : null}
-        </View>
-
-        {/* ── Medications ── */}
-        <View style={styles.card}>
-          <SectionHeader
-            icon="medkit-outline" iconColor={COLORS.primary} title="Medications"
-            editing={editingSection === 'medications'} saving={saving}
-            onEdit={() => startEditing('medications')}
-            onSave={() => saveSection('medications')}
-            onCancel={cancelEditing}
-            isOpen={openSections.has('medications')}
-            onToggle={() => toggleSection('medications')}
-          />
-          {(openSections.has('medications') || editingSection === 'medications') ? editingSection === 'medications' ? (
-            <View style={styles.editBody}>
-              {eMeds.map((m, i) => (
-                <View key={i} style={styles.listEditItem}>
-                  <View style={{ flex: 1, gap: SPACING.sm }}>
-                    <TextInput style={styles.fieldInput} value={m.name} onChangeText={(v) => { const u = [...eMeds]; u[i].name = v; setEMeds(u); }} placeholder="Medication name" placeholderTextColor={COLORS.textTertiary} />
-                    <TextInput style={styles.fieldInput} value={m.dosage} onChangeText={(v) => { const u = [...eMeds]; u[i].dosage = v; setEMeds(u); }} placeholder="Dosage (e.g. 10mg)" placeholderTextColor={COLORS.textTertiary} />
-                    <TextInput style={styles.fieldInput} value={m.frequency} onChangeText={(v) => { const u = [...eMeds]; u[i].frequency = v; setEMeds(u); }} placeholder="Frequency (e.g. Once daily)" placeholderTextColor={COLORS.textTertiary} />
-                  </View>
-                  <TouchableOpacity onPress={() => setEMeds(eMeds.filter((_, idx) => idx !== i))} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <Ionicons name="close-circle" size={22} color={COLORS.textTertiary} />
-                  </TouchableOpacity>
-                </View>
-              ))}
-              <TouchableOpacity style={styles.addRowBtn} onPress={() => setEMeds([...eMeds, { name: '', dosage: '', frequency: '' }])}>
-                <Ionicons name="add-circle-outline" size={17} color={COLORS.primary} />
-                <Text style={styles.addRowText}>Add Medication</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.viewBody}>
-              {hi?.medications?.length ? (
-                hi.medications.map((m, i) => (
-                  <View key={i} style={[styles.listRow, i < hi.medications.length - 1 && styles.listRowBorder]}>
-                    <Text style={styles.listRowTitle}>{m.name}</Text>
-                    <Text style={styles.listRowSub}>{m.dosage}{m.dosage && m.frequency ? ' · ' : ''}{m.frequency}</Text>
-                  </View>
-                ))
-              ) : (
-                <Text style={styles.emptyText}>No medications listed</Text>
-              )}
-            </View>
-          ) : null}
-        </View>
-
-        {/* ── Medical History ── */}
-        <View style={styles.card}>
-          <SectionHeader
-            icon="fitness-outline" iconColor={COLORS.rose} title="Medical History"
-            editing={editingSection === 'conditions'} saving={saving}
-            onEdit={() => startEditing('conditions')}
-            onSave={() => saveSection('conditions')}
-            onCancel={cancelEditing}
-            isOpen={openSections.has('conditions')}
-            onToggle={() => toggleSection('conditions')}
-          />
-          {(openSections.has('conditions') || editingSection === 'conditions') ? editingSection === 'conditions' ? (
-            <View style={styles.editBody}>
-              <Text style={styles.subSectionLabel}>Conditions / Diagnoses</Text>
-              {eConditions.map((c, i) => (
-                <View key={i} style={styles.listEditItem}>
-                  <View style={{ flex: 1, gap: SPACING.sm }}>
-                    <TextInput style={styles.fieldInput} value={c.name} onChangeText={(v) => { const u = [...eConditions]; u[i].name = v; setEConditions(u); }} placeholder="Condition name" placeholderTextColor={COLORS.textTertiary} />
-                    <TextInput style={[styles.fieldInput, styles.fieldInputMulti]} value={c.notes || ''} onChangeText={(v) => { const u = [...eConditions]; u[i].notes = v; setEConditions(u); }} placeholder="Notes (optional)" placeholderTextColor={COLORS.textTertiary} multiline numberOfLines={2} />
-                  </View>
-                  <TouchableOpacity onPress={() => setEConditions(eConditions.filter((_, idx) => idx !== i))} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <Ionicons name="close-circle" size={22} color={COLORS.textTertiary} />
-                  </TouchableOpacity>
-                </View>
-              ))}
-              <TouchableOpacity style={styles.addRowBtn} onPress={() => setEConditions([...eConditions, { name: '', notes: '' }])}>
-                <Ionicons name="add-circle-outline" size={17} color={COLORS.primary} />
-                <Text style={styles.addRowText}>Add Condition</Text>
-              </TouchableOpacity>
-              <View style={styles.divider} />
-              <FieldInput label="Past Surgeries & Procedures" value={ePastSurgeries} onChangeText={setEPastSurgeries} placeholder="Describe any past surgeries or major procedures..." multiline />
-            </View>
-          ) : (
-            <View style={styles.viewBody}>
-              {hi?.conditions?.length ? (
-                hi.conditions.map((c, i) => (
-                  <View key={i} style={[styles.listRow, i < hi.conditions.length - 1 && styles.listRowBorder]}>
-                    <Text style={styles.listRowTitle}>{c.name}</Text>
-                    {c.notes ? <Text style={styles.listRowSub}>{c.notes}</Text> : null}
-                  </View>
-                ))
-              ) : null}
-              {hi?.past_surgeries ? (
-                <>
-                  {hi.conditions?.length ? <View style={styles.divider} /> : null}
-                  <Text style={styles.subSectionLabel}>Past Surgeries</Text>
-                  <Text style={styles.listRowSub}>{hi.past_surgeries}</Text>
-                </>
-              ) : null}
-              {!hi?.conditions?.length && !hi?.past_surgeries && (
-                <Text style={styles.emptyText}>No medical history on file</Text>
-              )}
-            </View>
-          ) : null}
-        </View>
-
-        {/* ── Insurance ── */}
-        <View style={styles.card}>
-          <SectionHeader
-            icon="card-outline" iconColor={COLORS.amber} title="Insurance"
-            editing={editingSection === 'insurance'} saving={saving}
-            onEdit={() => startEditing('insurance')}
-            onSave={() => saveSection('insurance')}
-            onCancel={cancelEditing}
-            isOpen={openSections.has('insurance')}
-            onToggle={() => toggleSection('insurance')}
-          />
-          {(openSections.has('insurance') || editingSection === 'insurance') ? editingSection === 'insurance' ? (
-            <View style={styles.editBody}>
-              <FieldInput label="Insurance Carrier" value={eInsCarrier} onChangeText={setEInsCarrier} placeholder="e.g. Blue Cross Blue Shield" />
-              <FieldInput label="Policy Number" value={eInsPolicyNum} onChangeText={setEInsPolicyNum} placeholder="Policy number" autoCapitalize="none" />
-              <FieldInput label="Group Number" value={eInsGroupNum} onChangeText={setEInsGroupNum} placeholder="Group number" autoCapitalize="none" />
-              <FieldInput label="Member ID" value={eInsMemberId} onChangeText={setEInsMemberId} placeholder="Member ID" autoCapitalize="none" />
-            </View>
-          ) : (
-            <View style={styles.viewBody}>
-              {hi?.insurance ? (
-                <>
-                  <InfoRow label="Carrier" value={hi.insurance.carrier} />
-                  <InfoRow label="Policy" value={hi.insurance.policy_number} />
-                  <InfoRow label="Group" value={hi.insurance.group_number} />
-                  <InfoRow label="Member ID" value={hi.insurance.member_id} />
-                </>
-              ) : (
-                <Text style={styles.emptyText}>No insurance information added</Text>
-              )}
-            </View>
-          ) : null}
-        </View>
-
-        {/* ── Emergency Contacts ── */}
-        <View style={styles.card}>
-          <SectionHeader
-            icon="call-outline" iconColor={COLORS.rose} title="Emergency Contacts"
-            editing={editingSection === 'emergency'} saving={saving}
-            onEdit={() => startEditing('emergency')}
-            onSave={() => saveSection('emergency')}
-            onCancel={cancelEditing}
-            isOpen={openSections.has('emergency')}
-            onToggle={() => toggleSection('emergency')}
-          />
-          {(openSections.has('emergency') || editingSection === 'emergency') ? editingSection === 'emergency' ? (
-            <View style={styles.editBody}>
-              {eContacts.map((c, i) => (
-                <View key={i} style={styles.listEditItem}>
-                  <View style={{ flex: 1, gap: SPACING.sm }}>
-                    <TextInput style={styles.fieldInput} value={c.name} onChangeText={(v) => { const u = [...eContacts]; u[i].name = v; setEContacts(u); }} placeholder="Name" placeholderTextColor={COLORS.textTertiary} autoCapitalize="words" />
-                    <TextInput style={styles.fieldInput} value={c.phone} onChangeText={(v) => { const u = [...eContacts]; u[i].phone = v; setEContacts(u); }} placeholder="Phone number" placeholderTextColor={COLORS.textTertiary} keyboardType="phone-pad" />
-                    <TextInput style={styles.fieldInput} value={c.relationship} onChangeText={(v) => { const u = [...eContacts]; u[i].relationship = v; setEContacts(u); }} placeholder="Relationship (e.g. Spouse)" placeholderTextColor={COLORS.textTertiary} autoCapitalize="words" />
-                  </View>
-                  <TouchableOpacity onPress={() => setEContacts(eContacts.filter((_, idx) => idx !== i))} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <Ionicons name="close-circle" size={22} color={COLORS.textTertiary} />
-                  </TouchableOpacity>
-                </View>
-              ))}
-              <TouchableOpacity style={styles.addRowBtn} onPress={() => setEContacts([...eContacts, { name: '', phone: '', relationship: '' }])}>
-                <Ionicons name="add-circle-outline" size={17} color={COLORS.primary} />
-                <Text style={styles.addRowText}>Add Contact</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.viewBody}>
-              {hi?.emergency_contacts?.length ? (
-                hi.emergency_contacts.map((c, i) => (
-                  <View key={i} style={[styles.contactRow, i < hi.emergency_contacts.length - 1 && styles.listRowBorder]}>
-                    <View>
-                      <Text style={styles.listRowTitle}>{c.name}</Text>
-                      <Text style={styles.listRowSub}>{c.relationship}</Text>
+              {/* View: Medications */}
+              {(hi?.medications?.length ?? 0) > 0 && (
+                <View style={{ marginBottom: SPACING.base }}>
+                  <Text style={[f.label, { marginBottom: 6 }]}>CURRENT MEDICATIONS</Text>
+                  {hi!.medications.map((m, i) => (
+                    <View key={i} style={f.listItem}>
+                      <View style={f.listItemContent}>
+                        <Text style={f.listItemName}>{m.name}</Text>
+                        {m.dosage ? <Text style={f.listItemSub}>{m.dosage}{m.frequency ? ` · ${m.frequency}` : ''}</Text> : null}
+                      </View>
                     </View>
-                    <TouchableOpacity onPress={() => Linking.openURL(`tel:${c.phone}`)} style={styles.callBtn}>
-                      <Ionicons name="call-outline" size={14} color={COLORS.primary} />
-                      <Text style={styles.callText}>{c.phone}</Text>
+                  ))}
+                </View>
+              )}
+              {/* View: Past Surgeries */}
+              {hi?.past_surgeries ? (
+                <View style={{ marginBottom: SPACING.base }}>
+                  <Text style={[f.label, { marginBottom: 6 }]}>PAST SURGERIES</Text>
+                  <Text style={{ ...FONTS.body, color: COLORS.textPrimary }}>{hi.past_surgeries}</Text>
+                </View>
+              ) : null}
+              {/* View: Medical History */}
+              {(hi?.conditions?.length ?? 0) > 0 && (
+                <View style={{ marginBottom: SPACING.base }}>
+                  <Text style={[f.label, { marginBottom: 6 }]}>PAST MEDICAL HISTORY</Text>
+                  {hi!.conditions.map((c, i) => (
+                    <View key={i} style={f.listItem}>
+                      <Text style={f.listItemName}>{c.name}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+              {!hi?.allergies?.length && !hi?.medications?.length && !hi?.past_surgeries && !hi?.conditions?.length && (
+                <EmptyHint text="No medical information added yet." />
+              )}
+              <EditButton onPress={() => startEditing('medical')} />
+            </>
+          )}
+        </SectionBlock>
+
+        {/* ────────────────────────────────────────
+            INSURANCE INFORMATION
+        ──────────────────────────────────────── */}
+        <SectionBlock
+          title="Insurance Information"
+          isOpen={openSections.has('insurance')}
+          onToggle={() => toggleSection('insurance')}
+          editing={editingSection === 'insurance'}
+          onSave={() => saveSection('insurance')}
+          onCancel={cancelEditing}
+          saving={saving}
+        >
+          {editingSection === 'insurance' ? (
+            <>
+              <FieldInput label="PROVIDER" value={eInsProvider} onChangeText={setEInsProvider} placeholder="e.g. Blue Cross Blue Shield" autoCapitalize="words" />
+              <FieldInput label="POLICY NUMBER" value={eInsPolicyNum} onChangeText={setEInsPolicyNum} placeholder="Policy number" autoCapitalize="none" />
+            </>
+          ) : (
+            <>
+              <DisplayRow label="Provider" value={hi?.insurance?.carrier} />
+              <DisplayRow label="Policy Number" value={hi?.insurance?.policy_number} />
+              {!hi?.insurance?.carrier && <EmptyHint text="No insurance information added yet." />}
+              <EditButton onPress={() => startEditing('insurance')} />
+            </>
+          )}
+        </SectionBlock>
+
+        {/* ────────────────────────────────────────
+            EMERGENCY CONTACTS
+        ──────────────────────────────────────── */}
+        <SectionBlock
+          title="Emergency Contacts"
+          isOpen={openSections.has('emergency')}
+          onToggle={() => toggleSection('emergency')}
+          editing={editingSection === 'emergency'}
+          onSave={() => saveSection('emergency')}
+          onCancel={cancelEditing}
+          saving={saving}
+        >
+          {editingSection === 'emergency' ? (
+            <>
+              {eContacts.map((c, i) => (
+                <View key={i} style={{ marginBottom: SPACING.base }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <Text style={f.label}>CONTACT {i + 1}</Text>
+                    <TouchableOpacity onPress={() => setEContacts(eContacts.filter((_, j) => j !== i))}>
+                      <Text style={{ fontSize: 12, color: COLORS.rose }}>Remove</Text>
                     </TouchableOpacity>
                   </View>
-                ))
-              ) : (
-                <Text style={styles.emptyText}>No emergency contacts added</Text>
-              )}
-            </View>
-          ) : null}
-        </View>
-
-        {/* ── Healthcare Proxy ── */}
-        <View style={styles.card}>
-          <SectionHeader
-            icon="shield-checkmark-outline" iconColor={COLORS.primary} title="Healthcare Proxy"
-            editing={editingSection === 'proxy'} saving={saving}
-            onEdit={() => startEditing('proxy')}
-            onSave={() => saveSection('proxy')}
-            onCancel={cancelEditing}
-            isOpen={openSections.has('proxy')}
-            onToggle={() => toggleSection('proxy')}
-          />
-          {(openSections.has('proxy') || editingSection === 'proxy') ? editingSection === 'proxy' ? (
-            <View style={styles.editBody}>
-              <Text style={styles.proxyHint}>A healthcare proxy can make medical decisions on behalf of this person if they are unable to.</Text>
-              <FieldInput label="Proxy Name" value={eProxyName} onChangeText={setEProxyName} placeholder="Full name" autoCapitalize="words" />
-              <FieldInput label="Relationship" value={eProxyRelationship} onChangeText={setEProxyRelationship} placeholder="e.g. Spouse, Adult Child" autoCapitalize="words" />
-              <FieldInput label="Phone" value={eProxyPhone} onChangeText={setEProxyPhone} placeholder="Phone number" keyboardType="phone-pad" autoCapitalize="none" />
-              <FieldInput label="Email" value={eProxyEmail} onChangeText={setEProxyEmail} placeholder="Email address" keyboardType="email-address" autoCapitalize="none" />
-            </View>
-          ) : (
-            <View style={styles.viewBody}>
-              {hi?.healthcare_proxy ? (
-                <>
-                  <InfoRow label="Name" value={hi.healthcare_proxy.name} />
-                  <InfoRow label="Relationship" value={hi.healthcare_proxy.relationship} />
-                  <InfoRow label="Phone" value={hi.healthcare_proxy.phone} onPress={() => Linking.openURL(`tel:${hi.healthcare_proxy!.phone}`)} />
-                  <InfoRow label="Email" value={hi.healthcare_proxy.email} onPress={() => Linking.openURL(`mailto:${hi.healthcare_proxy!.email}`)} />
-                </>
-              ) : (
-                <Text style={styles.emptyText}>No healthcare proxy designated</Text>
-              )}
-            </View>
-          ) : null}
-        </View>
-
-        {/* ── Primary Doctor ── */}
-        <View style={styles.card}>
-          <SectionHeader
-            icon="person-circle-outline" iconColor={COLORS.primary} title="Primary Doctor"
-            editing={editingSection === 'doctor'} saving={saving}
-            onEdit={() => startEditing('doctor')}
-            onSave={() => saveSection('doctor')}
-            onCancel={cancelEditing}
-            isOpen={openSections.has('doctor')}
-            onToggle={() => toggleSection('doctor')}
-          />
-          {(openSections.has('doctor') || editingSection === 'doctor') ? editingSection === 'doctor' ? (
-            <View style={styles.editBody}>
-              <FieldInput label="Doctor Name" value={eDocName} onChangeText={setEDocName} placeholder="Dr. First Last" autoCapitalize="words" />
-              <FieldInput label="Specialty" value={eDocSpecialty} onChangeText={setEDocSpecialty} placeholder="e.g. Family Medicine, Pediatrics" autoCapitalize="words" />
-              <FieldInput label="Phone" value={eDocPhone} onChangeText={setEDocPhone} placeholder="Clinic phone number" keyboardType="phone-pad" autoCapitalize="none" />
-              <FieldInput label="Address" value={eDocAddress} onChangeText={setEDocAddress} placeholder="Clinic address" autoCapitalize="words" />
-            </View>
-          ) : (
-            <View style={styles.viewBody}>
-              {hi?.primary_doctor ? (
-                <>
-                  <InfoRow label="Doctor" value={hi.primary_doctor.name} />
-                  <InfoRow label="Specialty" value={hi.primary_doctor.specialty} />
-                  <InfoRow label="Phone" value={hi.primary_doctor.phone} onPress={() => Linking.openURL(`tel:${hi.primary_doctor!.phone}`)} />
-                  <InfoRow label="Address" value={hi.primary_doctor.address} />
-                </>
-              ) : (
-                <Text style={styles.emptyText}>No primary doctor on file</Text>
-              )}
-            </View>
-          ) : null}
-        </View>
-
-        {/* ── Notes ── */}
-        <View style={styles.card}>
-          <SectionHeader
-            icon="create-outline" iconColor={COLORS.textSecondary} title="Notes"
-            editing={editingSection === 'notes'} saving={saving}
-            onEdit={() => startEditing('notes')}
-            onSave={() => saveSection('notes')}
-            onCancel={cancelEditing}
-            isOpen={openSections.has('notes')}
-            onToggle={() => toggleSection('notes')}
-          />
-          {(openSections.has('notes') || editingSection === 'notes') ? editingSection === 'notes' ? (
-            <View style={styles.editBody}>
-              <TextInput
-                style={[styles.fieldInput, { height: 100, textAlignVertical: 'top', paddingTop: SPACING.sm }]}
-                value={eNotes}
-                onChangeText={setENotes}
-                placeholder="Add any additional notes here..."
-                placeholderTextColor={COLORS.textTertiary}
-                multiline
-              />
-            </View>
-          ) : (
-            <View style={styles.viewBody}>
-              {hi?.notes ? (
-                <Text style={[styles.listRowSub, { lineHeight: 21 }]}>{hi.notes}</Text>
-              ) : (
-                <Text style={styles.emptyText}>No notes added</Text>
-              )}
-            </View>
-          ) : null}
-        </View>
-
-        {/* ── Documents ── */}
-        {documents.length > 0 && (
-          <View style={styles.card}>
-            <View style={styles.secHeader}>
-              <View style={[styles.secIconBg, { backgroundColor: `${COLORS.primary}18` }]}>
-                <Ionicons name="document-text-outline" size={17} color={COLORS.primary} />
-              </View>
-              <Text style={styles.secTitle}>Documents</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('DocumentScanner', { memberId, memberName })} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Text style={styles.seeAllText}>See All ({documents.length})</Text>
+                  <FieldInput value={c.name} onChangeText={v => { const u = [...eContacts]; u[i].name = v; setEContacts(u); }} placeholder="Full name" autoCapitalize="words" />
+                  <FieldInput value={c.phone} onChangeText={v => { const u = [...eContacts]; u[i].phone = v; setEContacts(u); }} placeholder="Phone number" keyboardType="phone-pad" autoCapitalize="none" />
+                  <FieldInput value={c.relationship} onChangeText={v => { const u = [...eContacts]; u[i].relationship = v; setEContacts(u); }} placeholder="Relationship (e.g. Mother)" autoCapitalize="words" />
+                </View>
+              ))}
+              <TouchableOpacity style={f.addBtn} onPress={() => setEContacts([...eContacts, { name: '', phone: '', relationship: '' }])}>
+                <Ionicons name="add-circle-outline" size={18} color={COLORS.primary} />
+                <Text style={f.addBtnText}>Add Contact</Text>
               </TouchableOpacity>
-            </View>
-            <View style={styles.viewBody}>
-              <Text style={styles.listRowSub}>{documents.length} document{documents.length !== 1 ? 's' : ''} stored securely</Text>
-            </View>
-          </View>
-        )}
+            </>
+          ) : (
+            <>
+              {(hi?.emergency_contacts?.length ?? 0) > 0 ? hi!.emergency_contacts.map((c, i) => (
+                <View key={i} style={f.listItem}>
+                  <View style={f.listItemContent}>
+                    <Text style={f.listItemName}>{c.name}</Text>
+                    <Text style={f.listItemSub}>{c.relationship}{c.phone ? ` · ${c.phone}` : ''}</Text>
+                  </View>
+                  {c.phone ? (
+                    <TouchableOpacity onPress={() => Linking.openURL(`tel:${c.phone}`)}>
+                      <Ionicons name="call-outline" size={18} color={COLORS.primary} />
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              )) : <EmptyHint text="No emergency contacts added yet." />}
+              <EditButton onPress={() => startEditing('emergency')} />
+            </>
+          )}
+        </SectionBlock>
 
-        {/* ── Sharing ── */}
-        <View style={styles.card}>
-          <View style={styles.secHeader}>
-            <View style={[styles.secIconBg, { backgroundColor: `${COLORS.primary}18` }]}>
-              <Ionicons name="share-social-outline" size={17} color={COLORS.primary} />
-            </View>
-            <Text style={styles.secTitle}>Sharing</Text>
-          </View>
-          <View style={styles.viewBody}>
-            <Text style={styles.emptyText}>Control who has access to this account.</Text>
-            <TouchableOpacity
-              style={styles.shareAccountBtn}
-              onPress={() => navigation.navigate('ShareAccount', { memberId, memberName })}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="person-add-outline" size={18} color={COLORS.primary} />
-              <Text style={styles.shareAccountBtnText}>Share this account</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        {/* ────────────────────────────────────────
+            PHYSICIANS / CARE PROVIDERS
+        ──────────────────────────────────────── */}
+        <SectionBlock
+          title="Physicians / Care Providers"
+          isOpen={openSections.has('physicians')}
+          onToggle={() => toggleSection('physicians')}
+          editing={editingSection === 'physicians'}
+          onSave={() => saveSection('physicians')}
+          onCancel={cancelEditing}
+          saving={saving}
+        >
+          {editingSection === 'physicians' ? (
+            <>
+              <FieldInput label="PHYSICIAN NAME" value={eDocName} onChangeText={setEDocName} placeholder="Dr. Jane Smith" autoCapitalize="words" />
+              <FieldInput label="CONTACT / PHONE" value={eDocPhone} onChangeText={setEDocPhone} placeholder="Office phone number" keyboardType="phone-pad" autoCapitalize="none" />
+            </>
+          ) : (
+            <>
+              {hi?.primary_doctor?.name ? (
+                <View style={f.listItem}>
+                  <View style={f.listItemContent}>
+                    <Text style={f.listItemName}>{hi.primary_doctor.name}</Text>
+                    {hi.primary_doctor.phone ? <Text style={f.listItemSub}>{hi.primary_doctor.phone}</Text> : null}
+                  </View>
+                  {hi.primary_doctor.phone ? (
+                    <TouchableOpacity onPress={() => Linking.openURL(`tel:${hi!.primary_doctor!.phone}`)}>
+                      <Ionicons name="call-outline" size={18} color={COLORS.primary} />
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              ) : <EmptyHint text="No physician added yet." />}
+              <EditButton onPress={() => startEditing('physicians')} />
+            </>
+          )}
+        </SectionBlock>
 
-        <View style={{ height: 48 }} />
+        <View style={{ height: 60 }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -883,118 +721,31 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { paddingTop: SPACING.base, paddingBottom: SPACING.xl },
+  content: { paddingHorizontal: SPACING.xl, paddingTop: SPACING.base, paddingBottom: 40 },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background },
 
-  hero: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.primary,
-    marginHorizontal: SPACING.xl, borderRadius: 20,
-    padding: SPACING.xl, marginBottom: SPACING.md, gap: SPACING.base,
-  },
-  heroAvatar: {
+  // Hero
+  hero: { flexDirection: 'row', alignItems: 'center', gap: SPACING.base, marginBottom: SPACING.xl, paddingTop: SPACING.sm },
+  avatar: {
     width: 64, height: 64, borderRadius: 32,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: COLORS.primaryMuted, alignItems: 'center', justifyContent: 'center',
   },
-  heroAvatarText: { ...FONTS.h2, color: COLORS.textInverse, fontWeight: '800' },
-  heroInfo: { flex: 1 },
-  heroNameRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: 2 },
-  heroName: { ...FONTS.h3, color: COLORS.textInverse },
-  selfBadge: { backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
-  selfBadgeText: { fontSize: 10, fontWeight: '700', color: COLORS.textInverse },
-  heroRelationship: { ...FONTS.bodySmall, color: 'rgba(255,255,255,0.8)', marginBottom: 2 },
-  heroAge: { ...FONTS.bodySmall, color: 'rgba(255,255,255,0.75)', marginBottom: 6 },
-  bloodBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: COLORS.roseLight, borderRadius: 20,
-    paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start',
-  },
-  bloodText: { fontSize: 12, fontWeight: '700', color: COLORS.rose },
+  avatarText: { fontSize: 22, fontWeight: '700', color: COLORS.primary },
+  heroInfo: { flex: 1, gap: 4 },
+  heroName: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, letterSpacing: -0.3 },
+  heroDob: { ...FONTS.bodySmall, color: COLORS.textSecondary },
+  selfBadge: { backgroundColor: COLORS.primaryMuted, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
+  selfBadgeText: { fontSize: 11, fontWeight: '700', color: COLORS.primary },
 
-  actionRow: { flexDirection: 'row', marginHorizontal: SPACING.xl, gap: SPACING.sm, marginBottom: SPACING.md },
-  actionBtn: { flex: 1, ...CARD, alignItems: 'center', paddingVertical: SPACING.md },
+  // Quick actions
+  actionRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    marginBottom: SPACING.xl, gap: SPACING.sm,
+  },
+  actionBtn: { flex: 1, alignItems: 'center', gap: 6 },
   actionIconBg: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: COLORS.primaryMuted, alignItems: 'center', justifyContent: 'center', marginBottom: SPACING.xs,
+    width: 48, height: 48, borderRadius: 14,
+    backgroundColor: COLORS.primaryMuted, alignItems: 'center', justifyContent: 'center',
   },
-  actionLabel: { ...FONTS.caption, color: COLORS.textSecondary, fontWeight: '600', textAlign: 'center' },
-
-  card: { ...CARD, marginHorizontal: SPACING.xl, marginBottom: SPACING.sm, overflow: 'hidden' },
-  secHeader: { flexDirection: 'row', alignItems: 'center', padding: SPACING.base, gap: SPACING.sm },
-  secIconBg: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  secTitle: { ...FONTS.h4, color: COLORS.textPrimary, flex: 1 },
-  secActions: { flexDirection: 'row', gap: SPACING.sm },
-  secCancelBtn: { paddingHorizontal: SPACING.sm, paddingVertical: 4 },
-  secCancelText: { ...FONTS.bodySmall, color: COLORS.textSecondary, fontWeight: '600' },
-  secSaveBtn: {
-    backgroundColor: COLORS.primary, borderRadius: 8,
-    paddingHorizontal: SPACING.md, paddingVertical: 5,
-    minWidth: 48, alignItems: 'center',
-  },
-  secSaveText: { ...FONTS.bodySmall, color: COLORS.textInverse, fontWeight: '700' },
-  seeAllText: { ...FONTS.caption, color: COLORS.primary, fontWeight: '600' },
-
-  viewBody: { paddingHorizontal: SPACING.base, paddingBottom: SPACING.base, gap: SPACING.xs },
-  editBody: { paddingHorizontal: SPACING.base, paddingBottom: SPACING.base, gap: SPACING.md },
-
-  emptyText: { ...FONTS.bodySmall, color: COLORS.textTertiary, fontStyle: 'italic' },
-
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: SPACING.xs },
-  infoLabel: { ...FONTS.bodySmall, color: COLORS.textTertiary, flex: 1 },
-  infoValue: { ...FONTS.bodySmall, color: COLORS.textPrimary, flex: 2, textAlign: 'right' },
-
-  fieldGroup: { gap: SPACING.xs },
-  fieldLabel: { ...FONTS.label, color: COLORS.textSecondary, textTransform: 'uppercase', fontSize: 11 },
-  fieldInput: {
-    backgroundColor: COLORS.background, borderRadius: 10,
-    borderWidth: 1.5, borderColor: COLORS.border,
-    paddingHorizontal: SPACING.md, height: 44,
-    ...FONTS.body, color: COLORS.textPrimary,
-  },
-  fieldInputMulti: { height: 80, textAlignVertical: 'top', paddingTop: SPACING.sm },
-
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
-  optChip: {
-    paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm,
-    borderRadius: 10, backgroundColor: COLORS.surfaceAlt,
-    borderWidth: 1.5, borderColor: COLORS.border,
-  },
-  optChipActive: { backgroundColor: COLORS.primaryMuted, borderColor: COLORS.primary },
-  optChipText: { ...FONTS.bodySmall, color: COLORS.textSecondary, fontWeight: '500' },
-  optChipTextActive: { color: COLORS.primary, fontWeight: '700' },
-
-  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: SPACING.xs },
-  switchLabel: { ...FONTS.body, color: COLORS.textPrimary },
-
-  listEditItem: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.sm },
-  addRowBtn: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs, paddingTop: SPACING.xs },
-  addRowText: { ...FONTS.body, color: COLORS.primary, fontWeight: '600' },
-
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
-  chip: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
-  chipText: { ...FONTS.bodySmall, fontWeight: '700' },
-  chipSub: { fontSize: 10, fontWeight: '500', marginTop: 1 },
-
-  listRow: { paddingVertical: SPACING.sm },
-  listRowBorder: { borderBottomWidth: 1, borderBottomColor: COLORS.divider },
-  listRowTitle: { ...FONTS.body, color: COLORS.textPrimary, fontWeight: '600' },
-  listRowSub: { ...FONTS.bodySmall, color: COLORS.textSecondary },
-
-  contactRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: SPACING.sm },
-  callBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: COLORS.primaryMuted, borderRadius: 8, paddingHorizontal: SPACING.sm, paddingVertical: 5 },
-  callText: { ...FONTS.caption, color: COLORS.primary, fontWeight: '600' },
-
-  divider: { height: 1, backgroundColor: COLORS.divider, marginVertical: SPACING.sm },
-  subSectionLabel: { ...FONTS.label, color: COLORS.textTertiary, textTransform: 'uppercase', marginBottom: SPACING.xs },
-  proxyHint: { ...FONTS.bodySmall, color: COLORS.textSecondary, lineHeight: 20, fontStyle: 'italic' },
-
-  shareAccountBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
-    borderWidth: 1.5, borderColor: COLORS.primary, borderRadius: 12,
-    paddingHorizontal: SPACING.base, paddingVertical: SPACING.md,
-    marginTop: SPACING.sm,
-  },
-  shareAccountBtnText: { ...FONTS.body, color: COLORS.primary, fontWeight: '600' },
+  actionLabel: { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary },
 });

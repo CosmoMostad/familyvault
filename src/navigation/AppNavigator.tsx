@@ -8,7 +8,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../lib/types';
 import { COLORS, FONTS } from '../lib/design';
-import { supabase } from '../lib/supabase';
 
 // Auth
 import LandingScreen from '../screens/auth/LandingScreen';
@@ -18,7 +17,6 @@ import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 
 // Onboarding
 import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
-import SetupSelfScreen from '../screens/onboarding/SetupSelfScreen';
 
 // Main tabs
 import FamilyScreen from '../screens/main/FamilyScreen';
@@ -81,8 +79,6 @@ function MainTabs() {
 export default function AppNavigator() {
   const { session, loading } = useAuth();
   const [onboardingSeen, setOnboardingSeen] = useState<boolean | null>(null);
-  const [selfChecked, setSelfChecked] = useState(false);
-  const [hasSelf, setHasSelf] = useState(false);
 
   // Load onboarding flag
   useEffect(() => {
@@ -91,31 +87,7 @@ export default function AppNavigator() {
     });
   }, []);
 
-  // When session appears, check if user has a self account
-  useEffect(() => {
-    if (!session?.user) {
-      setSelfChecked(false);
-      setHasSelf(false);
-      return;
-    }
-    (async () => {
-      try {
-        const { data } = await supabase
-          .from('family_members')
-          .select('id')
-          .eq('user_id', session.user.id)
-          .eq('is_self', true)
-          .limit(1);
-        setHasSelf(!!(data && data.length > 0));
-      } catch {
-        setHasSelf(false);
-      } finally {
-        setSelfChecked(true);
-      }
-    })();
-  }, [session]);
-
-  const isReady = !loading && onboardingSeen !== null && (!session || selfChecked);
+  const isReady = !loading && onboardingSeen !== null;
 
   if (!isReady) {
     return (
@@ -162,30 +134,8 @@ export default function AppNavigator() {
             <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
           </>
         ) : (
-          // Step 3: Main app
+          // Step 3: Main app — go straight in, no setup gate
           <>
-            {/* If user has no self-account yet, show setup prompt first */}
-            {!hasSelf ? (
-              <Stack.Screen
-                name="SetupSelf"
-                options={{ headerShown: false }}
-              >
-                {(props) => (
-                  <SetupSelfScreen
-                    {...props}
-                    navigation={{
-                      ...props.navigation,
-                      navigate: (screen: any, params?: any) => {
-                        if (screen === 'MainTabs') {
-                          setHasSelf(true); // skip setup on next load
-                        }
-                        props.navigation.navigate(screen, params);
-                      },
-                    }}
-                  />
-                )}
-              </Stack.Screen>
-            ) : null}
             <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
             <Stack.Screen
               name="MemberProfile"

@@ -140,8 +140,10 @@ const styles = StyleSheet.create({
   greenHeader: {
     backgroundColor: COLORS.primary,
     paddingHorizontal: SPACING.xl,
-    paddingBottom: 64,
+    paddingBottom: 72,
     overflow: 'hidden',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,

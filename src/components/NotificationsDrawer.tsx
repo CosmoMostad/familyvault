@@ -17,13 +17,17 @@ import { COLORS, FONTS, SPACING, CARD } from '../lib/design';
 interface PendingShare {
   id: string;
   owner_id: string;
+  account_id: string;
   created_at: string;
+  owner_name?: string;
+  member_name?: string;
 }
 
 interface AcceptedShare {
   id: string;
   owner_id: string;
   updated_at: string;
+  owner_name?: string;
 }
 
 type Props = {
@@ -36,7 +40,6 @@ export default function NotificationsDrawer({ visible, onClose, onCountChange }:
   const { session } = useAuth();
   const [pending, setPending] = useState<PendingShare[]>([]);
   const [accepted, setAccepted] = useState<AcceptedShare[]>([]);
-  const [ownerEmails, setOwnerEmails] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
@@ -48,7 +51,7 @@ export default function NotificationsDrawer({ visible, onClose, onCountChange }:
       const [pendingRes, acceptedRes] = await Promise.all([
         supabase
           .from('shared_accounts')
-          .select('id, owner_id, created_at')
+          .select('id, owner_id, account_id, created_at')
           .eq('recipient_id', userId)
           .eq('status', 'pending')
           .order('created_at', { ascending: false }),
@@ -63,28 +66,31 @@ export default function NotificationsDrawer({ visible, onClose, onCountChange }:
 
       const pendingData = pendingRes.data || [];
       const acceptedData = acceptedRes.data || [];
-      setPending(pendingData);
-      setAccepted(acceptedData);
       onCountChange?.(pendingData.length);
 
-      // Fetch owner emails from profiles
-      const ownerIds = [...new Set([
-        ...pendingData.map((p) => p.owner_id),
-        ...acceptedData.map((a) => a.owner_id),
-      ])];
+      // Use SECURITY DEFINER RPC to get owner + member names (bypasses RLS)
+      const allShareIds = [
+        ...pendingData.map((p: any) => p.id),
+        ...acceptedData.map((a: any) => a.id),
+      ];
 
-      if (ownerIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, email, full_name')
-          .in('id', ownerIds);
-
-        const emailMap: Record<string, string> = {};
-        (profiles || []).forEach((p: any) => {
-          emailMap[p.id] = p.full_name || p.email || 'Someone';
+      let nameMap: Record<string, { owner_name: string; member_name: string }> = {};
+      if (allShareIds.length > 0) {
+        const { data: shareInfo } = await supabase.rpc('get_share_info', { p_share_ids: allShareIds });
+        (shareInfo ?? []).forEach((row: any) => {
+          nameMap[row.share_id] = { owner_name: row.owner_name, member_name: row.member_name };
         });
-        setOwnerEmails(emailMap);
       }
+
+      setPending(pendingData.map((p: any) => ({
+        ...p,
+        owner_name: nameMap[p.id]?.owner_name ?? 'Someone',
+        member_name: nameMap[p.id]?.member_name ?? 'an account',
+      })));
+      setAccepted(acceptedData.map((a: any) => ({
+        ...a,
+        owner_name: nameMap[a.id]?.owner_name ?? 'Someone',
+      })));
     } catch (e) {
       console.error('NotificationsDrawer load error:', e);
     } finally {
@@ -164,8 +170,10 @@ export default function NotificationsDrawer({ visible, onClose, onCountChange }:
                     <View style={styles.cardBody}>
                       <Text style={styles.cardTitle}>Account Share Request</Text>
                       <Text style={styles.cardDesc}>
-                        <Text style={{ fontWeight: '600' }}>{ownerEmails[item.owner_id] || 'Someone'}</Text>
-                        {' '}wants to share an account with you
+                        <Text style={{ fontWeight: '600' }}>{item.owner_name ?? 'Someone'}</Text>
+                        {' '}wants to share{' '}
+                        <Text style={{ fontWeight: '600' }}>{item.member_name ?? 'an account'}</Text>
+                        {' '}with you
                       </Text>
                       <Text style={styles.cardDate}>{formatDate(item.created_at)}</Text>
                       <View style={styles.cardActions}>
@@ -206,7 +214,7 @@ export default function NotificationsDrawer({ visible, onClose, onCountChange }:
                     <View style={styles.cardBody}>
                       <Text style={styles.cardDesc}>
                         You accepted access from{' '}
-                        <Text style={{ fontWeight: '600' }}>{ownerEmails[item.owner_id] || 'Someone'}</Text>
+                        <Text style={{ fontWeight: '600' }}>{item.owner_name ?? 'Someone'}</Text>
                       </Text>
                       <Text style={styles.cardDate}>{formatDate(item.updated_at)}</Text>
                     </View>

@@ -11,10 +11,12 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
+import { RootStackParamList } from '../../lib/types';
 import NotificationsDrawer from '../../components/NotificationsDrawer';
 
 interface AcceptedShare {
@@ -47,6 +49,7 @@ function getInitials(name: string): string {
 }
 
 function SharedCard({ share }: { share: AcceptedShare }) {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const age = getAge(share.member_dob);
   const metaParts: string[] = [];
   if (share.member_relationship) metaParts.push(share.member_relationship);
@@ -55,7 +58,14 @@ function SharedCard({ share }: { share: AcceptedShare }) {
   const meta = metaParts.join(' · ');
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity
+      style={styles.card}
+      activeOpacity={0.8}
+      onPress={() => navigation.navigate('MemberProfile', {
+        memberId: share.account_id,
+        memberName: share.member_name,
+      })}
+    >
       <View style={styles.cardRow}>
         {share.member_photo ? (
           <Image source={{ uri: share.member_photo }} style={styles.avatar} />
@@ -83,7 +93,7 @@ function SharedCard({ share }: { share: AcceptedShare }) {
           </Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -125,31 +135,23 @@ export default function SharedScreen() {
         return;
       }
 
-      const enriched: AcceptedShare[] = await Promise.all(
-        sharesRes.data.map(async (share) => {
-          const [memberRes, profileRes] = await Promise.all([
-            supabase
-              .from('family_members')
-              .select('full_name, relationship, dob, blood_type, photo_url')
-              .eq('id', share.account_id)
-              .single(),
-            supabase
-              .from('profiles')
-              .select('full_name')
-              .eq('id', share.owner_id)
-              .single(),
-          ]);
-          return {
-            ...share,
-            member_name: memberRes.data?.full_name ?? 'Unknown',
-            member_relationship: memberRes.data?.relationship,
-            member_dob: memberRes.data?.dob,
-            member_blood_type: memberRes.data?.blood_type,
-            member_photo: memberRes.data?.photo_url,
-            owner_name: profileRes.data?.full_name ?? 'Someone',
-          };
-        })
-      );
+      // Use SECURITY DEFINER RPC to get names (bypasses RLS)
+      const shareIds = sharesRes.data.map((s) => s.id);
+      const { data: shareInfo } = await supabase.rpc('get_share_info', { p_share_ids: shareIds });
+      const nameMap: Record<string, { owner_name: string; member_name: string }> = {};
+      (shareInfo ?? []).forEach((row: any) => {
+        nameMap[row.share_id] = { owner_name: row.owner_name, member_name: row.member_name };
+      });
+
+      const enriched: AcceptedShare[] = sharesRes.data.map((share) => ({
+        ...share,
+        member_name: nameMap[share.id]?.member_name ?? 'Unknown',
+        member_relationship: undefined,
+        member_dob: undefined,
+        member_blood_type: undefined,
+        member_photo: null,
+        owner_name: nameMap[share.id]?.owner_name ?? 'Someone',
+      }));
       setShares(enriched);
     } finally {
       setLoading(false);

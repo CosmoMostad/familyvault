@@ -229,6 +229,8 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
   const [member, setMember] = useState<FamilyMember | null>(null);
   const [healthInfo, setHealthInfo] = useState<HealthInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [shares, setShares] = useState<{ share_id: string; recipient_name: string; recipient_email: string; access_level: string; status: string }[]>([]);
+  const [removingShareId, setRemovingShareId] = useState<string | null>(null);
   const [editingSection, setEditingSection] = useState<Section>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -278,9 +280,33 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
       ]);
       if (memberRes.data) setMember(memberRes.data);
       if (healthRes.data) setHealthInfo(healthRes.data);
+      // Fetch shares (owner-only, returns empty for non-owners)
+      const { data: sharesData } = await supabase.rpc('get_shared_with', { p_member_id: memberId });
+      setShares(sharesData ?? []);
     } finally {
       setLoading(false);
     }
+  }
+
+  async function removeShare(shareId: string, recipientName: string) {
+    Alert.alert(
+      'Remove Access',
+      `Remove ${recipientName}'s access to this account?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setRemovingShareId(shareId);
+            const { error } = await supabase.from('shared_accounts').delete().eq('id', shareId);
+            if (error) Alert.alert('Error', error.message);
+            else setShares(prev => prev.filter(s => s.share_id !== shareId));
+            setRemovingShareId(null);
+          },
+        },
+      ]
+    );
   }
 
   async function pickAndUploadPhoto() {
@@ -704,6 +730,48 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
             </>
           )}
         </SectionBlock>
+
+        {/* ────────────────────────────────────────
+            SHARED WITH (owner only)
+        ──────────────────────────────────────── */}
+        {member.owner_id === session?.user?.id && (
+          <SectionBlock
+            title="Shared With"
+            isOpen={openSections.has('sharedWith')}
+            onToggle={() => toggleSection('sharedWith')}
+            editing={false}
+            onSave={() => {}}
+            onCancel={() => {}}
+          >
+            {shares.length === 0 ? (
+              <Text style={f.emptyHint}>Not shared with anyone yet.</Text>
+            ) : (
+              shares.map((s) => (
+                <View key={s.share_id} style={f.listItem}>
+                  <View style={f.listItemContent}>
+                    <Text style={f.listItemName}>{s.recipient_name}</Text>
+                    <Text style={f.listItemSub}>
+                      {s.recipient_email}
+                      {' · '}
+                      {s.access_level === 'edit' ? 'Can edit' : 'View only'}
+                      {s.status === 'pending' ? ' · Pending' : ''}
+                    </Text>
+                  </View>
+                  {removingShareId === s.share_id ? (
+                    <ActivityIndicator size="small" color={COLORS.rose} />
+                  ) : (
+                    <TouchableOpacity
+                      onPress={() => removeShare(s.share_id, s.recipient_name)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Ionicons name="close-circle-outline" size={20} color={COLORS.rose} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ))
+            )}
+          </SectionBlock>
+        )}
 
         <View style={{ height: 60 }} />
       </ScrollView>

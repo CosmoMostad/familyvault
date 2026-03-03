@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert, TextInput, KeyboardAvoidingView,
-  Platform, StatusBar, Linking, Image,
+  Platform, StatusBar, Linking, Image, Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -16,6 +16,7 @@ import {
   EmergencyContact, Doctor,
 } from '../../lib/types';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
+import ProfileBotanical from '../../components/ProfileBotanical';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MemberProfile'>;
@@ -479,9 +480,12 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
   const age = getAge(member.dob);
   const ssnDisplay = (member as any).ssn_last_four ?? null;
 
+  const { width: screenW, height: screenH } = Dimensions.get('window');
+
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <StatusBar barStyle="dark-content" />
+      <ProfileBotanical width={screenW} height={screenH} />
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}

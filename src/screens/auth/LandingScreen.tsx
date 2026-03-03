@@ -8,7 +8,7 @@ import {
   SafeAreaView,
   Dimensions,
 } from 'react-native';
-import Svg, { Ellipse, Circle, Path, Polygon } from 'react-native-svg';
+import Svg, { Ellipse, Circle, Path } from 'react-native-svg';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../lib/types';
 import { COLORS, FONTS, SPACING } from '../../lib/design';
@@ -16,11 +16,22 @@ import AuthBotanical from '../../components/AuthBotanical';
 
 function WrenBird({ size = 72 }: { size?: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 20 20">
-      <Path d="M6 15 Q3 11 5 7 Q5.5 10.5 7.5 12.5Z" fill="white" />
-      <Ellipse cx="11.5" cy="14" rx="5.5" ry="3.8" fill="white" />
-      <Circle cx="15.5" cy="10" r="3.2" fill="white" />
-      <Polygon points="18.2,9.2 20,10 18.2,10.8" fill="white" />
+    <Svg width={size} height={size} viewBox="0 0 24 22">
+      {/* Back tail feather — slightly dimmer for layered depth */}
+      <Path d="M8 18.5 Q5 13 7 7 Q7.5 11.5 9.5 15Z" fill="rgba(255,255,255,0.55)" />
+      {/* Front tail feather */}
+      <Path d="M6 18.5 Q2.5 12.5 4 7.5 Q4.5 12 7 15Z" fill="white" />
+      {/* Body */}
+      <Ellipse cx="13.5" cy="17" rx="6.5" ry="4.5" fill="white" />
+      {/* Wing fold lines — subtle arcs to suggest folded wing */}
+      <Path d="M9 16.5 Q13 13.5 18 15.5" stroke="rgba(255,255,255,0.45)" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+      <Path d="M9.5 18 Q13.5 15.5 18.5 17.5" stroke="rgba(255,255,255,0.28)" strokeWidth="0.9" fill="none" strokeLinecap="round" />
+      {/* Head */}
+      <Circle cx="18" cy="12" r="4" fill="white" />
+      {/* Beak */}
+      <Path d="M21.5 10.8 L24 12 L21.5 13Z" fill="white" />
+      {/* Eye */}
+      <Circle cx="19.5" cy="11" r="0.9" fill="rgba(0,0,0,0.35)" />
     </Svg>
   );
 }

@@ -6,6 +6,7 @@ import { ActivityIndicator, View, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../lib/types';
 import { COLORS, FONTS } from '../lib/design';
 
@@ -25,6 +26,7 @@ import SharedScreen from '../screens/main/SharedScreen';
 import SettingsScreen from '../screens/main/SettingsScreen';
 
 // Stack screens
+import SetupSelfScreen from '../screens/main/SetupSelfScreen';
 import MemberProfileScreen from '../screens/main/MemberProfileScreen';
 import AddEditMemberScreen from '../screens/main/AddEditMemberScreen';
 import DocumentScannerScreen from '../screens/main/DocumentScannerScreen';
@@ -80,6 +82,7 @@ function MainTabs() {
 export default function AppNavigator() {
   const { session, loading } = useAuth();
   const [onboardingSeen, setOnboardingSeen] = useState<boolean | null>(null);
+  const [hasSelf, setHasSelf] = useState<boolean | null>(null);
 
   // Load onboarding flag
   useEffect(() => {
@@ -88,7 +91,23 @@ export default function AppNavigator() {
     });
   }, []);
 
-  const isReady = !loading && onboardingSeen !== null;
+  // Check if user has a self member record
+  useEffect(() => {
+    if (!session?.user?.id) {
+      setHasSelf(null);
+      return;
+    }
+    supabase
+      .from('family_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_id', session.user.id)
+      .eq('is_self', true)
+      .then(({ count }) => {
+        setHasSelf((count ?? 0) > 0);
+      });
+  }, [session?.user?.id]);
+
+  const isReady = !loading && onboardingSeen !== null && (!session || hasSelf !== null);
 
   if (!isReady) {
     return (
@@ -111,11 +130,8 @@ export default function AppNavigator() {
         }}
       >
         {!onboardingSeen ? (
-          // Step 1: App intro onboarding (before any auth)
-          <Stack.Screen
-            name="Onboarding"
-            options={{ headerShown: false }}
-          >
+          // Step 1: App intro onboarding
+          <Stack.Screen name="Onboarding" options={{ headerShown: false }}>
             {(props) => (
               <OnboardingScreen
                 {...props}
@@ -127,7 +143,7 @@ export default function AppNavigator() {
             )}
           </Stack.Screen>
         ) : !session ? (
-          // Step 2: Auth (after onboarding)
+          // Step 2: Auth screens
           <>
             <Stack.Screen name="Landing" component={LandingScreen} options={{ headerShown: false }} />
             <Stack.Screen name="SignUp" component={SignUpScreen} options={{ headerShown: false }} />
@@ -135,8 +151,18 @@ export default function AppNavigator() {
             <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
           </>
         ) : (
-          // Step 3: Main app — go straight in, no setup gate
+          // Step 3: Authenticated — SetupSelf first if no self record, else MainTabs
           <>
+            {!hasSelf && (
+              <Stack.Screen name="SetupSelf" options={{ headerShown: false }}>
+                {(props) => (
+                  <SetupSelfScreen
+                    {...props}
+                    onSetupComplete={() => setHasSelf(true)}
+                  />
+                )}
+              </Stack.Screen>
+            )}
             <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
             <Stack.Screen
               name="MemberProfile"

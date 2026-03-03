@@ -273,24 +273,7 @@ export default function FamilyScreen() {
             }
             onLongPress={() => handleDelete(selfMember)}
           />
-        ) : (
-          <TouchableOpacity
-            style={styles.setupCard}
-            onPress={() => navigation.navigate('AddEditMember', { isSelf: true })}
-            activeOpacity={0.8}
-          >
-            <View style={styles.setupIconWrap}>
-              <Ionicons name="person-circle-outline" size={36} color={COLORS.rose} />
-            </View>
-            <View style={styles.setupText}>
-              <Text style={styles.setupTitle}>Set up your health account</Text>
-              <Text style={styles.setupDesc}>Start with your own profile</Text>
-            </View>
-            <View style={styles.setupBtn}>
-              <Text style={styles.setupBtnText}>Get Started</Text>
-            </View>
-          </TouchableOpacity>
-        )}
+        ) : null}
 
         {/* FAMILY MEMBERS section */}
         <Text style={[styles.sectionLabel, { marginTop: SPACING.xl }]}>FAMILY MEMBERS</Text>
@@ -437,33 +420,6 @@ const styles = StyleSheet.create({
   },
   bloodBadgeText: { fontSize: 11, fontWeight: '700', color: COLORS.rose },
   conditionText: { ...FONTS.bodySmall, color: COLORS.textSecondary },
-
-  // Setup card (no self account)
-  setupCard: {
-    ...CARD,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    padding: SPACING.base,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.surfaceAlt ?? COLORS.background,
-    marginBottom: SPACING.sm,
-  },
-  setupIconWrap: {
-    width: 52, height: 52, borderRadius: 26,
-    backgroundColor: `${COLORS.rose}15`,
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-  },
-  setupText: { flex: 1 },
-  setupTitle: { ...FONTS.h4, color: COLORS.textPrimary, marginBottom: 2 },
-  setupDesc: { ...FONTS.bodySmall, color: COLORS.textSecondary },
-  setupBtn: {
-    backgroundColor: COLORS.primary, borderRadius: 10,
-    paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm,
-  },
-  setupBtnText: { ...FONTS.bodySmall, color: COLORS.textInverse, fontWeight: '600' },
 
   // Family section
   emptyFamilyText: {

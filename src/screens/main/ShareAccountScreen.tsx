@@ -128,8 +128,8 @@ export default function ShareAccountScreen({ navigation, route }: Props) {
         owner_id: user.id,
         recipient_id: recipient.user_id,
         access_level: accessLevel,
-        shared_fields: sharedFields,
-        accepted: false,
+        fields_allowed: sharedFields,
+        status: 'pending',
       });
 
       if (error) throw error;

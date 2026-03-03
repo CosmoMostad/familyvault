@@ -483,11 +483,11 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
   const { width: screenW, height: screenH } = Dimensions.get('window');
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={[{ flex: 1 }, styles.container]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <StatusBar barStyle="dark-content" />
       <ProfileBotanical width={screenW} height={screenH} />
       <ScrollView
-        style={styles.container}
+        style={{ flex: 1, backgroundColor: 'transparent' }}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"

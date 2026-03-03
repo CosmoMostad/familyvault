@@ -21,7 +21,7 @@ function WrenBird({ size = 72 }: { size?: number }) {
       <Ellipse cx="11.5" cy="14" rx="5.5" ry="3.8" fill="white" />
       <Circle cx="15.5" cy="10" r="3.2" fill="white" />
       <Path d="M18.2,9.2 L20,10 L18.2,10.8Z" fill="white" />
-      <Circle cx="16.5" cy="9" r="0.85" fill="rgba(0,0,0,0.35)" />
+      <Circle cx="16.5" cy="9" r="0.55" fill="rgba(0,0,0,0.35)" />
     </Svg>
   );
 }

@@ -16,22 +16,31 @@ import AuthBotanical from '../../components/AuthBotanical';
 
 function WrenBird({ size = 72 }: { size?: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 22">
-      {/* Back tail feather — slightly dimmer for layered depth */}
-      <Path d="M8 18.5 Q5 13 7 7 Q7.5 11.5 9.5 15Z" fill="rgba(255,255,255,0.55)" />
-      {/* Front tail feather */}
-      <Path d="M6 18.5 Q2.5 12.5 4 7.5 Q4.5 12 7 15Z" fill="white" />
+    <Svg width={size} height={size} viewBox="0 0 24 26">
+      {/* Single upswept tail */}
+      <Path d="M6 17 Q2.5 11 4 5.5 Q4.5 10 7 13.5Z" fill="white" />
       {/* Body */}
-      <Ellipse cx="13.5" cy="17" rx="6.5" ry="4.5" fill="white" />
-      {/* Wing fold lines — subtle arcs to suggest folded wing */}
-      <Path d="M9 16.5 Q13 13.5 18 15.5" stroke="rgba(255,255,255,0.45)" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-      <Path d="M9.5 18 Q13.5 15.5 18.5 17.5" stroke="rgba(255,255,255,0.28)" strokeWidth="0.9" fill="none" strokeLinecap="round" />
+      <Ellipse cx="13.5" cy="15" rx="6.5" ry="4.5" fill="white" />
+      {/* Wing fold lines */}
+      <Path d="M9 14.5 Q13 11.5 18 13.5" stroke="rgba(255,255,255,0.45)" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+      <Path d="M9.5 16 Q13.5 13.5 18.5 15.5" stroke="rgba(255,255,255,0.28)" strokeWidth="0.9" fill="none" strokeLinecap="round" />
       {/* Head */}
-      <Circle cx="18" cy="12" r="4" fill="white" />
+      <Circle cx="18" cy="10" r="4" fill="white" />
       {/* Beak */}
-      <Path d="M21.5 10.8 L24 12 L21.5 13Z" fill="white" />
+      <Path d="M21.5 8.8 L24 10 L21.5 11Z" fill="white" />
       {/* Eye */}
-      <Circle cx="19.5" cy="11" r="0.9" fill="rgba(0,0,0,0.35)" />
+      <Circle cx="19.5" cy="9" r="0.9" fill="rgba(0,0,0,0.35)" />
+      {/* Legs */}
+      <Path d="M11.5 19.5 L11 23" stroke="white" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+      <Path d="M14.5 19.5 L15 23" stroke="white" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+      {/* Left foot toes */}
+      <Path d="M11 23 L9 24.5" stroke="white" strokeWidth="1" strokeLinecap="round" fill="none" />
+      <Path d="M11 23 L11 25" stroke="white" strokeWidth="1" strokeLinecap="round" fill="none" />
+      <Path d="M11 23 L13 24.5" stroke="white" strokeWidth="1" strokeLinecap="round" fill="none" />
+      {/* Right foot toes */}
+      <Path d="M15 23 L13 24.5" stroke="white" strokeWidth="1" strokeLinecap="round" fill="none" />
+      <Path d="M15 23 L15 25" stroke="white" strokeWidth="1" strokeLinecap="round" fill="none" />
+      <Path d="M15 23 L17 24.5" stroke="white" strokeWidth="1" strokeLinecap="round" fill="none" />
     </Svg>
   );
 }

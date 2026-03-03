@@ -219,7 +219,6 @@ function AddAppointmentModal({
                   value={selectedDate}
                   mode="date"
                   display="inline"
-                  themeVariant="light"
                   accentColor={COLORS.primary}
                   onChange={(_, date) => {
                     if (date) {
@@ -250,7 +249,6 @@ function AddAppointmentModal({
                   value={selectedDate}
                   mode="time"
                   display="spinner"
-                  themeVariant="light"
                   onChange={(_, date) => {
                     if (date) setSelectedDate(date);
                   }}

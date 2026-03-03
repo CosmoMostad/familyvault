@@ -158,7 +158,6 @@ export default function SetupSelfScreen({ navigation, onSetupComplete }: Props) 
                   value={dob}
                   mode="date"
                   display="spinner"
-                  themeVariant="light"
                   maximumDate={new Date()}
                   onChange={(_, date) => { if (date) setDob(date); }}
                   style={styles.picker}

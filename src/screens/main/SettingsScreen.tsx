@@ -246,6 +246,51 @@ export default function SettingsScreen() {
     ]);
   }
 
+  async function handleDeleteAccount() {
+    Alert.alert(
+      'Delete Account',
+      'This will permanently delete your account and all associated health data. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Are you absolutely sure?',
+              'All family profiles, health records, and calendar data will be permanently deleted.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Yes, Delete Everything',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      // Delete user data via Supabase (RLS cascade handles family_members, health_info, etc.)
+                      const { error } = await supabase.rpc('delete_user_account');
+                      if (error) throw error;
+                      await signOut();
+                    } catch (e: any) {
+                      // Fallback: contact support
+                      Alert.alert(
+                        'Contact Support',
+                        'To complete account deletion, please email support@wrenhealth.app from your registered address.',
+                        [
+                          { text: 'OK' },
+                          { text: 'Email Support', onPress: () => Linking.openURL('mailto:support@wrenhealth.app?subject=Account Deletion Request') },
+                        ]
+                      );
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
+  }
+
   const userEmail = session?.user?.email ?? '';
 
   return (
@@ -370,6 +415,11 @@ export default function SettingsScreen() {
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
 
+        {/* Delete account */}
+        <TouchableOpacity style={styles.deleteAccountBtn} onPress={handleDeleteAccount} activeOpacity={0.85}>
+          <Text style={styles.deleteAccountText}>Delete Account</Text>
+        </TouchableOpacity>
+
         <View style={{ height: SPACING.xxl }} />
       </ScrollView>
 
@@ -447,4 +497,11 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   signOutText: { ...FONTS.h4, color: COLORS.rose, fontWeight: '600' },
+  deleteAccountBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.base,
+    marginTop: SPACING.sm,
+  },
+  deleteAccountText: { ...FONTS.bodySmall, color: COLORS.textTertiary, fontWeight: '500' },
 });

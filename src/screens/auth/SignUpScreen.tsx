@@ -43,9 +43,9 @@ export default function SignUpScreen({ navigation }: Props) {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: COLORS.primary }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
-        style={{ flex: 1, backgroundColor: COLORS.background }}
+        style={{ flex: 1, backgroundColor: COLORS.primary }}
         contentContainerStyle={{ minHeight: height }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

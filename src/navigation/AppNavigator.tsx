@@ -30,6 +30,7 @@ import AddEditMemberScreen from '../screens/main/AddEditMemberScreen';
 import DocumentScannerScreen from '../screens/main/DocumentScannerScreen';
 import ShareScreen from '../screens/main/ShareScreen';
 import ShareAccountScreen from '../screens/main/ShareAccountScreen';
+import AppointmentsScreen from '../screens/main/AppointmentsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -161,6 +162,11 @@ export default function AppNavigator() {
               name="ShareAccount"
               component={ShareAccountScreen}
               options={{ title: 'Share Account', headerShown: false, presentation: 'modal' }}
+            />
+            <Stack.Screen
+              name="Appointments"
+              component={AppointmentsScreen}
+              options={{ headerBackTitle: 'Back' }}
             />
           </>
         )}

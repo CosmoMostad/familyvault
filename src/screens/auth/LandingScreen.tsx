@@ -8,11 +8,22 @@ import {
   SafeAreaView,
   Dimensions,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Svg, { Ellipse, Circle, Path, Polygon } from 'react-native-svg';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../lib/types';
 import { COLORS, FONTS, SPACING } from '../../lib/design';
 import AuthBotanical from '../../components/AuthBotanical';
+
+function WrenBird({ size = 72 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 20 20">
+      <Path d="M6 15 Q3 11 5 7 Q5.5 10.5 7.5 12.5Z" fill="white" />
+      <Ellipse cx="11.5" cy="14" rx="5.5" ry="3.8" fill="white" />
+      <Circle cx="15.5" cy="10" r="3.2" fill="white" />
+      <Polygon points="18.2,9.2 20,10 18.2,10.8" fill="white" />
+    </Svg>
+  );
+}
 
 const { width: screenWidth, height } = Dimensions.get('window');
 
@@ -31,10 +42,8 @@ export default function LandingScreen({ navigation }: Props) {
       <SafeAreaView style={styles.safe}>
         {/* ── Logo + tagline centered ── */}
         <View style={styles.center}>
-          <View style={styles.logoRow}>
-            <Ionicons name="leaf" size={28} color="rgba(255,255,255,0.9)" style={{ marginTop: 3 }} />
-            <Text style={styles.brand}>Wren Health</Text>
-          </View>
+          <WrenBird size={72} />
+          <Text style={styles.brand}>Wren Health</Text>
           <Text style={styles.tagline}>Your family's health,{'\n'}organized and secure.</Text>
         </View>
 
@@ -84,12 +93,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SPACING.xxl,
-  },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: SPACING.lg,
+    gap: SPACING.md,
   },
   brand: {
     fontSize: 44,

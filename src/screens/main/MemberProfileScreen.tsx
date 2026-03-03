@@ -7,6 +7,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp, useFocusEffect } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -225,6 +226,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(true);
   const [editingSection, setEditingSection] = useState<Section>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
 
   // General editable state
@@ -273,6 +275,55 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
       if (healthRes.data) setHealthInfo(healthRes.data);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function pickAndUploadPhoto() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Allow access to your photo library to set a profile photo.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+
+    setUploadingPhoto(true);
+    try {
+      const uri = result.assets[0].uri;
+      const ext = uri.split('.').pop() ?? 'jpg';
+      const path = `${memberId}/${Date.now()}.${ext}`;
+
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const arrayBuffer = await new Response(blob).arrayBuffer();
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, arrayBuffer, { contentType: `image/${ext}`, upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
+      const publicUrl = urlData.publicUrl;
+
+      const { error: updateError } = await supabase
+        .from('family_members')
+        .update({ photo_url: publicUrl })
+        .eq('id', memberId);
+
+      if (updateError) throw updateError;
+
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      fetchData();
+    } catch (e: any) {
+      Alert.alert('Upload failed', e.message);
+    } finally {
+      setUploadingPhoto(false);
     }
   }
 
@@ -386,13 +437,24 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
       >
         {/* ── Avatar + name header ── */}
         <View style={styles.hero}>
-          {member.photo_url ? (
-            <Image source={{ uri: member.photo_url }} style={styles.avatarPhoto} />
-          ) : (
-            <View style={styles.avatar}>
-              <Ionicons name="camera-outline" size={26} color={COLORS.textTertiary} />
-            </View>
-          )}
+          <TouchableOpacity onPress={pickAndUploadPhoto} activeOpacity={0.8} disabled={uploadingPhoto}>
+            {uploadingPhoto ? (
+              <View style={styles.avatar}>
+                <ActivityIndicator size="small" color={COLORS.primary} />
+              </View>
+            ) : member.photo_url ? (
+              <View>
+                <Image source={{ uri: member.photo_url }} style={styles.avatarPhoto} />
+                <View style={styles.avatarEditBadge}>
+                  <Ionicons name="camera" size={11} color="#fff" />
+                </View>
+              </View>
+            ) : (
+              <View style={styles.avatar}>
+                <Ionicons name="camera-outline" size={26} color={COLORS.textTertiary} />
+              </View>
+            )}
+          </TouchableOpacity>
           <View style={styles.heroInfo}>
             <Text style={styles.heroName}>{member.full_name}</Text>
             {member.dob ? (
@@ -437,18 +499,27 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
         >
           {editingSection === 'general' ? (
             <>
-              {/* Profile photo — visual placeholder for now */}
-              <View style={styles.photoEditRow}>
-                {member.photo_url
-                  ? <Image source={{ uri: member.photo_url }} style={styles.photoThumb} />
-                  : (
-                    <View style={styles.photoThumbEmpty}>
-                      <Ionicons name="camera-outline" size={22} color={COLORS.textTertiary} />
-                    </View>
-                  )
-                }
-                <Text style={styles.photoEditHint}>Profile photo coming soon</Text>
-              </View>
+              {/* Profile photo */}
+              <TouchableOpacity style={styles.photoEditRow} onPress={pickAndUploadPhoto} activeOpacity={0.75}>
+                {uploadingPhoto ? (
+                  <View style={styles.photoThumbEmpty}>
+                    <ActivityIndicator size="small" color={COLORS.primary} />
+                  </View>
+                ) : member.photo_url ? (
+                  <Image source={{ uri: member.photo_url }} style={styles.photoThumb} />
+                ) : (
+                  <View style={styles.photoThumbEmpty}>
+                    <Ionicons name="camera-outline" size={22} color={COLORS.textTertiary} />
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <Text style={[f.label, { marginBottom: 2 }]}>PROFILE PHOTO</Text>
+                  <Text style={styles.photoEditHint}>
+                    {member.photo_url ? 'Tap to change photo' : 'Tap to add a photo'}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
+              </TouchableOpacity>
               <FieldInput label="FULL NAME" value={eName} onChangeText={setEName} placeholder="First and last name" autoCapitalize="words" />
               <FieldInput label="DATE OF BIRTH" value={eDob} onChangeText={setEDob} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" autoCapitalize="none" />
               <FieldInput label="GENDER" value={eGender} onChangeText={setEGender} placeholder="e.g. Male, Female, Non-binary" />
@@ -642,6 +713,13 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   avatarPhoto: { width: 64, height: 64, borderRadius: 32 },
+  avatarEditBadge: {
+    position: 'absolute', bottom: 0, right: 0,
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: COLORS.primary,
+    borderWidth: 2, borderColor: COLORS.background,
+    alignItems: 'center', justifyContent: 'center',
+  },
   heroInfo: { flex: 1, gap: 4 },
   heroName: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, letterSpacing: -0.3 },
   heroDob: { ...FONTS.bodySmall, color: COLORS.textSecondary },

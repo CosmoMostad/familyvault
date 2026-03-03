@@ -231,6 +231,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(true);
   const [shares, setShares] = useState<{ share_id: string; recipient_name: string; recipient_email: string; access_level: string; status: string }[]>([]);
   const [removingShareId, setRemovingShareId] = useState<string | null>(null);
+  const [canEdit, setCanEdit] = useState(true);
   const [editingSection, setEditingSection] = useState<Section>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -283,6 +284,23 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
       // Fetch shares (owner-only, returns empty for non-owners)
       const { data: sharesData } = await supabase.rpc('get_shared_with', { p_member_id: memberId });
       setShares(sharesData ?? []);
+
+      // Determine edit access
+      if (memberRes.data) {
+        if (memberRes.data.owner_id === session?.user?.id) {
+          setCanEdit(true);
+        } else {
+          // Check if shared with edit permission
+          const { data: shareAccess } = await supabase
+            .from('shared_accounts')
+            .select('access_level')
+            .eq('account_id', memberId)
+            .eq('recipient_id', session?.user?.id)
+            .eq('status', 'accepted')
+            .single();
+          setCanEdit(shareAccess?.access_level === 'edit');
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -565,7 +583,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
               <DisplayField label="Date of Birth" value={member.dob ? new Date(member.dob).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : null} />
               <DisplayField label="Gender" value={member.gender} />
               <DisplayField label="Last 4 SSN" value={ssnDisplay} />
-              <EditButton onPress={() => startEditing('general')} />
+              {canEdit && <EditButton onPress={() => startEditing('general')} />}
             </>
           )}
         </SectionBlock>
@@ -601,7 +619,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
               <DisplayField label="Current Medications" value={hi?.medications?.[0]?.name} />
               <DisplayField label="Past Surgeries" value={hi?.past_surgeries} />
               <DisplayField label="Past Medical History" value={hi?.conditions?.[0]?.name} />
-              <EditButton onPress={() => startEditing('medical')} />
+              {canEdit && <EditButton onPress={() => startEditing('medical')} />}
             </>
           )}
         </SectionBlock>
@@ -627,7 +645,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
             <>
               <DisplayField label="Provider" value={hi?.insurance?.carrier} />
               <DisplayField label="Policy Number" value={hi?.insurance?.policy_number} />
-              <EditButton onPress={() => startEditing('insurance')} />
+              {canEdit && <EditButton onPress={() => startEditing('insurance')} />}
             </>
           )}
         </SectionBlock>
@@ -684,7 +702,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
                   <Text style={[f.rowValue, f.rowEmpty]}>—</Text>
                 </View>
               )}
-              <EditButton onPress={() => startEditing('emergency')} />
+              {canEdit && <EditButton onPress={() => startEditing('emergency')} />}
             </>
           )}
         </SectionBlock>
@@ -726,7 +744,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
                   <DisplayField label="Contact / Phone" value={null} />
                 </>
               )}
-              <EditButton onPress={() => startEditing('physicians')} />
+              {canEdit && <EditButton onPress={() => startEditing('physicians')} />}
             </>
           )}
         </SectionBlock>

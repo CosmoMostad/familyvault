@@ -128,7 +128,6 @@ export default function ShareAccountScreen({ navigation, route }: Props) {
         owner_id: user.id,
         recipient_id: recipient.user_id,
         access_level: accessLevel,
-        fields_allowed: sharedFields,
         status: 'pending',
       });
 

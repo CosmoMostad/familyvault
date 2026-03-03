@@ -225,7 +225,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(true);
   const [editingSection, setEditingSection] = useState<Section>(null);
   const [saving, setSaving] = useState(false);
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set(['general']));
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set());
 
   // General editable state
   const [eName, setEName] = useState('');
@@ -373,7 +373,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
 
   const hi = healthInfo;
   const age = getAge(member.dob);
-  const ssnDisplay = (member as any).ssn_last_four ? `•••–•••–${(member as any).ssn_last_four}` : undefined;
+  const ssnDisplay = (member as any).ssn_last_four ?? null;
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -458,7 +458,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
             <>
               <DisplayField label="Date of Birth" value={member.dob ? new Date(member.dob).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : null} />
               <DisplayField label="Gender" value={member.gender} />
-              <DisplayField label="SSN" value={ssnDisplay} />
+              <DisplayField label="Last 4 SSN" value={ssnDisplay} />
               <EditButton onPress={() => startEditing('general')} />
             </>
           )}

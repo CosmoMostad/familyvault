@@ -74,11 +74,6 @@ function MemberCard({
       <View style={styles.cardInfo}>
         <View style={styles.cardNameRow}>
           <Text style={styles.cardName}>{member.full_name}</Text>
-          {member.is_self && (
-            <View style={styles.selfBadge}>
-              <Text style={styles.selfBadgeText}>Me</Text>
-            </View>
-          )}
         </View>
         <View style={styles.cardMeta}>
           {member.relationship && (

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert, TextInput, Switch, KeyboardAvoidingView,
+  ActivityIndicator, Alert, TextInput, KeyboardAvoidingView,
   Platform, StatusBar, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,7 +11,7 @@ import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
 import {
   FamilyMember, HealthInfo, RootStackParamList,
-  Allergy, Medication, Condition, EmergencyContact, Doctor,
+  EmergencyContact, Doctor,
 } from '../../lib/types';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
 
@@ -22,9 +22,7 @@ type Props = {
 
 type Section = 'general' | 'medical' | 'insurance' | 'emergency' | 'physicians' | null;
 
-const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-const SEVERITIES: Allergy['severity'][] = ['Mild', 'Moderate', 'Severe'];
-const GENDERS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
+// Fields use free text inputs — no dropdown/chip selectors
 
 function getInitials(name: string): string {
   const parts = name.trim().split(' ');
@@ -231,11 +229,11 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
   const [eBlood, setEBlood] = useState('');
   const [eSsn, setESsn] = useState('');
 
-  // Medical editable state
-  const [eAllergies, setEAllergies] = useState<Allergy[]>([]);
-  const [eMeds, setEMeds] = useState<Medication[]>([]);
+  // Medical editable state — plain text
+  const [eAllergiesText, setEAllergiesText] = useState('');
+  const [eMedsText, setEMedsText] = useState('');
   const [ePastSurgeries, setEPastSurgeries] = useState('');
-  const [eConditions, setEConditions] = useState<Condition[]>([]);
+  const [eConditionsText, setEConditionsText] = useState('');
 
   // Insurance editable state
   const [eInsProvider, setEInsProvider] = useState('');
@@ -293,10 +291,10 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
       setEBlood(member.blood_type || '');
       setESsn((member as any).ssn_last_four || '');
     } else if (section === 'medical') {
-      setEAllergies(JSON.parse(JSON.stringify(healthInfo?.allergies || [])));
-      setEMeds(JSON.parse(JSON.stringify(healthInfo?.medications || [])));
+      setEAllergiesText((healthInfo?.allergies || []).map(a => a.name).join('\n'));
+      setEMedsText((healthInfo?.medications || []).map(m => [m.name, m.dosage, m.frequency].filter(Boolean).join(' - ')).join('\n'));
       setEPastSurgeries(healthInfo?.past_surgeries || '');
-      setEConditions(JSON.parse(JSON.stringify(healthInfo?.conditions || [])));
+      setEConditionsText((healthInfo?.conditions || []).map(c => c.name).join('\n'));
     } else if (section === 'insurance') {
       setEInsProvider(healthInfo?.insurance?.carrier || '');
       setEInsPolicyNum(healthInfo?.insurance?.policy_number || '');
@@ -330,9 +328,15 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
 
         const payload: any = {
           member_id: memberId,
-          allergies: section === 'medical' ? eAllergies : (hi?.allergies || []),
-          medications: section === 'medical' ? eMeds : (hi?.medications || []),
-          conditions: section === 'medical' ? eConditions : (hi?.conditions || []),
+          allergies: section === 'medical'
+            ? eAllergiesText.trim() ? [{ name: eAllergiesText.trim(), severity: 'Mild' as const }] : []
+            : (hi?.allergies || []),
+          medications: section === 'medical'
+            ? eMedsText.trim() ? [{ name: eMedsText.trim(), dosage: '', frequency: '' }] : []
+            : (hi?.medications || []),
+          conditions: section === 'medical'
+            ? eConditionsText.trim() ? [{ name: eConditionsText.trim() }] : []
+            : (hi?.conditions || []),
           past_surgeries: section === 'medical' ? ePastSurgeries : (hi?.past_surgeries || ''),
           insurance: section === 'insurance' ? insurance : (hi?.insurance ?? null),
           emergency_contacts: section === 'emergency' ? eContacts : (hi?.emergency_contacts || []),
@@ -426,26 +430,8 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
             <>
               <FieldInput label="Full Name" value={eName} onChangeText={setEName} placeholder="First and last name" autoCapitalize="words" />
               <FieldInput label="Date of Birth" value={eDob} onChangeText={setEDob} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" autoCapitalize="none" />
-              <View style={f.group}>
-                <Text style={f.label}>GENDER</Text>
-                <View style={f.chipRow}>
-                  {GENDERS.map(g => (
-                    <TouchableOpacity key={g} style={[f.chip, eGender === g && f.chipActive]} onPress={() => setEGender(eGender === g ? '' : g)}>
-                      <Text style={[f.chipText, eGender === g && f.chipTextActive]}>{g}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-              <View style={f.group}>
-                <Text style={f.label}>BLOOD TYPE</Text>
-                <View style={f.chipRow}>
-                  {BLOOD_TYPES.map(bt => (
-                    <TouchableOpacity key={bt} style={[f.chip, eBlood === bt && f.chipActive]} onPress={() => setEBlood(eBlood === bt ? '' : bt)}>
-                      <Text style={[f.chipText, eBlood === bt && f.chipTextActive]}>{bt}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
+              <FieldInput label="GENDER" value={eGender} onChangeText={setEGender} placeholder="e.g. Male, Female, Non-binary" />
+              <FieldInput label="BLOOD TYPE" value={eBlood} onChangeText={setEBlood} placeholder="e.g. A+, O-, AB+" autoCapitalize="characters" />
               <FieldInput label="SSN LAST 4" value={eSsn} onChangeText={(v) => setESsn(v.replace(/\D/g, '').slice(0, 4))} placeholder="1234" keyboardType="number-pad" autoCapitalize="none" />
             </>
           ) : (
@@ -474,122 +460,41 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
         >
           {editingSection === 'medical' ? (
             <>
-              {/* Allergies */}
-              <Text style={[f.label, { marginBottom: SPACING.sm }]}>ALLERGIES</Text>
-              {eAllergies.map((a, i) => (
-                <View key={i} style={{ flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.sm, alignItems: 'flex-start' }}>
-                  <View style={{ flex: 1, gap: 6 }}>
-                    <TextInput style={f.input} value={a.name} onChangeText={v => { const u = [...eAllergies]; u[i].name = v; setEAllergies(u); }} placeholder="Allergy name" placeholderTextColor={COLORS.textTertiary} />
-                    <View style={f.chipRow}>
-                      {SEVERITIES.map(s => (
-                        <TouchableOpacity key={s} style={[f.chip, a.severity === s && f.chipActive]} onPress={() => { const u = [...eAllergies]; u[i].severity = s; setEAllergies(u); }}>
-                          <Text style={[f.chipText, a.severity === s && f.chipTextActive]}>{s}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                  <TouchableOpacity onPress={() => setEAllergies(eAllergies.filter((_, j) => j !== i))} style={f.removeBtn}>
-                    <Ionicons name="close-circle-outline" size={22} color={COLORS.textTertiary} />
-                  </TouchableOpacity>
-                </View>
-              ))}
-              <TouchableOpacity style={f.addBtn} onPress={() => setEAllergies([...eAllergies, { name: '', severity: 'Mild' }])}>
-                <Ionicons name="add-circle-outline" size={18} color={COLORS.primary} />
-                <Text style={f.addBtnText}>Add Allergy</Text>
-              </TouchableOpacity>
-
-              <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.base }} />
-
-              {/* Medications */}
-              <Text style={[f.label, { marginBottom: SPACING.sm }]}>CURRENT MEDICATIONS</Text>
-              {eMeds.map((m, i) => (
-                <View key={i} style={{ flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.sm, alignItems: 'flex-start' }}>
-                  <View style={{ flex: 1, gap: 6 }}>
-                    <TextInput style={f.input} value={m.name} onChangeText={v => { const u = [...eMeds]; u[i].name = v; setEMeds(u); }} placeholder="Medication name" placeholderTextColor={COLORS.textTertiary} />
-                    <TextInput style={f.input} value={m.dosage} onChangeText={v => { const u = [...eMeds]; u[i].dosage = v; setEMeds(u); }} placeholder="Dosage (e.g. 10mg)" placeholderTextColor={COLORS.textTertiary} />
-                    <TextInput style={f.input} value={m.frequency} onChangeText={v => { const u = [...eMeds]; u[i].frequency = v; setEMeds(u); }} placeholder="Frequency (e.g. Once daily)" placeholderTextColor={COLORS.textTertiary} />
-                  </View>
-                  <TouchableOpacity onPress={() => setEMeds(eMeds.filter((_, j) => j !== i))} style={f.removeBtn}>
-                    <Ionicons name="close-circle-outline" size={22} color={COLORS.textTertiary} />
-                  </TouchableOpacity>
-                </View>
-              ))}
-              <TouchableOpacity style={f.addBtn} onPress={() => setEMeds([...eMeds, { name: '', dosage: '', frequency: '' }])}>
-                <Ionicons name="add-circle-outline" size={18} color={COLORS.primary} />
-                <Text style={f.addBtnText}>Add Medication</Text>
-              </TouchableOpacity>
-
-              <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.base }} />
-
-              {/* Past Surgeries */}
+              <FieldInput label="ALLERGIES" value={eAllergiesText} onChangeText={setEAllergiesText} placeholder="List allergies here" multiline />
+              <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.sm }} />
+              <FieldInput label="CURRENT MEDICATIONS" value={eMedsText} onChangeText={setEMedsText} placeholder="List medications here" multiline />
+              <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.sm }} />
               <FieldInput label="PAST SURGERIES" value={ePastSurgeries} onChangeText={setEPastSurgeries} placeholder="Describe any past surgeries" multiline />
-
-              <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.base }} />
-
-              {/* Medical History */}
-              <Text style={[f.label, { marginBottom: SPACING.sm }]}>PAST MEDICAL HISTORY</Text>
-              {eConditions.map((c, i) => (
-                <View key={i} style={{ flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.sm }}>
-                  <TextInput style={[f.input, { flex: 1 }]} value={c.name} onChangeText={v => { const u = [...eConditions]; u[i].name = v; setEConditions(u); }} placeholder="Condition or diagnosis" placeholderTextColor={COLORS.textTertiary} />
-                  <TouchableOpacity onPress={() => setEConditions(eConditions.filter((_, j) => j !== i))} style={f.removeBtn}>
-                    <Ionicons name="close-circle-outline" size={22} color={COLORS.textTertiary} />
-                  </TouchableOpacity>
-                </View>
-              ))}
-              <TouchableOpacity style={f.addBtn} onPress={() => setEConditions([...eConditions, { name: '' }])}>
-                <Ionicons name="add-circle-outline" size={18} color={COLORS.primary} />
-                <Text style={f.addBtnText}>Add Condition</Text>
-              </TouchableOpacity>
+              <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.sm }} />
+              <FieldInput label="PAST MEDICAL HISTORY" value={eConditionsText} onChangeText={setEConditionsText} placeholder="Conditions, diagnoses, history" multiline />
             </>
           ) : (
             <>
-              {/* View: Allergies */}
-              {(hi?.allergies?.length ?? 0) > 0 && (
+              {hi?.allergies?.[0]?.name ? (
                 <View style={{ marginBottom: SPACING.base }}>
                   <Text style={[f.label, { marginBottom: 6 }]}>ALLERGIES</Text>
-                  {hi!.allergies.map((a, i) => (
-                    <View key={i} style={f.listItem}>
-                      <View style={f.listItemContent}>
-                        <Text style={f.listItemName}>{a.name}</Text>
-                        <Text style={f.listItemSub}>{a.severity}</Text>
-                      </View>
-                    </View>
-                  ))}
+                  <Text style={{ ...FONTS.body, color: COLORS.textPrimary }}>{hi.allergies[0].name}</Text>
                 </View>
-              )}
-              {/* View: Medications */}
-              {(hi?.medications?.length ?? 0) > 0 && (
+              ) : null}
+              {hi?.medications?.[0]?.name ? (
                 <View style={{ marginBottom: SPACING.base }}>
                   <Text style={[f.label, { marginBottom: 6 }]}>CURRENT MEDICATIONS</Text>
-                  {hi!.medications.map((m, i) => (
-                    <View key={i} style={f.listItem}>
-                      <View style={f.listItemContent}>
-                        <Text style={f.listItemName}>{m.name}</Text>
-                        {m.dosage ? <Text style={f.listItemSub}>{m.dosage}{m.frequency ? ` · ${m.frequency}` : ''}</Text> : null}
-                      </View>
-                    </View>
-                  ))}
+                  <Text style={{ ...FONTS.body, color: COLORS.textPrimary }}>{hi.medications[0].name}</Text>
                 </View>
-              )}
-              {/* View: Past Surgeries */}
+              ) : null}
               {hi?.past_surgeries ? (
                 <View style={{ marginBottom: SPACING.base }}>
                   <Text style={[f.label, { marginBottom: 6 }]}>PAST SURGERIES</Text>
                   <Text style={{ ...FONTS.body, color: COLORS.textPrimary }}>{hi.past_surgeries}</Text>
                 </View>
               ) : null}
-              {/* View: Medical History */}
-              {(hi?.conditions?.length ?? 0) > 0 && (
+              {hi?.conditions?.[0]?.name ? (
                 <View style={{ marginBottom: SPACING.base }}>
                   <Text style={[f.label, { marginBottom: 6 }]}>PAST MEDICAL HISTORY</Text>
-                  {hi!.conditions.map((c, i) => (
-                    <View key={i} style={f.listItem}>
-                      <Text style={f.listItemName}>{c.name}</Text>
-                    </View>
-                  ))}
+                  <Text style={{ ...FONTS.body, color: COLORS.textPrimary }}>{hi.conditions[0].name}</Text>
                 </View>
-              )}
-              {!hi?.allergies?.length && !hi?.medications?.length && !hi?.past_surgeries && !hi?.conditions?.length && (
+              ) : null}
+              {!hi?.allergies?.[0]?.name && !hi?.medications?.[0]?.name && !hi?.past_surgeries && !hi?.conditions?.[0]?.name && (
                 <EmptyHint text="No medical information added yet." />
               )}
               <EditButton onPress={() => startEditing('medical')} />

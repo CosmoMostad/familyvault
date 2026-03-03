@@ -19,15 +19,14 @@ type Props = {
   onSetupComplete: () => void;
 };
 
-function WrenBird({ size = 52 }: { size?: number }) {
-  const c = COLORS.primary;
+function WrenBird({ size = 44 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 20 20">
-      <Path d="M6 15 Q3 11 5 7 Q5.5 10.5 7.5 12.5Z" fill={c} />
-      <Ellipse cx="11.5" cy="14" rx="5.5" ry="3.8" fill={c} />
-      <Circle cx="15.5" cy="10" r="3.2" fill={c} />
-      <Path d="M18.2,9.2 L20,10 L18.2,10.8Z" fill={c} />
-      <Circle cx="16.5" cy="9" r="0.55" fill="rgba(255,255,255,0.8)" />
+      <Path d="M6 15 Q3 11 5 7 Q5.5 10.5 7.5 12.5Z" fill="white" />
+      <Ellipse cx="11.5" cy="14" rx="5.5" ry="3.8" fill="white" />
+      <Circle cx="15.5" cy="10" r="3.2" fill="white" />
+      <Path d="M18.2,9.2 L20,10 L18.2,10.8Z" fill="white" />
+      <Circle cx="16.5" cy="9" r="0.55" fill="rgba(0,0,0,0.35)" />
     </Svg>
   );
 }
@@ -229,7 +228,7 @@ const styles = StyleSheet.create({
   birdWrap: {
     width: 56, height: 56,
     borderRadius: 28,
-    backgroundColor: COLORS.primaryMuted,
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,

@@ -101,13 +101,11 @@ export default function ShareAccountScreen({ navigation, route }: Props) {
     if (!user) return;
     setSending(true);
     try {
-      // Look up recipient by email
-      const { data: recipient, error: recipientError } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('email', email.trim().toLowerCase())
-        .single();
+      // Look up recipient by email via SECURITY DEFINER function (bypasses RLS)
+      const { data: recipients, error: recipientError } = await supabase
+        .rpc('find_user_by_email', { p_email: email.trim().toLowerCase() });
 
+      const recipient = recipients?.[0];
       if (recipientError || !recipient) {
         Alert.alert(
           'User Not Found',

@@ -73,6 +73,11 @@ const CALENDAR_COLORS = [
 // Add Event Modal
 // ─────────────────────────────────────────────────────────────────────────────
 
+interface FamilyMemberOption {
+  id: string;
+  full_name: string;
+}
+
 function AddEventModal({ visible, calendars, onSave, onClose }: {
   visible: boolean;
   calendars: CalendarData[];
@@ -85,11 +90,29 @@ function AddEventModal({ visible, calendars, onSave, onClose }: {
   const [time, setTime] = useState('09:00');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
-  const [attendees, setAttendees] = useState('');
   const [calendarId, setCalendarId] = useState(calendars[0]?.id ?? '');
   const [saving, setSaving] = useState(false);
+  const [familyMembers, setFamilyMembers] = useState<FamilyMemberOption[]>([]);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
 
-  const selectedCalendar = calendars.find(c => c.id === calendarId) ?? calendars[0];
+  React.useEffect(() => {
+    if (visible && session?.user.id) loadFamilyMembers();
+  }, [visible]);
+
+  async function loadFamilyMembers() {
+    const { data } = await supabase
+      .from('family_members')
+      .select('id, full_name')
+      .eq('owner_id', session?.user.id)
+      .order('full_name');
+    setFamilyMembers(data ?? []);
+  }
+
+  function toggleMember(id: string) {
+    setSelectedMemberIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  }
 
   async function save() {
     if (!title.trim()) { Alert.alert('Required', 'Please enter a title.'); return; }
@@ -98,18 +121,26 @@ function AddEventModal({ visible, calendars, onSave, onClose }: {
     try {
       const dt = new Date(`${date}T${time}:00`);
       if (isNaN(dt.getTime())) throw new Error('Invalid date/time format.');
-      const { error } = await supabase.from('calendar_events').insert({
+      const { data: newEvent, error } = await supabase.from('calendar_events').insert({
         calendar_id: calendarId,
         created_by: session?.user.id,
         title: title.trim(),
         date_time: dt.toISOString(),
         location: location.trim() || null,
         notes: notes.trim() || null,
-        attendees: attendees.trim() || null,
-      });
+        attendees: null,
+      }).select().single();
       if (error) throw error;
+
+      // Assign selected family members
+      if (selectedMemberIds.length > 0 && newEvent) {
+        await supabase.from('event_assignees').insert(
+          selectedMemberIds.map(mid => ({ event_id: newEvent.id, family_member_id: mid }))
+        );
+      }
+
       setTitle(''); setDate(new Date().toISOString().split('T')[0]);
-      setTime('09:00'); setLocation(''); setNotes(''); setAttendees('');
+      setTime('09:00'); setLocation(''); setNotes(''); setSelectedMemberIds([]);
       onSave();
     } catch (e: any) {
       Alert.alert('Error', e.message);
@@ -135,7 +166,6 @@ function AddEventModal({ visible, calendars, onSave, onClose }: {
             { label: 'Date (YYYY-MM-DD)', value: date, set: setDate, placeholder: '2026-02-24' },
             { label: 'Time (HH:MM)', value: time, set: setTime, placeholder: '09:00' },
             { label: 'Location', value: location, set: setLocation, placeholder: 'Clinic or address' },
-            { label: 'Attendees', value: attendees, set: setAttendees, placeholder: 'Who is this appointment for?' },
             { label: 'Notes', value: notes, set: setNotes, placeholder: 'Any extra details' },
           ].map((f) => (
             <View key={f.label} style={modal.field}>
@@ -149,6 +179,30 @@ function AddEventModal({ visible, calendars, onSave, onClose }: {
               />
             </View>
           ))}
+
+          {/* Assign to family members */}
+          {familyMembers.length > 0 && (
+            <View style={modal.field}>
+              <Text style={modal.label}>Assign To</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginTop: SPACING.xs }}>
+                {familyMembers.map(m => {
+                  const selected = selectedMemberIds.includes(m.id);
+                  return (
+                    <TouchableOpacity
+                      key={m.id}
+                      style={[modal.memberChip, selected && modal.memberChipSelected]}
+                      onPress={() => toggleMember(m.id)}
+                    >
+                      {selected && <Ionicons name="checkmark" size={13} color={COLORS.primary} />}
+                      <Text style={[modal.memberChipText, selected && modal.memberChipTextSelected]}>
+                        {m.full_name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
 
           {calendars.length > 1 && (
             <View style={modal.field}>
@@ -203,6 +257,15 @@ const modal = StyleSheet.create({
   },
   calDot: { width: 10, height: 10, borderRadius: 5 },
   calChipText: { fontSize: 13, color: COLORS.textSecondary },
+  memberChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: SPACING.md, paddingVertical: 7,
+    borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.border,
+    backgroundColor: COLORS.surfaceAlt,
+  },
+  memberChipSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryMuted },
+  memberChipText: { fontSize: 13, color: COLORS.textSecondary, fontWeight: '500' },
+  memberChipTextSelected: { color: COLORS.primary, fontWeight: '600' },
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -440,12 +503,13 @@ function CalendarSettingsModal({ visible, calendars, onClose, onRefresh }: {
     if (!email) return;
     setSendingInvite(calendarId);
     try {
-      const { data: profile } = await supabase.from('profiles').select('id').eq('email', email).maybeSingle();
+      const { data: profileRows } = await supabase.rpc('find_user_by_email', { p_email: email.toLowerCase() });
+      const profile = profileRows?.[0];
       await supabase.from('calendar_invitations').insert({
         calendar_id: calendarId,
         invited_by: session?.user.id,
         invited_email: email,
-        invited_user_id: profile?.id ?? null,
+        invited_user_id: profile?.user_id ?? null,
         status: 'pending',
       });
       Alert.alert('Invited', `Invitation sent to ${email}`);

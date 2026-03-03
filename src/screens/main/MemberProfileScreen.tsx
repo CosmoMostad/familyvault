@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert, TextInput, KeyboardAvoidingView,
-  Platform, StatusBar, Linking,
+  Platform, StatusBar, Linking, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -143,12 +143,14 @@ function FieldInput({ label, value, onChangeText, placeholder, keyboardType, mul
   );
 }
 
-function DisplayRow({ label, value, onPress }: { label: string; value?: string; onPress?: () => void }) {
-  if (!value) return null;
+// Always renders even when empty — shows "—" placeholder
+function DisplayField({ label, value, onPress }: { label: string; value?: string | null; onPress?: () => void }) {
   const inner = (
     <View style={f.row}>
       <Text style={f.rowLabel}>{label}</Text>
-      <Text style={[f.rowValue, onPress && { color: COLORS.primary }]} numberOfLines={2}>{value}</Text>
+      <Text style={[f.rowValue, !value && f.rowEmpty, onPress && { color: COLORS.primary }]} numberOfLines={2}>
+        {value || '—'}
+      </Text>
     </View>
   );
   return onPress ? <TouchableOpacity onPress={onPress}>{inner}</TouchableOpacity> : inner;
@@ -169,10 +171,10 @@ function EmptyHint({ text }: { text: string }) {
 
 const f = StyleSheet.create({
   group: { marginBottom: SPACING.base },
-  label: { fontSize: 11, fontWeight: '700', color: COLORS.textTertiary, letterSpacing: 0.5, marginBottom: 6 },
+  label: { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, letterSpacing: 0.5, marginBottom: 6 },
   input: {
     backgroundColor: COLORS.surface, borderRadius: 10, borderWidth: 1.5,
-    borderColor: COLORS.border, paddingHorizontal: SPACING.base, height: 46,
+    borderColor: '#C8C2BA', paddingHorizontal: SPACING.base, height: 46,
     fontSize: 15, color: COLORS.textPrimary,
   },
   inputMulti: { height: 90, paddingTop: 12, textAlignVertical: 'top' },
@@ -182,6 +184,7 @@ const f = StyleSheet.create({
   },
   rowLabel: { ...FONTS.bodySmall, color: COLORS.textSecondary, flex: 1 },
   rowValue: { ...FONTS.bodySmall, color: COLORS.textPrimary, fontWeight: '500', flex: 1.5, textAlign: 'right' },
+  rowEmpty: { color: COLORS.textTertiary, fontWeight: '400' },
   editBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-end',
     marginTop: SPACING.base, paddingVertical: 8, paddingHorizontal: SPACING.base,
@@ -383,18 +386,18 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
       >
         {/* ── Avatar + name header ── */}
         <View style={styles.hero}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{getInitials(member.full_name)}</Text>
-          </View>
-          <View style={styles.heroInfo}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text style={styles.heroName}>{member.full_name}</Text>
-              {member.is_self && <View style={styles.selfBadge}><Text style={styles.selfBadgeText}>Me</Text></View>}
+          {member.photo_url ? (
+            <Image source={{ uri: member.photo_url }} style={styles.avatarPhoto} />
+          ) : (
+            <View style={styles.avatar}>
+              <Ionicons name="camera-outline" size={26} color={COLORS.textTertiary} />
             </View>
+          )}
+          <View style={styles.heroInfo}>
+            <Text style={styles.heroName}>{member.full_name}</Text>
             {member.dob ? (
               <Text style={styles.heroDob}>
                 {new Date(member.dob).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                {age ? `  ·  ${age}` : ''}
               </Text>
             ) : null}
           </View>
@@ -434,19 +437,28 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
         >
           {editingSection === 'general' ? (
             <>
-              <FieldInput label="Full Name" value={eName} onChangeText={setEName} placeholder="First and last name" autoCapitalize="words" />
-              <FieldInput label="Date of Birth" value={eDob} onChangeText={setEDob} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" autoCapitalize="none" />
+              {/* Profile photo — visual placeholder for now */}
+              <View style={styles.photoEditRow}>
+                {member.photo_url
+                  ? <Image source={{ uri: member.photo_url }} style={styles.photoThumb} />
+                  : (
+                    <View style={styles.photoThumbEmpty}>
+                      <Ionicons name="camera-outline" size={22} color={COLORS.textTertiary} />
+                    </View>
+                  )
+                }
+                <Text style={styles.photoEditHint}>Profile photo coming soon</Text>
+              </View>
+              <FieldInput label="FULL NAME" value={eName} onChangeText={setEName} placeholder="First and last name" autoCapitalize="words" />
+              <FieldInput label="DATE OF BIRTH" value={eDob} onChangeText={setEDob} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" autoCapitalize="none" />
               <FieldInput label="GENDER" value={eGender} onChangeText={setEGender} placeholder="e.g. Male, Female, Non-binary" />
-              <FieldInput label="BLOOD TYPE" value={eBlood} onChangeText={setEBlood} placeholder="e.g. A+, O-, AB+" autoCapitalize="characters" />
               <FieldInput label="SSN LAST 4" value={eSsn} onChangeText={(v) => setESsn(v.replace(/\D/g, '').slice(0, 4))} placeholder="1234" keyboardType="number-pad" autoCapitalize="none" />
             </>
           ) : (
             <>
-              <DisplayRow label="Date of Birth" value={member.dob ? new Date(member.dob).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : undefined} />
-              <DisplayRow label="Gender" value={member.gender ?? undefined} />
-              <DisplayRow label="Blood Type" value={member.blood_type ?? undefined} />
-              <DisplayRow label="SSN" value={ssnDisplay} />
-              {!member.dob && !member.gender && !member.blood_type && <EmptyHint text="No details added yet." />}
+              <DisplayField label="Date of Birth" value={member.dob ? new Date(member.dob).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : null} />
+              <DisplayField label="Gender" value={member.gender} />
+              <DisplayField label="SSN" value={ssnDisplay} />
               <EditButton onPress={() => startEditing('general')} />
             </>
           )}
@@ -476,33 +488,10 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
             </>
           ) : (
             <>
-              {hi?.allergies?.[0]?.name ? (
-                <View style={{ marginBottom: SPACING.base }}>
-                  <Text style={[f.label, { marginBottom: 6 }]}>ALLERGIES</Text>
-                  <Text style={{ ...FONTS.body, color: COLORS.textPrimary }}>{hi.allergies[0].name}</Text>
-                </View>
-              ) : null}
-              {hi?.medications?.[0]?.name ? (
-                <View style={{ marginBottom: SPACING.base }}>
-                  <Text style={[f.label, { marginBottom: 6 }]}>CURRENT MEDICATIONS</Text>
-                  <Text style={{ ...FONTS.body, color: COLORS.textPrimary }}>{hi.medications[0].name}</Text>
-                </View>
-              ) : null}
-              {hi?.past_surgeries ? (
-                <View style={{ marginBottom: SPACING.base }}>
-                  <Text style={[f.label, { marginBottom: 6 }]}>PAST SURGERIES</Text>
-                  <Text style={{ ...FONTS.body, color: COLORS.textPrimary }}>{hi.past_surgeries}</Text>
-                </View>
-              ) : null}
-              {hi?.conditions?.[0]?.name ? (
-                <View style={{ marginBottom: SPACING.base }}>
-                  <Text style={[f.label, { marginBottom: 6 }]}>PAST MEDICAL HISTORY</Text>
-                  <Text style={{ ...FONTS.body, color: COLORS.textPrimary }}>{hi.conditions[0].name}</Text>
-                </View>
-              ) : null}
-              {!hi?.allergies?.[0]?.name && !hi?.medications?.[0]?.name && !hi?.past_surgeries && !hi?.conditions?.[0]?.name && (
-                <EmptyHint text="No medical information added yet." />
-              )}
+              <DisplayField label="Allergies" value={hi?.allergies?.[0]?.name} />
+              <DisplayField label="Current Medications" value={hi?.medications?.[0]?.name} />
+              <DisplayField label="Past Surgeries" value={hi?.past_surgeries} />
+              <DisplayField label="Past Medical History" value={hi?.conditions?.[0]?.name} />
               <EditButton onPress={() => startEditing('medical')} />
             </>
           )}
@@ -527,9 +516,8 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
             </>
           ) : (
             <>
-              <DisplayRow label="Provider" value={hi?.insurance?.carrier} />
-              <DisplayRow label="Policy Number" value={hi?.insurance?.policy_number} />
-              {!hi?.insurance?.carrier && <EmptyHint text="No insurance information added yet." />}
+              <DisplayField label="Provider" value={hi?.insurance?.carrier} />
+              <DisplayField label="Policy Number" value={hi?.insurance?.policy_number} />
               <EditButton onPress={() => startEditing('insurance')} />
             </>
           )}
@@ -581,7 +569,12 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
                     </TouchableOpacity>
                   ) : null}
                 </View>
-              )) : <EmptyHint text="No emergency contacts added yet." />}
+              )) : (
+                <View style={f.row}>
+                  <Text style={f.rowLabel}>Contacts</Text>
+                  <Text style={[f.rowValue, f.rowEmpty]}>—</Text>
+                </View>
+              )}
               <EditButton onPress={() => startEditing('emergency')} />
             </>
           )}
@@ -618,7 +611,12 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
                     </TouchableOpacity>
                   ) : null}
                 </View>
-              ) : <EmptyHint text="No physician added yet." />}
+              ) : (
+                <>
+                  <DisplayField label="Physician Name" value={null} />
+                  <DisplayField label="Contact / Phone" value={null} />
+                </>
+              )}
               <EditButton onPress={() => startEditing('physicians')} />
             </>
           )}
@@ -639,14 +637,32 @@ const styles = StyleSheet.create({
   hero: { flexDirection: 'row', alignItems: 'center', gap: SPACING.base, marginBottom: SPACING.xl, paddingTop: SPACING.sm },
   avatar: {
     width: 64, height: 64, borderRadius: 32,
-    backgroundColor: COLORS.primaryMuted, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: COLORS.surfaceAlt,
+    borderWidth: 1.5, borderColor: COLORS.border,
+    alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { fontSize: 22, fontWeight: '700', color: COLORS.primary },
+  avatarPhoto: { width: 64, height: 64, borderRadius: 32 },
   heroInfo: { flex: 1, gap: 4 },
   heroName: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, letterSpacing: -0.3 },
   heroDob: { ...FONTS.bodySmall, color: COLORS.textSecondary },
   selfBadge: { backgroundColor: COLORS.primaryMuted, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
   selfBadgeText: { fontSize: 11, fontWeight: '700', color: COLORS.primary },
+
+  // Photo edit row (inside General Info edit mode)
+  photoEditRow: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.md,
+    marginBottom: SPACING.base,
+    paddingBottom: SPACING.base,
+    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+  },
+  photoThumb: { width: 52, height: 52, borderRadius: 26 },
+  photoThumbEmpty: {
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: COLORS.surfaceAlt,
+    borderWidth: 1.5, borderColor: COLORS.border,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  photoEditHint: { ...FONTS.bodySmall, color: COLORS.textTertiary, flex: 1 },
 
   // Quick actions
   actionRow: {

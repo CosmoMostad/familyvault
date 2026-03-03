@@ -185,7 +185,7 @@ export default function SetupSelfScreen({ navigation, onSetupComplete }: Props) 
             >
               {saving
                 ? <ActivityIndicator color={COLORS.textInverse} />
-                : <Text style={styles.btnPrimaryText}>Finish Health Account</Text>
+                : <Text style={styles.btnPrimaryText}>Build My Profile</Text>
               }
             </TouchableOpacity>
 
@@ -196,7 +196,7 @@ export default function SetupSelfScreen({ navigation, onSetupComplete }: Props) 
               activeOpacity={0.85}
             >
               <Text style={[styles.btnSecondaryText, !canProceed && styles.btnSecondaryTextDisabled]}>
-                Save for Later
+                Skip for Now
               </Text>
             </TouchableOpacity>
           </View>

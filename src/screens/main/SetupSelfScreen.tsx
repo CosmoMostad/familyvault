@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  Alert, ActivityIndicator, SafeAreaView, KeyboardAvoidingView,
-  Platform, ScrollView,
+  Alert, ActivityIndicator, SafeAreaView,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
+import Svg, { Ellipse, Circle, Path } from 'react-native-svg';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -18,7 +19,19 @@ type Props = {
   onSetupComplete: () => void;
 };
 
-// Default DOB: 30 years ago
+function WrenBird({ size = 52 }: { size?: number }) {
+  const c = COLORS.primary;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 20 20">
+      <Path d="M6 15 Q3 11 5 7 Q5.5 10.5 7.5 12.5Z" fill={c} />
+      <Ellipse cx="11.5" cy="14" rx="5.5" ry="3.8" fill={c} />
+      <Circle cx="15.5" cy="10" r="3.2" fill={c} />
+      <Path d="M18.2,9.2 L20,10 L18.2,10.8Z" fill={c} />
+      <Circle cx="16.5" cy="9" r="0.55" fill="rgba(255,255,255,0.8)" />
+    </Svg>
+  );
+}
+
 function defaultDob(): Date {
   const d = new Date();
   d.setFullYear(d.getFullYear() - 30);
@@ -34,6 +47,7 @@ export default function SetupSelfScreen({ navigation, onSetupComplete }: Props) 
   const { session } = useAuth();
   const [name, setName] = useState('');
   const [dob, setDob] = useState<Date>(defaultDob());
+  const [showDobPicker, setShowDobPicker] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const canProceed = name.trim().length > 0;
@@ -76,12 +90,8 @@ export default function SetupSelfScreen({ navigation, onSetupComplete }: Props) 
       const memberId = await saveMember();
       onSetupComplete();
       if (memberId) {
-        // Navigate to their full profile after a tick
         setTimeout(() => {
-          navigation.navigate('MemberProfile', {
-            memberId,
-            memberName: name.trim(),
-          });
+          navigation.navigate('MemberProfile', { memberId, memberName: name.trim() });
         }, 100);
       }
     } catch (e: any) {
@@ -94,27 +104,23 @@ export default function SetupSelfScreen({ navigation, onSetupComplete }: Props) 
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={styles.kav}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.iconWrap}>
-              <Ionicons name="person-add-outline" size={32} color={COLORS.primary} />
+        <View style={styles.container}>
+
+          {/* ── Hero row: bird + heading ── */}
+          <View style={styles.heroRow}>
+            <View style={styles.birdWrap}>
+              <WrenBird size={44} />
             </View>
             <Text style={styles.heading}>Let's build your{'\n'}health account</Text>
-            <Text style={styles.subheading}>
-              Just your name and birthday to get started. You can add everything else later.
-            </Text>
           </View>
 
-          {/* Name */}
-          <View style={styles.fieldGroup}>
+          {/* ── Fields ── */}
+          <View style={styles.fields}>
+
+            {/* Name */}
             <Text style={styles.label}>Your Name</Text>
             <TextInput
               style={styles.input}
@@ -125,29 +131,53 @@ export default function SetupSelfScreen({ navigation, onSetupComplete }: Props) 
               autoCapitalize="words"
               autoCorrect={false}
               returnKeyType="done"
+              onSubmitEditing={() => setShowDobPicker(false)}
             />
-          </View>
 
-          {/* DOB */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Date of Birth</Text>
-            <View style={styles.dobDisplay}>
-              <Text style={styles.dobText}>{formatDob(dob)}</Text>
-            </View>
-            <View style={styles.pickerWrap}>
-              <DateTimePicker
-                value={dob}
-                mode="date"
-                display="spinner"
-                themeVariant="light"
-                maximumDate={new Date()}
-                onChange={(_, date) => { if (date) setDob(date); }}
-                style={styles.picker}
+            {/* DOB */}
+            <Text style={[styles.label, { marginTop: SPACING.lg }]}>Date of Birth</Text>
+            <TouchableOpacity
+              style={styles.dobBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowDobPicker(v => !v);
+              }}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="calendar-outline" size={17} color={COLORS.primary} />
+              <Text style={styles.dobBtnText}>{formatDob(dob)}</Text>
+              <Ionicons
+                name={showDobPicker ? 'chevron-up' : 'chevron-down'}
+                size={15}
+                color={COLORS.textTertiary}
               />
-            </View>
+            </TouchableOpacity>
+
+            {showDobPicker && (
+              <View style={styles.pickerWrap}>
+                <DateTimePicker
+                  value={dob}
+                  mode="date"
+                  display="spinner"
+                  themeVariant="light"
+                  maximumDate={new Date()}
+                  onChange={(_, date) => { if (date) setDob(date); }}
+                  style={styles.picker}
+                />
+                <TouchableOpacity
+                  style={styles.pickerDone}
+                  onPress={() => setShowDobPicker(false)}
+                >
+                  <Text style={styles.pickerDoneText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
 
-          {/* Buttons */}
+          {/* ── Spacer ── */}
+          <View style={{ flex: 1 }} />
+
+          {/* ── Buttons ── */}
           <View style={styles.buttons}>
             <TouchableOpacity
               style={[styles.btnPrimary, !canProceed && styles.btnDisabled]}
@@ -155,15 +185,14 @@ export default function SetupSelfScreen({ navigation, onSetupComplete }: Props) 
               disabled={!canProceed || saving}
               activeOpacity={0.85}
             >
-              {saving ? (
-                <ActivityIndicator color={COLORS.textInverse} />
-              ) : (
-                <Text style={styles.btnPrimaryText}>Finish Health Account</Text>
-              )}
+              {saving
+                ? <ActivityIndicator color={COLORS.textInverse} />
+                : <Text style={styles.btnPrimaryText}>Finish Health Account</Text>
+              }
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.btnSecondary, !canProceed && styles.btnDisabled]}
+              style={[styles.btnSecondary, !canProceed && styles.btnSecondaryDisabled]}
               onPress={handleSaveLater}
               disabled={!canProceed || saving}
               activeOpacity={0.85}
@@ -173,7 +202,8 @@ export default function SetupSelfScreen({ navigation, onSetupComplete }: Props) 
               </Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
+
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -181,35 +211,38 @@ export default function SetupSelfScreen({ navigation, onSetupComplete }: Props) 
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.background },
-  scroll: {
-    flexGrow: 1,
+  kav: { flex: 1 },
+  container: {
+    flex: 1,
     paddingHorizontal: SPACING.xl,
     paddingTop: SPACING.xxl,
-    paddingBottom: 48,
+    paddingBottom: SPACING.xl,
   },
-  header: {
+
+  // Hero
+  heroRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: SPACING.md,
     marginBottom: SPACING.xxl,
   },
-  iconWrap: {
-    width: 72, height: 72, borderRadius: 36,
+  birdWrap: {
+    width: 56, height: 56,
+    borderRadius: 28,
     backgroundColor: COLORS.primaryMuted,
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: SPACING.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   heading: {
-    ...FONTS.h2,
+    ...FONTS.h3,
     color: COLORS.textPrimary,
-    textAlign: 'center',
-    marginBottom: SPACING.sm,
+    flex: 1,
+    lineHeight: 28,
   },
-  subheading: {
-    ...FONTS.body,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    lineHeight: 23,
-  },
-  fieldGroup: { marginBottom: SPACING.xl },
+
+  // Fields
+  fields: {},
   label: {
     ...FONTS.label,
     color: COLORS.textSecondary,
@@ -222,48 +255,68 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     borderRadius: 14,
     paddingHorizontal: SPACING.base,
-    paddingVertical: 14,
-    ...FONTS.bodyLarge,
+    paddingVertical: 13,
+    ...FONTS.body,
     color: COLORS.textPrimary,
   },
-  dobDisplay: {
-    backgroundColor: COLORS.primaryMuted,
-    borderRadius: 12,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.base,
-    marginBottom: SPACING.sm,
+  dobBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    paddingHorizontal: SPACING.base,
+    paddingVertical: 13,
   },
-  dobText: {
-    ...FONTS.h4,
-    color: COLORS.primary,
+  dobBtnText: {
+    ...FONTS.body,
+    color: COLORS.textPrimary,
+    flex: 1,
   },
   pickerWrap: {
+    marginTop: SPACING.xs,
     backgroundColor: COLORS.surface,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 16,
     overflow: 'hidden',
   },
-  picker: { height: 180 },
-  buttons: { gap: SPACING.md, marginTop: SPACING.xl },
+  picker: { height: 160 },
+  pickerDone: {
+    alignItems: 'flex-end',
+    paddingHorizontal: SPACING.base,
+    paddingVertical: SPACING.sm,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  pickerDoneText: {
+    ...FONTS.body,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+
+  // Buttons
+  buttons: { gap: SPACING.sm },
   btnPrimary: {
     backgroundColor: COLORS.primary,
     borderRadius: 14,
-    height: 54,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnDisabled: { opacity: 0.4 },
+  btnDisabled: { opacity: 0.38 },
   btnPrimaryText: { ...FONTS.h4, color: COLORS.textInverse },
   btnSecondary: {
     borderRadius: 14,
-    height: 54,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: COLORS.primary,
   },
+  btnSecondaryDisabled: { borderColor: COLORS.border },
   btnSecondaryText: { ...FONTS.h4, color: COLORS.primary },
   btnSecondaryTextDisabled: { color: COLORS.textTertiary },
 });

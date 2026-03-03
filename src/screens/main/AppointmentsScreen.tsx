@@ -7,6 +7,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp, useFocusEffect } from '@react-navigation/native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -104,15 +105,24 @@ function AddAppointmentModal({
   onSaved: () => void;
 }) {
   const [title, setTitle] = useState('');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    const d = new Date();
+    d.setHours(9, 0, 0, 0);
+    return d;
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [doctor, setDoctor] = useState('');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
   function reset() {
-    setTitle(''); setDate(''); setTime('');
+    setTitle('');
+    const d = new Date(); d.setHours(9, 0, 0, 0);
+    setSelectedDate(d);
+    setShowDatePicker(false);
+    setShowTimePicker(false);
     setDoctor(''); setLocation(''); setNotes('');
   }
 
@@ -121,31 +131,25 @@ function AddAppointmentModal({
     onClose();
   }
 
+  function formatDisplayDate(d: Date) {
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function formatDisplayTime(d: Date) {
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+
   async function handleSave() {
     if (!title.trim()) {
       Alert.alert('Title required', 'Please enter an appointment title.');
       return;
     }
-
-    // Parse date + time into ISO datetime
-    let datetime: string;
-    try {
-      const dateStr = date.trim() || new Date().toLocaleDateString('en-US');
-      const timeStr = time.trim() || '12:00 PM';
-      const combined = new Date(`${dateStr} ${timeStr}`);
-      if (isNaN(combined.getTime())) throw new Error('invalid');
-      datetime = combined.toISOString();
-    } catch {
-      Alert.alert('Invalid date/time', 'Please use a format like "3/15/2026" and "2:30 PM".');
-      return;
-    }
-
     setSaving(true);
     try {
       const { error } = await supabase.from('appointments').insert({
         member_id: memberId,
         title: title.trim(),
-        datetime,
+        datetime: selectedDate.toISOString(),
         doctor: doctor.trim() || null,
         location: location.trim() || null,
         notes: notes.trim() || null,
@@ -198,28 +202,67 @@ function AddAppointmentModal({
               autoFocus
             />
 
-            <View style={modal.row}>
-              <View style={{ flex: 1 }}>
-                <Text style={modal.label}>Date</Text>
-                <TextInput
-                  style={modal.input}
-                  placeholder="3/15/2026"
-                  placeholderTextColor={COLORS.textTertiary}
-                  value={date}
-                  onChangeText={setDate}
+            {/* Date picker */}
+            <Text style={modal.label}>Date</Text>
+            <TouchableOpacity
+              style={modal.pickerBtn}
+              onPress={() => { setShowTimePicker(false); setShowDatePicker(v => !v); }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="calendar-outline" size={17} color={COLORS.primary} />
+              <Text style={modal.pickerBtnText}>{formatDisplayDate(selectedDate)}</Text>
+              <Ionicons name="chevron-down" size={15} color={COLORS.textTertiary} />
+            </TouchableOpacity>
+            {showDatePicker && (
+              <View style={modal.pickerWrap}>
+                <DateTimePicker
+                  value={selectedDate}
+                  mode="date"
+                  display="inline"
+                  themeVariant="light"
+                  accentColor={COLORS.primary}
+                  onChange={(_, date) => {
+                    if (date) {
+                      const merged = new Date(date);
+                      merged.setHours(selectedDate.getHours(), selectedDate.getMinutes());
+                      setSelectedDate(merged);
+                    }
+                    setShowDatePicker(false);
+                  }}
                 />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={modal.label}>Time</Text>
-                <TextInput
-                  style={modal.input}
-                  placeholder="2:30 PM"
-                  placeholderTextColor={COLORS.textTertiary}
-                  value={time}
-                  onChangeText={setTime}
+            )}
+
+            {/* Time picker */}
+            <Text style={modal.label}>Time</Text>
+            <TouchableOpacity
+              style={modal.pickerBtn}
+              onPress={() => { setShowDatePicker(false); setShowTimePicker(v => !v); }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="time-outline" size={17} color={COLORS.primary} />
+              <Text style={modal.pickerBtnText}>{formatDisplayTime(selectedDate)}</Text>
+              <Ionicons name="chevron-down" size={15} color={COLORS.textTertiary} />
+            </TouchableOpacity>
+            {showTimePicker && (
+              <View style={modal.pickerWrap}>
+                <DateTimePicker
+                  value={selectedDate}
+                  mode="time"
+                  display="spinner"
+                  themeVariant="light"
+                  onChange={(_, date) => {
+                    if (date) setSelectedDate(date);
+                  }}
                 />
+                <TouchableOpacity
+                  style={modal.pickerDoneBtn}
+                  onPress={() => setShowTimePicker(false)}
+                >
+                  <Text style={modal.pickerDoneText}>Done</Text>
+                </TouchableOpacity>
               </View>
-            </View>
+            )}
 
             <Text style={modal.label}>Doctor / Provider</Text>
             <TextInput
@@ -523,4 +566,40 @@ const modal = StyleSheet.create({
   },
   textarea: { minHeight: 80, paddingTop: SPACING.md },
   row: { flexDirection: 'row', gap: SPACING.md },
+  pickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingHorizontal: SPACING.base,
+    paddingVertical: SPACING.md,
+  },
+  pickerBtnText: {
+    ...FONTS.body,
+    color: COLORS.textPrimary,
+    flex: 1,
+  },
+  pickerWrap: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginTop: SPACING.xs,
+    overflow: 'hidden',
+  },
+  pickerDoneBtn: {
+    alignItems: 'flex-end',
+    paddingHorizontal: SPACING.base,
+    paddingVertical: SPACING.sm,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  pickerDoneText: {
+    ...FONTS.body,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
 });

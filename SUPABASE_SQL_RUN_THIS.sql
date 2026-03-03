@@ -47,16 +47,15 @@ CREATE POLICY "calendar_member_select" ON public.family_calendars
     id IN (SELECT calendar_id FROM public.calendar_members WHERE user_id = auth.uid())
   );
 
--- family_calenders (typo version — fix this too just in case)
-DROP POLICY IF EXISTS "Users can view their calendars" ON public.family_calenders;
-DROP POLICY IF EXISTS "calendar_select_policy" ON public.family_calenders;
-DROP POLICY IF EXISTS "calendar_insert_policy" ON public.family_calenders;
-DROP POLICY IF EXISTS "calendar_owner_all" ON public.family_calenders;
-DROP POLICY IF EXISTS "calendar_member_select" ON public.family_calenders;
-
+-- family_calenders (typo version — only touch if it exists)
 DO $$
 BEGIN
-  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'family_calenders') THEN
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'family_calenders') THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Users can view their calendars" ON public.family_calenders';
+    EXECUTE 'DROP POLICY IF EXISTS "calendar_select_policy" ON public.family_calenders';
+    EXECUTE 'DROP POLICY IF EXISTS "calendar_insert_policy" ON public.family_calenders';
+    EXECUTE 'DROP POLICY IF EXISTS "calendar_owner_all" ON public.family_calenders';
+    EXECUTE 'DROP POLICY IF EXISTS "calendar_member_select" ON public.family_calenders';
     EXECUTE 'CREATE POLICY "calendar_owner_all" ON public.family_calenders
       FOR ALL USING (owner_id = auth.uid()) WITH CHECK (owner_id = auth.uid())';
     EXECUTE 'CREATE POLICY "calendar_member_select" ON public.family_calenders
@@ -65,6 +64,59 @@ BEGIN
       )';
   END IF;
 END $$;
+
+
+-- ================================================================
+-- FIX 2b: calendar_events RLS fix
+-- Drop and recreate policies with simple non-recursive logic
+-- ================================================================
+
+DROP POLICY IF EXISTS "Users can view calendar events" ON public.calendar_events;
+DROP POLICY IF EXISTS "Users can create calendar events" ON public.calendar_events;
+DROP POLICY IF EXISTS "Users can update calendar events" ON public.calendar_events;
+DROP POLICY IF EXISTS "Users can delete calendar events" ON public.calendar_events;
+DROP POLICY IF EXISTS "calendar_events_select" ON public.calendar_events;
+DROP POLICY IF EXISTS "calendar_events_insert" ON public.calendar_events;
+DROP POLICY IF EXISTS "calendar_events_update" ON public.calendar_events;
+DROP POLICY IF EXISTS "calendar_events_delete" ON public.calendar_events;
+
+-- View: calendar owner or member
+CREATE POLICY "calendar_events_select" ON public.calendar_events
+  FOR SELECT USING (
+    calendar_id IN (
+      SELECT id FROM public.family_calendars WHERE owner_id = auth.uid()
+    )
+    OR
+    calendar_id IN (
+      SELECT calendar_id FROM public.calendar_members WHERE user_id = auth.uid()
+    )
+  );
+
+-- Insert/Update/Delete: calendar owner only
+CREATE POLICY "calendar_events_insert" ON public.calendar_events
+  FOR INSERT WITH CHECK (
+    calendar_id IN (
+      SELECT id FROM public.family_calendars WHERE owner_id = auth.uid()
+    )
+    OR
+    calendar_id IN (
+      SELECT calendar_id FROM public.calendar_members WHERE user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "calendar_events_update" ON public.calendar_events
+  FOR UPDATE USING (
+    calendar_id IN (
+      SELECT id FROM public.family_calendars WHERE owner_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "calendar_events_delete" ON public.calendar_events
+  FOR DELETE USING (
+    calendar_id IN (
+      SELECT id FROM public.family_calendars WHERE owner_id = auth.uid()
+    )
+  );
 
 
 -- ================================================================

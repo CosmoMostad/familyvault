@@ -9,6 +9,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp, useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   FamilyMember, HealthInfo, RootStackParamList,
   EmergencyContact, Doctor,
@@ -215,6 +216,7 @@ const f = StyleSheet.create({
 
 export default function MemberProfileScreen({ navigation, route }: Props) {
   const { memberId, memberName } = route.params;
+  const { session } = useAuth();
   const [member, setMember] = useState<FamilyMember | null>(null);
   const [healthInfo, setHealthInfo] = useState<HealthInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -400,11 +402,15 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
 
         {/* ── Quick action buttons ── */}
         <View style={styles.actionRow}>
-          {[
-            { icon: 'share-social-outline' as const, label: 'Share', onPress: () => navigation.navigate('ShareAccount', { memberId, memberName }) },
-            { icon: 'calendar-outline' as const, label: 'Appointments', onPress: () => navigation.navigate('Appointments', { memberId, memberName }) },
-            { icon: 'document-text-outline' as const, label: 'Documents', onPress: () => navigation.navigate('DocumentScanner', { memberId, memberName }) },
-          ].map((a, i) => (
+          {([] as { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; onPress: () => void }[]).concat(
+            member?.owner_id === session?.user?.id
+              ? [{ icon: 'share-social-outline' as const, label: 'Share', onPress: () => navigation.navigate('ShareAccount', { memberId, memberName }) }]
+              : [],
+            [
+              { icon: 'calendar-outline' as const, label: 'Appointments', onPress: () => navigation.navigate('Appointments', { memberId, memberName }) },
+              { icon: 'document-text-outline' as const, label: 'Documents', onPress: () => navigation.navigate('DocumentScanner', { memberId, memberName }) },
+            ]
+          ).map((a, i) => (
             <TouchableOpacity key={i} style={styles.actionBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); a.onPress(); }} activeOpacity={0.7}>
               <View style={styles.actionIconBg}>
                 <Ionicons name={a.icon} size={20} color={COLORS.primary} />

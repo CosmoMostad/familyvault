@@ -58,37 +58,37 @@ function SectionBlock({
 }) {
   return (
     <View style={sec.card}>
-      {/* Header row */}
+      {/* Header row — always just title + chevron */}
       <TouchableOpacity
         style={sec.header}
         onPress={editing ? undefined : onToggle}
         activeOpacity={editing ? 1 : 0.7}
       >
         <Text style={sec.title}>{title}</Text>
-        {editing ? (
-          <View style={sec.editActions}>
-            <TouchableOpacity style={sec.cancelBtn} onPress={onCancel}>
-              <Text style={sec.cancelText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={sec.saveBtn} onPress={onSave} disabled={saving}>
-              {saving
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <Text style={sec.saveText}>Save</Text>}
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <Ionicons
-            name={isOpen ? 'chevron-up' : 'chevron-down'}
-            size={18}
-            color={COLORS.textTertiary}
-          />
-        )}
+        <Ionicons
+          name={(isOpen || editing) ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={COLORS.textTertiary}
+        />
       </TouchableOpacity>
 
       {/* Expanded content */}
       {(isOpen || editing) && (
         <View style={sec.body}>
           {children}
+          {/* Cancel / Save at bottom when editing */}
+          {editing && (
+            <View style={sec.editActions}>
+              <TouchableOpacity style={sec.cancelBtn} onPress={onCancel}>
+                <Text style={sec.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={sec.saveBtn} onPress={onSave} disabled={saving}>
+                {saving
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Text style={sec.saveText}>Save</Text>}
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       )}
     </View>
@@ -105,18 +105,23 @@ const sec = StyleSheet.create({
     paddingVertical: SPACING.md,
   },
   title: { ...FONTS.h4, color: COLORS.textPrimary, fontWeight: '600' },
-  editActions: { flexDirection: 'row', gap: SPACING.sm },
-  cancelBtn: {
-    paddingHorizontal: SPACING.md, paddingVertical: 6,
-    borderRadius: 8, borderWidth: 1, borderColor: COLORS.border,
+  editActions: {
+    flexDirection: 'row', gap: SPACING.sm,
+    marginTop: SPACING.base, paddingTop: SPACING.base,
+    borderTopWidth: 1, borderTopColor: COLORS.border,
   },
-  cancelText: { ...FONTS.bodySmall, color: COLORS.textSecondary, fontWeight: '500' },
-  saveBtn: {
-    paddingHorizontal: SPACING.md, paddingVertical: 6,
-    borderRadius: 8, backgroundColor: COLORS.primary, minWidth: 52,
+  cancelBtn: {
+    flex: 1, paddingVertical: 11,
+    borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.border,
     alignItems: 'center',
   },
-  saveText: { ...FONTS.bodySmall, color: '#fff', fontWeight: '700' },
+  cancelText: { ...FONTS.body, color: COLORS.textSecondary, fontWeight: '500' },
+  saveBtn: {
+    flex: 1, paddingVertical: 11,
+    borderRadius: 10, backgroundColor: COLORS.primary,
+    alignItems: 'center',
+  },
+  saveText: { ...FONTS.body, color: '#fff', fontWeight: '700' },
   body: { borderTopWidth: 1, borderTopColor: COLORS.border, paddingHorizontal: SPACING.base, paddingTop: SPACING.base, paddingBottom: SPACING.base },
 });
 
@@ -347,6 +352,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
       setEBlood(member.blood_type || '');
       setESsn((member as any).ssn_last_four || '');
     } else if (section === 'medical') {
+      setEBlood(member.blood_type || '');
       setEAllergiesText((healthInfo?.allergies || []).map(a => a.name).join('\n'));
       setEMedsText((healthInfo?.medications || []).map(m => [m.name, m.dosage, m.frequency].filter(Boolean).join(' - ')).join('\n'));
       setEPastSurgeries(healthInfo?.past_surgeries || '');
@@ -372,7 +378,6 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
           full_name: eName.trim(),
           dob: eDob || null,
           gender: eGender || null,
-          blood_type: eBlood || null,
           ssn_last_four: eSsn.replace(/\D/g, '').slice(0, 4) || null,
         }).eq('id', memberId);
       } else {
@@ -407,6 +412,10 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
           await supabase.from('health_info').update(payload).eq('member_id', memberId);
         } else {
           await supabase.from('health_info').insert(payload);
+        }
+        // Blood type lives on family_members
+        if (section === 'medical') {
+          await supabase.from('family_members').update({ blood_type: eBlood || null }).eq('id', memberId);
         }
       }
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -549,6 +558,8 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
         >
           {editingSection === 'medical' ? (
             <>
+              <FieldInput label="BLOOD TYPE" value={eBlood} onChangeText={setEBlood} placeholder="e.g. A+, O-, AB+" autoCapitalize="characters" />
+              <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.sm }} />
               <FieldInput label="ALLERGIES" value={eAllergiesText} onChangeText={setEAllergiesText} placeholder="List allergies here" multiline />
               <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.sm }} />
               <FieldInput label="CURRENT MEDICATIONS" value={eMedsText} onChangeText={setEMedsText} placeholder="List medications here" multiline />
@@ -559,6 +570,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
             </>
           ) : (
             <>
+              <DisplayField label="Blood Type" value={member.blood_type} />
               <DisplayField label="Allergies" value={hi?.allergies?.[0]?.name} />
               <DisplayField label="Current Medications" value={hi?.medications?.[0]?.name} />
               <DisplayField label="Past Surgeries" value={hi?.past_surgeries} />

@@ -16,31 +16,12 @@ import AuthBotanical from '../../components/AuthBotanical';
 
 function WrenBird({ size = 72 }: { size?: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 26">
-      {/* Single upswept tail */}
-      <Path d="M6 17 Q2.5 11 4 5.5 Q4.5 10 7 13.5Z" fill="white" />
-      {/* Body */}
-      <Ellipse cx="13.5" cy="15" rx="6.5" ry="4.5" fill="white" />
-      {/* Wing fold lines */}
-      <Path d="M9 14.5 Q13 11.5 18 13.5" stroke="rgba(255,255,255,0.45)" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-      <Path d="M9.5 16 Q13.5 13.5 18.5 15.5" stroke="rgba(255,255,255,0.28)" strokeWidth="0.9" fill="none" strokeLinecap="round" />
-      {/* Head */}
-      <Circle cx="18" cy="10" r="4" fill="white" />
-      {/* Beak */}
-      <Path d="M21.5 8.8 L24 10 L21.5 11Z" fill="white" />
-      {/* Eye */}
-      <Circle cx="19.5" cy="9" r="0.9" fill="rgba(0,0,0,0.35)" />
-      {/* Legs */}
-      <Path d="M11.5 19.5 L11 23" stroke="white" strokeWidth="1.2" strokeLinecap="round" fill="none" />
-      <Path d="M14.5 19.5 L15 23" stroke="white" strokeWidth="1.2" strokeLinecap="round" fill="none" />
-      {/* Left foot toes */}
-      <Path d="M11 23 L9 24.5" stroke="white" strokeWidth="1" strokeLinecap="round" fill="none" />
-      <Path d="M11 23 L11 25" stroke="white" strokeWidth="1" strokeLinecap="round" fill="none" />
-      <Path d="M11 23 L13 24.5" stroke="white" strokeWidth="1" strokeLinecap="round" fill="none" />
-      {/* Right foot toes */}
-      <Path d="M15 23 L13 24.5" stroke="white" strokeWidth="1" strokeLinecap="round" fill="none" />
-      <Path d="M15 23 L15 25" stroke="white" strokeWidth="1" strokeLinecap="round" fill="none" />
-      <Path d="M15 23 L17 24.5" stroke="white" strokeWidth="1" strokeLinecap="round" fill="none" />
+    <Svg width={size} height={size} viewBox="0 0 20 20">
+      <Path d="M6 15 Q3 11 5 7 Q5.5 10.5 7.5 12.5Z" fill="white" />
+      <Ellipse cx="11.5" cy="14" rx="5.5" ry="3.8" fill="white" />
+      <Circle cx="15.5" cy="10" r="3.2" fill="white" />
+      <Path d="M18.2,9.2 L20,10 L18.2,10.8Z" fill="white" />
+      <Circle cx="16.5" cy="9" r="0.85" fill="rgba(0,0,0,0.35)" />
     </Svg>
   );
 }

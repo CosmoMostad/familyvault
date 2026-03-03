@@ -121,6 +121,7 @@ export default function FamilyScreen() {
         supabase
           .from('family_members')
           .select('*, health_info(*)')
+          .eq('owner_id', session?.user?.id)
           .order('is_self', { ascending: false })
           .order('created_at', { ascending: true }),
         session?.user

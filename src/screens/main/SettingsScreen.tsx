@@ -271,15 +271,7 @@ export default function SettingsScreen() {
                       if (error) throw error;
                       await signOut();
                     } catch (e: any) {
-                      // Fallback: contact support
-                      Alert.alert(
-                        'Contact Support',
-                        'To complete account deletion, please email support@wrenhealth.app from your registered address.',
-                        [
-                          { text: 'OK' },
-                          { text: 'Email Support', onPress: () => Linking.openURL('mailto:support@wrenhealth.app?subject=Account Deletion Request') },
-                        ]
-                      );
+                      Alert.alert('Error', 'Something went wrong. Please try again.');
                     }
                   },
                 },

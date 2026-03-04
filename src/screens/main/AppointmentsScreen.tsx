@@ -23,6 +23,7 @@ interface Appointment {
   id: string;
   member_id: string;
   title: string;
+  source?: 'direct' | 'calendar';
   datetime: string;
   doctor?: string | null;
   location?: string | null;
@@ -44,14 +45,16 @@ function AppointmentCard({
   appt,
   canEdit,
   onDelete,
+  onPress,
 }: {
   appt: Appointment;
   canEdit: boolean;
   onDelete: () => void;
+  onPress: () => void;
 }) {
   const { month, day, time } = formatDate(appt.datetime);
   return (
-    <View style={styles.card}>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
       <View style={styles.dateBlock}>
         <Text style={styles.dateMonth}>{month}</Text>
         <Text style={styles.dateDay}>{day}</Text>
@@ -78,16 +81,17 @@ function AppointmentCard({
           <Text style={styles.apptNotes} numberOfLines={2}>{appt.notes}</Text>
         ) : null}
       </View>
-      {canEdit && (
+      {canEdit && appt.source !== 'calendar' && (
         <TouchableOpacity
-          onPress={onDelete}
+          onPress={e => { e.stopPropagation?.(); onDelete(); }}
           style={styles.deleteBtn}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Ionicons name="trash-outline" size={18} color={COLORS.textTertiary} />
         </TouchableOpacity>
       )}
-    </View>
+      <Ionicons name="chevron-forward" size={15} color={COLORS.textTertiary} style={{ marginLeft: 'auto' }} />
+    </TouchableOpacity>
   );
 }
 
@@ -307,6 +311,7 @@ export default function AppointmentsScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(true);
   const [canEdit, setCanEdit] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null);
 
   useEffect(() => {
     navigation.setOptions({
@@ -350,14 +355,43 @@ export default function AppointmentsScreen({ navigation, route }: Props) {
   }
 
   async function fetchAppointments() {
-    const { data, error } = await supabase
+    // 1. Direct appointments (appointments table)
+    const { data: directData, error } = await supabase
       .from('appointments')
       .select('*')
       .eq('member_id', memberId)
       .order('datetime', { ascending: true });
-
     if (error) throw error;
-    setAppointments(data ?? []);
+    const direct: Appointment[] = (directData ?? []).map(a => ({ ...a, source: 'direct' as const }));
+
+    // 2. Calendar events assigned to this family member via event_assignees
+    const { data: assignedData } = await supabase
+      .from('event_assignees')
+      .select('event_id, calendar_events(id, calendar_id, created_by, title, date_time, location, notes)')
+      .eq('family_member_id', memberId);
+
+    const calendarAppts: Appointment[] = (assignedData ?? [])
+      .filter((a: any) => a.calendar_events)
+      .map((a: any) => {
+        const evt = a.calendar_events;
+        return {
+          id: evt.id,
+          member_id: memberId ?? '',
+          title: evt.title,
+          datetime: evt.date_time,
+          doctor: null,
+          location: evt.location ?? null,
+          notes: evt.notes ?? null,
+          created_at: evt.date_time,
+          source: 'calendar' as const,
+        };
+      });
+
+    // Merge + sort by datetime ascending
+    const all = [...direct, ...calendarAppts].sort(
+      (a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime()
+    );
+    setAppointments(all);
   }
 
   async function checkEditAccess() {
@@ -439,6 +473,7 @@ export default function AppointmentsScreen({ navigation, route }: Props) {
                     appt={a}
                     canEdit={canEdit}
                     onDelete={() => deleteAppointment(a)}
+                    onPress={() => setSelectedAppt(a)}
                   />
                 ))}
               </>
@@ -452,6 +487,7 @@ export default function AppointmentsScreen({ navigation, route }: Props) {
                     appt={a}
                     canEdit={canEdit}
                     onDelete={() => deleteAppointment(a)}
+                    onPress={() => setSelectedAppt(a)}
                   />
                 ))}
               </>
@@ -467,9 +503,99 @@ export default function AppointmentsScreen({ navigation, route }: Props) {
         onClose={() => setShowAddModal(false)}
         onSaved={() => { setShowAddModal(false); fetchAppointments(); }}
       />
+
+      {/* Appointment detail sheet */}
+      <Modal
+        visible={!!selectedAppt}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setSelectedAppt(null)}
+      >
+        {selectedAppt && (
+          <View style={{ flex: 1, backgroundColor: COLORS.background }}>
+            {/* Header */}
+            <View style={detailStyles.header}>
+              <TouchableOpacity onPress={() => setSelectedAppt(null)} style={detailStyles.closeBtn}>
+                <Ionicons name="close" size={22} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+              <Text style={detailStyles.headerTitle}>Appointment</Text>
+              {canEdit && selectedAppt.source !== 'calendar' ? (
+                <TouchableOpacity
+                  onPress={() => { setSelectedAppt(null); deleteAppointment(selectedAppt); }}
+                  style={detailStyles.deleteBtn}
+                >
+                  <Ionicons name="trash-outline" size={20} color={COLORS.rose} />
+                </TouchableOpacity>
+              ) : <View style={{ width: 36 }} />}
+            </View>
+            <ScrollView contentContainerStyle={detailStyles.body}>
+              <Text style={detailStyles.title}>{selectedAppt.title}</Text>
+              {selectedAppt.source === 'calendar' && (
+                <View style={detailStyles.sourceBadge}>
+                  <Ionicons name="calendar-outline" size={13} color={COLORS.primary} />
+                  <Text style={detailStyles.sourceBadgeText}>From calendar</Text>
+                </View>
+              )}
+              <View style={detailStyles.row}>
+                <Ionicons name="time-outline" size={18} color={COLORS.primary} style={detailStyles.rowIcon} />
+                <View>
+                  <Text style={detailStyles.rowText}>
+                    {new Date(selectedAppt.datetime).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                  </Text>
+                  <Text style={detailStyles.rowSub}>
+                    {new Date(selectedAppt.datetime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </Text>
+                </View>
+              </View>
+              {selectedAppt.doctor ? (
+                <View style={detailStyles.row}>
+                  <Ionicons name="person-outline" size={18} color={COLORS.primary} style={detailStyles.rowIcon} />
+                  <Text style={detailStyles.rowText}>{selectedAppt.doctor}</Text>
+                </View>
+              ) : null}
+              {selectedAppt.location ? (
+                <View style={detailStyles.row}>
+                  <Ionicons name="location-outline" size={18} color={COLORS.primary} style={detailStyles.rowIcon} />
+                  <Text style={detailStyles.rowText}>{selectedAppt.location}</Text>
+                </View>
+              ) : null}
+              {selectedAppt.notes ? (
+                <View style={detailStyles.row}>
+                  <Ionicons name="document-text-outline" size={18} color={COLORS.primary} style={detailStyles.rowIcon} />
+                  <Text style={detailStyles.rowText}>{selectedAppt.notes}</Text>
+                </View>
+              ) : null}
+            </ScrollView>
+          </View>
+        )}
+      </Modal>
     </View>
   );
 }
+
+const detailStyles = StyleSheet.create({
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: SPACING.xl, paddingVertical: SPACING.base,
+    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+  },
+  headerTitle: { ...FONTS.bodyLarge, fontWeight: '600', color: COLORS.textPrimary },
+  closeBtn: { width: 36, alignItems: 'flex-start' },
+  deleteBtn: { width: 36, alignItems: 'flex-end' },
+  body: { padding: SPACING.xl, gap: SPACING.base },
+  title: { ...FONTS.h3, color: COLORS.textPrimary, marginBottom: SPACING.sm },
+  sourceBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: COLORS.primaryMuted, borderRadius: 20,
+    paddingHorizontal: SPACING.base, paddingVertical: 4,
+    alignSelf: 'flex-start', marginBottom: SPACING.sm,
+  },
+  sourceBadgeText: { ...FONTS.caption, color: COLORS.primary, fontWeight: '600' },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.base },
+  rowIcon: { marginTop: 2 },
+  rowText: { ...FONTS.body, color: COLORS.textPrimary, flex: 1 },
+  rowSub: { ...FONTS.bodySmall, color: COLORS.textSecondary, marginTop: 2 },
+});
 
 // ── Styles ───────────────────────────────────────────────────────────────────
 

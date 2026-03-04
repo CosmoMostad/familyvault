@@ -1,8 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert,
   ActivityIndicator, ScrollView, Modal, TextInput,
-  KeyboardAvoidingView, Platform, Pressable,
+  KeyboardAvoidingView, Platform, Pressable, Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -13,6 +13,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { RootStackParamList } from '../../lib/types';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
+import { TimePickerWheel, to24Hour, formatTime12 } from '../../components/TimePickerWheel';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Appointments'>;
@@ -46,21 +47,27 @@ function AppointmentCard({
   canEdit,
   onDelete,
   onPress,
+  past = false,
 }: {
   appt: Appointment;
   canEdit: boolean;
   onDelete: () => void;
   onPress: () => void;
+  past?: boolean;
 }) {
   const { month, day, time } = formatDate(appt.datetime);
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
-      <View style={styles.dateBlock}>
-        <Text style={styles.dateMonth}>{month}</Text>
-        <Text style={styles.dateDay}>{day}</Text>
+    <TouchableOpacity
+      style={[styles.card, past && styles.cardPast]}
+      onPress={onPress}
+      activeOpacity={0.75}
+    >
+      <View style={[styles.dateBlock, past && styles.dateBlockPast]}>
+        <Text style={[styles.dateMonth, past && styles.dateTextPast]}>{month}</Text>
+        <Text style={[styles.dateDay, past && styles.dateTextPast]}>{day}</Text>
       </View>
       <View style={styles.apptInfo}>
-        <Text style={styles.apptTitle}>{appt.title}</Text>
+        <Text style={[styles.apptTitle, past && styles.textPast]}>{appt.title}</Text>
         <View style={styles.apptMeta}>
           <Ionicons name="time-outline" size={13} color={COLORS.textTertiary} />
           <Text style={styles.apptMetaText}>{time}</Text>
@@ -81,7 +88,7 @@ function AppointmentCard({
           <Text style={styles.apptNotes} numberOfLines={2}>{appt.notes}</Text>
         ) : null}
       </View>
-      {canEdit && appt.source !== 'calendar' && (
+      {canEdit && appt.source !== 'calendar' && !past && (
         <TouchableOpacity
           onPress={e => { e.stopPropagation?.(); onDelete(); }}
           style={styles.deleteBtn}
@@ -109,11 +116,12 @@ function AddAppointmentModal({
   onSaved: () => void;
 }) {
   const [title, setTitle] = useState('');
-  const [selectedDate, setSelectedDate] = useState<Date>(() => {
-    const d = new Date();
-    d.setHours(9, 0, 0, 0);
-    return d;
+  const [pickerDate, setPickerDate] = useState<Date>(() => {
+    const d = new Date(); d.setHours(0, 0, 0, 0); return d;
   });
+  const [pickerHour12, setPickerHour12] = useState(9);
+  const [pickerMinute, setPickerMinute] = useState(0);
+  const [pickerAmPm, setPickerAmPm] = useState<'AM' | 'PM'>('AM');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [doctor, setDoctor] = useState('');
@@ -123,8 +131,11 @@ function AddAppointmentModal({
 
   function reset() {
     setTitle('');
-    const d = new Date(); d.setHours(9, 0, 0, 0);
-    setSelectedDate(d);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    setPickerDate(today);
+    setPickerHour12(9);
+    setPickerMinute(0);
+    setPickerAmPm('AM');
     setShowDatePicker(false);
     setShowTimePicker(false);
     setDoctor(''); setLocation(''); setNotes('');
@@ -153,7 +164,10 @@ function AddAppointmentModal({
       const { error } = await supabase.from('appointments').insert({
         member_id: memberId,
         title: title.trim(),
-        datetime: selectedDate.toISOString(),
+        datetime: new Date(
+          pickerDate.getFullYear(), pickerDate.getMonth(), pickerDate.getDate(),
+          to24Hour(pickerHour12, pickerAmPm), pickerMinute, 0, 0
+        ).toISOString(),
         doctor: doctor.trim() || null,
         location: location.trim() || null,
         notes: notes.trim() || null,
@@ -214,23 +228,19 @@ function AddAppointmentModal({
               activeOpacity={0.7}
             >
               <Ionicons name="calendar-outline" size={17} color={COLORS.primary} />
-              <Text style={modal.pickerBtnText}>{formatDisplayDate(selectedDate)}</Text>
+              <Text style={modal.pickerBtnText}>{formatDisplayDate(pickerDate)}</Text>
               <Ionicons name="chevron-down" size={15} color={COLORS.textTertiary} />
             </TouchableOpacity>
             {showDatePicker && (
               <View style={modal.pickerWrap}>
                 <DateTimePicker
-                  value={selectedDate}
+                  value={pickerDate}
                   mode="date"
                   display="spinner"
-                  onChange={(_, date) => {
-                    if (date && date.getFullYear() > 1971) {
-                      const merged = new Date(date);
-                      merged.setHours(selectedDate.getHours(), selectedDate.getMinutes());
-                      setSelectedDate(merged);
-                    }
-                  }}
-                  style={{ height: 120 }}
+                  minimumDate={new Date(1900, 0, 1)}
+                  maximumDate={new Date(2099, 11, 31)}
+                  onChange={(_, date) => { if (date) setPickerDate(date); }}
+                  style={{ height: 200 }}
                 />
               </View>
             )}
@@ -243,26 +253,18 @@ function AddAppointmentModal({
               activeOpacity={0.7}
             >
               <Ionicons name="time-outline" size={17} color={COLORS.primary} />
-              <Text style={modal.pickerBtnText}>{formatDisplayTime(selectedDate)}</Text>
+              <Text style={modal.pickerBtnText}>{formatTime12(pickerHour12, pickerMinute, pickerAmPm)}</Text>
               <Ionicons name="chevron-down" size={15} color={COLORS.textTertiary} />
             </TouchableOpacity>
             {showTimePicker && (
-              <View style={modal.pickerWrap}>
-                <DateTimePicker
-                  value={selectedDate}
-                  mode="time"
-                  display="spinner"
-                  onChange={(_, date) => {
-                    if (date) setSelectedDate(date);
-                  }}
-                />
-                <TouchableOpacity
-                  style={modal.pickerDoneBtn}
-                  onPress={() => setShowTimePicker(false)}
-                >
-                  <Text style={modal.pickerDoneText}>Done</Text>
-                </TouchableOpacity>
-              </View>
+              <TimePickerWheel
+                hour12={pickerHour12}
+                minute={pickerMinute}
+                ampm={pickerAmPm}
+                onHourChange={setPickerHour12}
+                onMinuteChange={setPickerMinute}
+                onAmPmChange={setPickerAmPm}
+              />
             )}
 
             <Text style={modal.label}>Doctor / Provider</Text>
@@ -312,6 +314,9 @@ export default function AppointmentsScreen({ navigation, route }: Props) {
   const [canEdit, setCanEdit] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null);
+  const [pastHeight, setPastHeight] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
+  const scrolledRef = useRef(false);
 
   useEffect(() => {
     navigation.setOptions({
@@ -330,10 +335,9 @@ export default function AppointmentsScreen({ navigation, route }: Props) {
         ? () => (
             <TouchableOpacity
               onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowAddModal(true); }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={{ marginRight: 4 }}
+              style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.primaryMuted, alignItems: 'center', justifyContent: 'center', marginRight: 4 }}
             >
-              <Ionicons name="add" size={26} color={COLORS.primary} />
+              <Ionicons name="add" size={22} color={COLORS.primary} />
             </TouchableOpacity>
           )
         : undefined,
@@ -341,8 +345,20 @@ export default function AppointmentsScreen({ navigation, route }: Props) {
   }, [canEdit]);
 
   useFocusEffect(useCallback(() => {
+    scrolledRef.current = false;
+    setPastHeight(0);
     fetchAll();
   }, [memberId]));
+
+  // Auto-scroll past section off screen on load
+  useEffect(() => {
+    if (pastHeight > 0 && !scrolledRef.current) {
+      scrolledRef.current = true;
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({ y: pastHeight, animated: false });
+      }, 100);
+    }
+  }, [pastHeight]);
 
   async function fetchAll() {
     if (!memberId) { setLoading(false); return; }
@@ -447,7 +463,11 @@ export default function AppointmentsScreen({ navigation, route }: Props) {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {loading ? (
           <ActivityIndicator color={COLORS.primary} style={{ marginTop: 48 }} />
         ) : upcoming.length === 0 && past.length === 0 ? (
@@ -464,22 +484,11 @@ export default function AppointmentsScreen({ navigation, route }: Props) {
           </View>
         ) : (
           <>
-            {upcoming.length > 0 && (
-              <>
-                <Text style={styles.sectionLabel}>Upcoming</Text>
-                {upcoming.map(a => (
-                  <AppointmentCard
-                    key={a.id}
-                    appt={a}
-                    canEdit={canEdit}
-                    onDelete={() => deleteAppointment(a)}
-                    onPress={() => setSelectedAppt(a)}
-                  />
-                ))}
-              </>
-            )}
+            {/* Past — scroll UP to find, greyed out */}
             {past.length > 0 && (
-              <>
+              <View
+                onLayout={e => setPastHeight(e.nativeEvent.layout.height)}
+              >
                 <Text style={styles.sectionLabel}>Past</Text>
                 {past.map(a => (
                   <AppointmentCard
@@ -488,10 +497,37 @@ export default function AppointmentsScreen({ navigation, route }: Props) {
                     canEdit={canEdit}
                     onDelete={() => deleteAppointment(a)}
                     onPress={() => setSelectedAppt(a)}
+                    past
                   />
                 ))}
-              </>
+                {/* UPCOMING divider */}
+                <View style={styles.upcomingDivider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerLabel}>UPCOMING</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+              </View>
             )}
+
+            {/* Upcoming */}
+            <View style={{ minHeight: Dimensions.get('window').height }}>
+              {upcoming.length === 0 ? (
+                <View style={styles.emptyUpcoming}>
+                  <Ionicons name="calendar-outline" size={36} color={COLORS.textTertiary} />
+                  <Text style={styles.emptyUpcomingText}>No upcoming appointments</Text>
+                </View>
+              ) : (
+                upcoming.map(a => (
+                  <AppointmentCard
+                    key={a.id}
+                    appt={a}
+                    canEdit={canEdit}
+                    onDelete={() => deleteAppointment(a)}
+                    onPress={() => setSelectedAppt(a)}
+                  />
+                ))
+              )}
+            </View>
           </>
         )}
         <View style={{ height: 100 }} />
@@ -636,6 +672,23 @@ const styles = StyleSheet.create({
   apptMetaText: { ...FONTS.caption, color: COLORS.textSecondary, flex: 1 },
   apptNotes: { ...FONTS.caption, color: COLORS.textTertiary, marginTop: 2 },
   deleteBtn: { padding: 4, marginTop: 2 },
+  cardPast: { opacity: 0.55 },
+  dateBlockPast: { backgroundColor: COLORS.surfaceAlt },
+  dateTextPast: { color: COLORS.textTertiary },
+  textPast: { color: COLORS.textSecondary },
+  upcomingDivider: {
+    flexDirection: 'row', alignItems: 'center',
+    marginHorizontal: SPACING.xl, marginVertical: SPACING.base, gap: SPACING.sm,
+  },
+  dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.border },
+  dividerLabel: {
+    ...FONTS.label, fontSize: 11, fontWeight: '700',
+    color: COLORS.textTertiary, letterSpacing: 0.8,
+  },
+  emptyUpcoming: {
+    alignItems: 'center', paddingTop: 48, gap: SPACING.base,
+  },
+  emptyUpcomingText: { ...FONTS.body, color: COLORS.textTertiary },
   emptyState: { alignItems: 'center', paddingTop: 80, paddingHorizontal: SPACING.xxxl },
   emptyIcon: {
     width: 88, height: 88, borderRadius: 44,

@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator,
-  Alert, SafeAreaView, TextInput, Modal, RefreshControl, Platform, Dimensions,
+  Alert, SafeAreaView, TextInput, Modal, RefreshControl, Platform, Dimensions, KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -10,6 +10,7 @@ import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
+import { TimePickerWheel, to24Hour, formatTime12 } from '../../components/TimePickerWheel';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -50,14 +51,18 @@ interface FamilyMemberOption {
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-function formatDateHeader(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+function formatDateHeader(dateKey: string) {
+  // dateKey is "YYYY-MM-DD" local — parse as local to avoid UTC midnight shifting the day
+  const [y, m, d] = dateKey.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 }
 function formatTime(dateStr: string) {
   return new Date(dateStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 function toDateKey(dateStr: string) {
-  return new Date(dateStr).toISOString().split('T')[0];
+  // Use local date components — toISOString() would give UTC date which is wrong in PST/EST
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 function groupByDate(events: CalendarEvent[]) {
   const groups: Record<string, CalendarEvent[]> = {};
@@ -90,6 +95,8 @@ function SubAccountPickerModal({ visible, calendarId, calendarTitle, onDone }: {
   const [selected, setSelected] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [sendingInvite, setSendingInvite] = useState(false);
 
   React.useEffect(() => {
     if (visible && session?.user.id) load();
@@ -129,8 +136,35 @@ function SubAccountPickerModal({ visible, calendarId, calendarTitle, onDone }: {
     } finally { setSaving(false); }
   }
 
+  async function sendInvite() {
+    const email = inviteEmail.trim().toLowerCase();
+    if (!email) return;
+    setSendingInvite(true);
+    try {
+      const { data: profileRows } = await supabase.rpc('find_user_by_email', { p_email: email });
+      const profile = profileRows?.[0];
+      const { data: myProfile } = await supabase
+        .from('profiles').select('full_name, email').eq('id', session?.user.id).single();
+      const inviterName = myProfile?.full_name || myProfile?.email || session?.user.email || 'Someone';
+      await supabase.from('calendar_invitations').insert({
+        calendar_id: calendarId,
+        invited_by: session?.user.id,
+        invited_email: email,
+        invited_user_id: profile?.user_id ?? null,
+        status: 'pending',
+        calendar_title: calendarTitle,
+        inviter_display_name: inviterName,
+      });
+      Alert.alert('Invited', `Invitation sent to ${email}`);
+      setInviteEmail('');
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally { setSendingInvite(false); }
+  }
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onDone}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <SafeAreaView style={sp.container}>
         <View style={sp.header}>
           <Text style={sp.title}>Add to {calendarTitle}</Text>
@@ -159,6 +193,32 @@ function SubAccountPickerModal({ visible, calendarId, calendarTitle, onDone }: {
           </ScrollView>
         )}
 
+        {/* Invite a family member by email */}
+        <View style={sp.inviteSection}>
+          <Text style={sp.inviteLabel}>Invite a family member</Text>
+          <View style={sp.inviteRow}>
+            <TextInput
+              style={sp.inviteInput}
+              placeholder="their@email.com"
+              placeholderTextColor={COLORS.textTertiary}
+              value={inviteEmail}
+              onChangeText={setInviteEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <TouchableOpacity
+              style={[sp.inviteBtn, (!inviteEmail.trim() || sendingInvite) && { opacity: 0.45 }]}
+              onPress={sendInvite}
+              disabled={!inviteEmail.trim() || sendingInvite}
+            >
+              {sendingInvite
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={sp.inviteBtnText}>Send</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <View style={sp.footer}>
           <TouchableOpacity style={sp.skipBtn} onPress={onDone}>
             <Text style={sp.skipText}>Skip for now</Text>
@@ -170,6 +230,7 @@ function SubAccountPickerModal({ visible, calendarId, calendarTitle, onDone }: {
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -214,6 +275,24 @@ const sp = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   confirmText: { ...FONTS.body, color: '#fff', fontWeight: '700' },
+  inviteSection: {
+    paddingHorizontal: SPACING.xl, paddingTop: SPACING.base, paddingBottom: SPACING.sm,
+    borderTopWidth: 1, borderTopColor: COLORS.border,
+  },
+  inviteLabel: { ...FONTS.caption, color: COLORS.textSecondary, fontWeight: '600', marginBottom: SPACING.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
+  inviteRow: { flexDirection: 'row', gap: SPACING.sm, alignItems: 'center' },
+  inviteInput: {
+    flex: 1, height: 44, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: COLORS.surfaceAlt,
+    paddingHorizontal: SPACING.base,
+    ...FONTS.body, color: COLORS.textPrimary,
+  },
+  inviteBtn: {
+    height: 44, paddingHorizontal: SPACING.base, borderRadius: 10,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  inviteBtnText: { ...FONTS.body, color: '#fff', fontWeight: '700' },
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -406,23 +485,23 @@ function JoinCalendarModal({ visible, pendingInvites, userEmail, onJoined, onClo
   visible: boolean;
   pendingInvites: PendingInvite[];
   userEmail: string;
-  onJoined: (calId: string, calTitle: string) => void;
+  onJoined: (calId: string, calTitle: string, inviteId: string) => void;
   onClose: () => void;
 }) {
   const { session } = useAuth();
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
 
   async function acceptInvite(invite: PendingInvite) {
+    if (acceptingId) return; // prevent double-tap
     setAcceptingId(invite.id);
     try {
-      const { error: memberError } = await supabase.from('calendar_members').insert({
-        calendar_id: invite.calendar_id,
-        user_id: session?.user.id,
-        role: 'member',
-      });
-      if (memberError) throw memberError;
+      // upsert so double-tap never throws a duplicate key error
+      await supabase.from('calendar_members').upsert(
+        { calendar_id: invite.calendar_id, user_id: session?.user.id, role: 'member' },
+        { onConflict: 'calendar_id,user_id', ignoreDuplicates: true }
+      );
       await supabase.from('calendar_invitations').update({ status: 'accepted' }).eq('id', invite.id);
-      onJoined(invite.calendar_id, invite.calendar_title ?? 'Calendar');
+      onJoined(invite.calendar_id, invite.calendar_title ?? 'Calendar', invite.id);
     } catch (e: any) {
       Alert.alert('Error', e.message);
     } finally { setAcceptingId(null); }
@@ -700,9 +779,12 @@ function AddEventModal({ visible, calendars, defaultCalendarId, onSave, onClose 
 }) {
   const { session } = useAuth();
   const [title, setTitle] = useState('');
-  const [dateTime, setDateTime] = useState(() => {
-    const d = new Date(); d.setHours(9, 0, 0, 0); return d;
+  const [pickerDate, setPickerDate] = useState<Date>(() => {
+    const d = new Date(); d.setHours(0, 0, 0, 0); return d;
   });
+  const [pickerHour12, setPickerHour12] = useState(9);
+  const [pickerMinute, setPickerMinute] = useState(0);
+  const [pickerAmPm, setPickerAmPm] = useState<'AM' | 'PM'>('AM');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [calendarId, setCalendarId] = useState(defaultCalendarId ?? calendars[0]?.id ?? '');
@@ -718,8 +800,11 @@ function AddEventModal({ visible, calendars, defaultCalendarId, onSave, onClose 
 
   React.useEffect(() => {
     if (visible) {
-      const d = new Date(); d.setHours(9, 0, 0, 0);
-      setDateTime(d);
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      setPickerDate(today);
+      setPickerHour12(9);
+      setPickerMinute(0);
+      setPickerAmPm('AM');
       setTitle(''); setLocation(''); setNotes(''); setSelectedMemberIds([]);
       setCalendarId(defaultCalendarId ?? calendars[0]?.id ?? '');
       setShowDatePicker(false);
@@ -740,6 +825,7 @@ function AddEventModal({ visible, calendars, defaultCalendarId, onSave, onClose 
 
     if (fromParticipants.length > 0) {
       setParticipants(fromParticipants);
+      setSelectedMemberIds(fromParticipants.map(m => m.id));
       return;
     }
 
@@ -760,7 +846,9 @@ function AddEventModal({ visible, calendars, defaultCalendarId, onSave, onClose 
       const { data: ownMembers } = await supabase
         .from('family_members').select('id, full_name')
         .eq('owner_id', session?.user.id).order('full_name');
-      setParticipants(ownMembers ?? []);
+      const own = ownMembers ?? [];
+      setParticipants(own);
+      setSelectedMemberIds(own.map(m => m.id));
       return;
     }
 
@@ -770,7 +858,9 @@ function AddEventModal({ visible, calendars, defaultCalendarId, onSave, onClose 
       .in('owner_id', userIds)
       .order('full_name');
 
-    setParticipants(allMembers ?? []);
+    const all = allMembers ?? [];
+    setParticipants(all);
+    setSelectedMemberIds(all.map(m => m.id));
   }
 
   function toggleMember(id: string) {
@@ -786,7 +876,10 @@ function AddEventModal({ visible, calendars, defaultCalendarId, onSave, onClose 
         calendar_id: calendarId,
         created_by: session?.user.id,
         title: title.trim(),
-        date_time: dateTime.toISOString(),
+        date_time: new Date(
+          pickerDate.getFullYear(), pickerDate.getMonth(), pickerDate.getDate(),
+          to24Hour(pickerHour12, pickerAmPm), pickerMinute, 0, 0
+        ).toISOString(),
         location: location.trim() || null,
         notes: notes.trim() || null,
       }).select().single();
@@ -805,6 +898,7 @@ function AddEventModal({ visible, calendars, defaultCalendarId, onSave, onClose 
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <SafeAreaView style={modal.container}>
         <View style={modal.header}>
           <TouchableOpacity onPress={onClose} style={modal.closeBtn}>
@@ -839,26 +933,20 @@ function AddEventModal({ visible, calendars, defaultCalendarId, onSave, onClose 
             >
               <Ionicons name="calendar-outline" size={18} color={COLORS.primary} />
               <Text style={modal.pickerValue}>
-                {dateTime.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}
+                {pickerDate.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}
               </Text>
               <Ionicons name={showDatePicker ? 'chevron-up' : 'chevron-down'} size={16} color={COLORS.textTertiary} />
             </TouchableOpacity>
             {showDatePicker && (
               <View style={modal.pickerCard}>
                 <DateTimePicker
-                  value={dateTime}
+                  value={pickerDate}
                   mode="date"
                   display="spinner"
-                  onChange={(_, d) => {
-                    if (d && d.getFullYear() > 1971) {
-                      setDateTime(prev => {
-                        const next = new Date(d);
-                        next.setHours(prev.getHours(), prev.getMinutes(), 0, 0);
-                        return next;
-                      });
-                    }
-                  }}
-                  style={{ height: 120 }}
+                  minimumDate={new Date(1900, 0, 1)}
+                  maximumDate={new Date(2099, 11, 31)}
+                  onChange={(_, d) => { if (d) setPickerDate(d); }}
+                  style={{ height: 200 }}
                 />
               </View>
             )}
@@ -874,28 +962,19 @@ function AddEventModal({ visible, calendars, defaultCalendarId, onSave, onClose 
             >
               <Ionicons name="time-outline" size={18} color={COLORS.primary} />
               <Text style={modal.pickerValue}>
-                {dateTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                {formatTime12(pickerHour12, pickerMinute, pickerAmPm)}
               </Text>
               <Ionicons name={showTimePicker ? 'chevron-up' : 'chevron-down'} size={16} color={COLORS.textTertiary} />
             </TouchableOpacity>
             {showTimePicker && (
-              <View style={modal.pickerCard}>
-                <DateTimePicker
-                  value={dateTime}
-                  mode="time"
-                  display="spinner"
-                  onChange={(_, d) => {
-                    if (d) {
-                      setDateTime(prev => {
-                        const next = new Date(prev);
-                        next.setHours(d.getHours(), d.getMinutes(), 0, 0);
-                        return next;
-                      });
-                    }
-                  }}
-                  style={{ height: 120 }}
-                />
-              </View>
+              <TimePickerWheel
+                hour12={pickerHour12}
+                minute={pickerMinute}
+                ampm={pickerAmPm}
+                onHourChange={setPickerHour12}
+                onMinuteChange={setPickerMinute}
+                onAmPmChange={setPickerAmPm}
+              />
             )}
           </View>
 
@@ -968,6 +1047,7 @@ function AddEventModal({ visible, calendars, defaultCalendarId, onSave, onClose 
           )}
         </ScrollView>
       </SafeAreaView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -1045,6 +1125,7 @@ function CalendarSettingsModal({ visible, calendars, onClose, onRefresh }: {
   const [editNames, setEditNames] = useState<Record<string, string>>({});
   const [editColors, setEditColors] = useState<Record<string, string>>({});
   const [savingName, setSavingName] = useState<string | null>(null);
+  const [subMgrCalId, setSubMgrCalId] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (visible) {
@@ -1061,16 +1142,30 @@ function CalendarSettingsModal({ visible, calendars, onClose, onRefresh }: {
   async function loadAllParticipants() {
     const result: Record<string, ParticipantGroup[]> = {};
     for (const cal of calendars) {
-      const { data } = await supabase
+      // Get sub-accounts added to this calendar
+      const { data: cpRows } = await supabase
         .from('calendar_participants')
         .select('user_id, family_member_id, family_members(id, full_name)')
         .eq('calendar_id', cal.id);
-      const rows = data ?? [];
       const byUser: Record<string, { id: string; full_name: string }[]> = {};
-      rows.forEach((r: any) => {
+      (cpRows ?? []).forEach((r: any) => {
         if (!byUser[r.user_id]) byUser[r.user_id] = [];
         if (r.family_members) byUser[r.user_id].push(r.family_members);
       });
+
+      // Also include ALL calendar owners + members even if they have no sub-accounts
+      const [{ data: calData }, { data: memberData }] = await Promise.all([
+        supabase.from('family_calendars').select('owner_id').eq('id', cal.id).single(),
+        supabase.from('calendar_members').select('user_id').eq('calendar_id', cal.id),
+      ]);
+      const allUserIds = Array.from(new Set([
+        ...(calData ? [calData.owner_id] : []),
+        ...(memberData ?? []).map((m: any) => m.user_id),
+      ]));
+      for (const uid of allUserIds) {
+        if (!byUser[uid]) byUser[uid] = [];
+      }
+
       const calGroups: ParticipantGroup[] = await Promise.all(
         Object.entries(byUser).map(async ([uid, members]) => {
           const { data: profile } = await supabase
@@ -1190,6 +1285,7 @@ function CalendarSettingsModal({ visible, calendars, onClose, onRefresh }: {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <SafeAreaView style={csm.container}>
         <View style={csm.header}>
           <Text style={csm.title}>Calendar Settings</Text>
@@ -1272,7 +1368,7 @@ function CalendarSettingsModal({ visible, calendars, onClose, onRefresh }: {
                           <Ionicons name="person-outline" size={15} color={COLORS.primary} />
                         </View>
                         <Text style={csm.groupName}>
-                          {group.display_name}{group.is_self ? ' (you)' : ''}
+                          {group.display_name}
                         </Text>
                         {(cal.is_owner && !group.is_self) && (
                           <TouchableOpacity
@@ -1289,6 +1385,15 @@ function CalendarSettingsModal({ visible, calendars, onClose, onRefresh }: {
                           <Text style={csm.subName}>{m.full_name}</Text>
                         </View>
                       ))}
+                      {group.is_self && (
+                        <TouchableOpacity
+                          style={csm.manageSubBtn}
+                          onPress={() => setSubMgrCalId(cal.id)}
+                        >
+                          <Ionicons name="people-outline" size={14} color={COLORS.primary} />
+                          <Text style={csm.manageSubText}>Manage my accounts</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   ))
                 )}
@@ -1336,6 +1441,15 @@ function CalendarSettingsModal({ visible, calendars, onClose, onRefresh }: {
           ))}
         </ScrollView>
       </SafeAreaView>
+      </KeyboardAvoidingView>
+      {subMgrCalId && (
+        <SubAccountPickerModal
+          visible={!!subMgrCalId}
+          calendarId={subMgrCalId}
+          calendarTitle={calendars.find(c => c.id === subMgrCalId)?.title ?? ''}
+          onDone={() => { setSubMgrCalId(null); loadAllParticipants(); }}
+        />
+      )}
     </Modal>
   );
 }
@@ -1408,6 +1522,11 @@ const csm = StyleSheet.create({
   subRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: 40, paddingVertical: 4 },
   subDash: { width: 16, height: 1, backgroundColor: COLORS.border, marginRight: SPACING.sm },
   subName: { ...FONTS.bodySmall, color: COLORS.textSecondary },
+  manageSubBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingLeft: 40, paddingVertical: 6,
+  },
+  manageSubText: { ...FONTS.bodySmall, color: COLORS.primary, fontWeight: '600' },
 
   // Invite
   inviteBtn: {
@@ -1634,9 +1753,12 @@ export default function CalendarScreen() {
     setShowSubPicker({ calId, calTitle });
   }
 
-  function handleCalendarJoined(calId: string, calTitle: string) {
+  function handleCalendarJoined(calId: string, calTitle: string, inviteId: string) {
+    // Immediately clear the badge — don't wait for loadAll()
+    setPendingInvites(prev => prev.filter(i => i.id !== inviteId));
     setShowJoin(false);
     setShowSubPicker({ calId, calTitle });
+    loadAll(); // also refresh everything in the background
   }
 
   function handleSubPickerDone() {

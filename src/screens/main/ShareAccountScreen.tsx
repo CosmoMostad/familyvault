@@ -52,14 +52,12 @@ interface FieldToggle {
 }
 
 const DEFAULT_FIELDS: FieldToggle[] = [
-  { key: 'basic_info', label: 'Basic Info', description: 'Name, date of birth, blood type, photo', enabled: true },
-  { key: 'allergies', label: 'Allergies', description: 'All known allergies and severity', enabled: true },
-  { key: 'medications', label: 'Medications', description: 'Current medications and dosages', enabled: true },
+  { key: 'general_info', label: 'General Info', description: 'Name, date of birth, blood type, photo', enabled: true },
+  { key: 'medical_info', label: 'Medical Info', description: 'Conditions, allergies, medications, and history', enabled: true },
   { key: 'insurance', label: 'Insurance', description: 'Insurance carrier, policy and member ID', enabled: true },
-  { key: 'medical_history', label: 'Medical History', description: 'Conditions and past surgeries', enabled: false },
-  { key: 'appointments', label: 'Appointments', description: 'Upcoming and past appointments', enabled: true },
-  { key: 'documents', label: 'Documents', description: 'Scanned medical documents and cards', enabled: false },
   { key: 'emergency_contacts', label: 'Emergency Contacts', description: 'Emergency contacts on file', enabled: true },
+  { key: 'physicians', label: 'Physicians & Care Providers', description: 'Doctors, specialists, and care team', enabled: true },
+  { key: 'appointments', label: 'Appointments', description: 'Upcoming and past appointments', enabled: true },
 ];
 
 function StepIndicator({ current }: { current: number }) {
@@ -129,6 +127,7 @@ export default function ShareAccountScreen({ navigation, route }: Props) {
         recipient_id: recipient.user_id,
         access_level: accessLevel,
         status: 'pending',
+        shared_fields: sharedFields,
       });
 
       if (error) throw error;
@@ -337,7 +336,7 @@ export default function ShareAccountScreen({ navigation, route }: Props) {
                 Sharing {memberName}&apos;s account with{' '}
                 <Text style={{ fontWeight: '700', color: COLORS.textPrimary }}>{email.trim()}</Text>
                 {' '}— {accessLevel === 'view' ? 'view only' : 'can edit'} access to{' '}
-                {fields.filter((f) => f.enabled).length} of {fields.length} sections.
+                {fields.filter((f) => f.enabled).map(f => f.label).join(', ')}.
               </Text>
             </View>
 

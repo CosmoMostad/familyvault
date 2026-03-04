@@ -10,8 +10,10 @@ import {
   ActivityIndicator,
   SafeAreaView,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -58,6 +60,15 @@ function FormInput({
   );
 }
 
+function defaultDob(): Date {
+  const d = new Date(2000, 0, 1);
+  return d;
+}
+
+function formatDob(d: Date): string {
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
 export default function AddEditMemberScreen({ navigation, route }: Props) {
   const { user } = useAuth();
   const { memberId } = route.params ?? {};
@@ -65,7 +76,8 @@ export default function AddEditMemberScreen({ navigation, route }: Props) {
 
   const [saving, setSaving] = useState(false);
   const [fullName, setFullName] = useState('');
-  const [dob, setDob] = useState('');
+  const [dob, setDob] = useState<Date>(defaultDob());
+  const [showDobPicker, setShowDobPicker] = useState(false);
   const [relationship, setRelationship] = useState('');
 
   async function handleSave() {
@@ -75,12 +87,15 @@ export default function AddEditMemberScreen({ navigation, route }: Props) {
     }
     setSaving(true);
     try {
+      // Format DOB as YYYY-MM-DD without timezone shift
+      const dobStr = `${dob.getFullYear()}-${String(dob.getMonth() + 1).padStart(2, '0')}-${String(dob.getDate()).padStart(2, '0')}`;
+
       const { error } = await supabase
         .from('family_members')
         .insert({
           owner_id: user?.id,
           full_name: fullName.trim(),
-          dob: dob || null,
+          dob: dobStr,
           relationship: relationship || null,
           is_self: false,
         });
@@ -111,14 +126,47 @@ export default function AddEditMemberScreen({ navigation, route }: Props) {
             placeholder="First and last name"
             autoCapitalize="words"
           />
-          <FormInput
-            label="Date of Birth"
-            value={dob}
-            onChangeText={setDob}
-            placeholder="YYYY-MM-DD"
-            keyboardType="numbers-and-punctuation"
-            autoCapitalize="none"
-          />
+
+          {/* DOB — spinner picker */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>Date of Birth</Text>
+            <TouchableOpacity
+              style={styles.dobBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowDobPicker(v => !v);
+              }}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="calendar-outline" size={17} color={COLORS.primary} />
+              <Text style={styles.dobBtnText}>{formatDob(dob)}</Text>
+              <Ionicons
+                name={showDobPicker ? 'chevron-up' : 'chevron-down'}
+                size={15}
+                color={COLORS.textTertiary}
+              />
+            </TouchableOpacity>
+            {showDobPicker && (
+              <View style={styles.pickerWrap}>
+                <DateTimePicker
+                  value={dob}
+                  mode="date"
+                  display="spinner"
+                  maximumDate={new Date()}
+                  minimumDate={new Date(1900, 0, 1)}
+                  onChange={(_, date) => { if (date) setDob(date); }}
+                  style={styles.picker}
+                />
+                <TouchableOpacity
+                  style={styles.pickerDone}
+                  onPress={() => setShowDobPicker(false)}
+                >
+                  <Text style={styles.pickerDoneText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
           <FormInput
             label="Relationship"
             value={relationship}
@@ -160,6 +208,22 @@ const styles = StyleSheet.create({
     fontSize: 15, color: COLORS.textPrimary,
   },
   inputMulti: { height: 90, paddingTop: 12, textAlignVertical: 'top' },
+  dobBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1.5,
+    borderColor: COLORS.border, paddingHorizontal: SPACING.base, height: 48,
+  },
+  dobBtnText: { flex: 1, fontSize: 15, color: COLORS.textPrimary },
+  pickerWrap: {
+    backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1.5,
+    borderColor: COLORS.border, overflow: 'hidden',
+  },
+  picker: { height: 200 },
+  pickerDone: {
+    alignItems: 'center', paddingVertical: 10,
+    borderTopWidth: 1, borderTopColor: COLORS.border,
+  },
+  pickerDoneText: { fontSize: 15, fontWeight: '600', color: COLORS.primary },
   saveButton: {
     backgroundColor: COLORS.primary, borderRadius: 14, height: 52,
     alignItems: 'center', justifyContent: 'center',

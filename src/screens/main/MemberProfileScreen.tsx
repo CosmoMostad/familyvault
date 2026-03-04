@@ -369,7 +369,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
     try {
       const uri = result.assets[0].uri;
       const ext = uri.split('.').pop() ?? 'jpg';
-      const path = `${memberId}/${Date.now()}.${ext}`;
+      const path = `${session?.user?.id}/${memberId}_${Date.now()}.${ext}`;
 
       const response = await fetch(uri);
       const blob = await response.blob();
@@ -517,7 +517,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
       >
         {/* ── Avatar + name header ── */}
         <View style={styles.hero}>
-          <TouchableOpacity onPress={pickAndUploadPhoto} activeOpacity={0.8} disabled={uploadingPhoto}>
+          <TouchableOpacity onPress={pickAndUploadPhoto} activeOpacity={0.8} disabled={uploadingPhoto || member.owner_id !== session?.user?.id}>
             {uploadingPhoto ? (
               <View style={styles.avatar}>
                 <ActivityIndicator size="small" color={COLORS.primary} />
@@ -622,7 +622,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
                   onChange={(_, d) => {
                     if (d) setEDob(dobToString(d));
                   }}
-                  style={{ height: 120, marginBottom: SPACING.sm }}
+                  style={{ height: 200, marginBottom: SPACING.sm }}
                 />
               )}
               <FieldInput label="GENDER" value={eGender} onChangeText={setEGender} placeholder="e.g. Male, Female, Non-binary" />

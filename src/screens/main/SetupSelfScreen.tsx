@@ -196,7 +196,7 @@ export default function SetupSelfScreen({ navigation, onSetupComplete }: Props) 
               activeOpacity={0.85}
             >
               <Text style={[styles.btnSecondaryText, !canProceed && styles.btnSecondaryTextDisabled]}>
-                Skip for Now
+                Save for Later
               </Text>
             </TouchableOpacity>
           </View>
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     overflow: 'hidden',
   },
-  picker: { height: 160 },
+  picker: { height: 200 },
   pickerDone: {
     alignItems: 'flex-end',
     paddingHorizontal: SPACING.base,

@@ -97,13 +97,13 @@ function SectionBlock({
 }
 
 const sec = StyleSheet.create({
-  card: { ...CARD, overflow: 'hidden', marginBottom: SPACING.sm },
+  card: { ...CARD, overflow: 'hidden', marginBottom: SPACING.md },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.base,
-    paddingVertical: SPACING.md,
+    paddingVertical: SPACING.base,
   },
   title: { ...FONTS.h4, color: COLORS.textPrimary, fontWeight: '600' },
   editActions: {

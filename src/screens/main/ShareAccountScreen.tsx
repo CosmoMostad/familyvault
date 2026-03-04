@@ -52,7 +52,7 @@ interface FieldToggle {
 }
 
 const DEFAULT_FIELDS: FieldToggle[] = [
-  { key: 'general_info', label: 'General Info', description: 'Name, date of birth, blood type, photo', enabled: true },
+  { key: 'general_info', label: 'General Info', description: 'Name, date of birth, blood type, last 4 SSN, photo', enabled: true },
   { key: 'medical_info', label: 'Medical Info', description: 'Conditions, allergies, medications, and history', enabled: true },
   { key: 'insurance', label: 'Insurance', description: 'Insurance carrier, policy and member ID', enabled: true },
   { key: 'emergency_contacts', label: 'Emergency Contacts', description: 'Emergency contacts on file', enabled: true },

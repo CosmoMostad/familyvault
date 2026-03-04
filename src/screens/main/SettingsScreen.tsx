@@ -355,7 +355,7 @@ export default function SettingsScreen() {
             icon="share-outline"
             iconColor={COLORS.primary}
             label="Share with a Friend"
-            onPress={() => Share.share({ message: 'Check out Wren Health — a family health manager app. Download it at https://wrenhealth.app', url: 'https://wrenhealth.app' })}
+            onPress={() => Share.share({ message: 'Check out Wren Health — a family health manager app: https://wrenhealth.app' })}
             isLast
           />
         </View>

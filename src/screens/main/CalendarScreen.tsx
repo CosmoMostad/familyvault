@@ -1166,18 +1166,18 @@ function CalendarSettingsModal({ visible, calendars, onClose, onRefresh }: {
         if (!byUser[uid]) byUser[uid] = [];
       }
 
-      const calGroups: ParticipantGroup[] = await Promise.all(
-        Object.entries(byUser).map(async ([uid, members]) => {
-          const { data: profile } = await supabase
-            .from('profiles').select('full_name, email').eq('id', uid).single();
-          return {
-            user_id: uid,
-            display_name: profile?.full_name || profile?.email || 'Member',
-            is_self: uid === session?.user.id,
-            members,
-          };
-        })
-      );
+      // Batch-fetch display names via SECURITY DEFINER RPC (bypasses profiles RLS)
+      const uids = Object.keys(byUser);
+      const { data: nameRows } = await supabase.rpc('get_user_display_names', { user_ids: uids });
+      const nameMap: Record<string, string> = {};
+      (nameRows ?? []).forEach((r: any) => { nameMap[r.user_id] = r.display_name; });
+
+      const calGroups: ParticipantGroup[] = Object.entries(byUser).map(([uid, members]) => ({
+        user_id: uid,
+        display_name: nameMap[uid] || 'Member',
+        is_self: uid === session?.user.id,
+        members,
+      }));
       calGroups.sort((a, b) => {
         if (a.is_self) return -1;
         if (b.is_self) return 1;
@@ -1677,6 +1677,31 @@ export default function CalendarScreen() {
     });
   }, [pendingInvites.length]);
 
+    // Loads calendars + events but does NOT touch pendingInvites
+  // Use after join/create so the filter we already applied isn't blown away
+  async function loadCalendarsAndEvents() {
+    if (!session?.user) return;
+    const userId = session.user.id;
+    const { data: owned } = await supabase
+      .from('family_calendars').select('id, title, color, owner_id').eq('owner_id', userId);
+    const { data: memberCals } = await supabase
+      .from('calendar_members').select('calendar_id, family_calendars(id, title, color, owner_id)').eq('user_id', userId);
+    const allCalendars: CalendarData[] = [
+      ...(owned ?? []).map(c => ({ ...c, is_owner: true })),
+      ...(memberCals ?? []).filter(m => m.family_calendars).map(m => ({ ...(m.family_calendars as any), is_owner: false })),
+    ];
+    const seen = new Set<string>();
+    const deduped = allCalendars.filter(c => { if (seen.has(c.id)) return false; seen.add(c.id); return true; });
+    setCalendars(deduped);
+    if (deduped.length > 0) {
+      const calIds = deduped.map(c => c.id);
+      const { data: evts } = await supabase.from('calendar_events').select('*').in('calendar_id', calIds).order('date_time', { ascending: true });
+      setEvents(evts ?? []);
+    } else {
+      setEvents([]);
+    }
+  }
+
   async function loadAll() {
     if (!session?.user) return;
     scrolledRef.current = false;
@@ -1684,35 +1709,7 @@ export default function CalendarScreen() {
     setLoading(true);
     try {
       const userId = session.user.id;
-
-      // Owned calendars
-      const { data: owned } = await supabase
-        .from('family_calendars')
-        .select('id, title, color, owner_id')
-        .eq('owner_id', userId);
-
-      // Member calendars
-      const { data: memberCals } = await supabase
-        .from('calendar_members')
-        .select('calendar_id, family_calendars(id, title, color, owner_id)')
-        .eq('user_id', userId);
-
-      const allCalendars: CalendarData[] = [
-        ...(owned ?? []).map(c => ({ ...c, is_owner: true })),
-        ...(memberCals ?? [])
-          .filter(m => m.family_calendars)
-          .map(m => ({ ...(m.family_calendars as any), is_owner: false })),
-      ];
-
-      // Deduplicate (owner might also appear in calendar_members)
-      const seen = new Set<string>();
-      const deduped = allCalendars.filter(c => {
-        if (seen.has(c.id)) return false;
-        seen.add(c.id);
-        return true;
-      });
-
-      setCalendars(deduped);
+      await loadCalendarsAndEvents();
 
       // Pending invites — use stored title/name columns so RLS cross-table joins aren't needed
       const { data: invites } = await supabase
@@ -1729,19 +1726,6 @@ export default function CalendarScreen() {
         inviter_name: inv.inviter_display_name ?? 'Someone',
       }));
       setPendingInvites(enrichedInvites);
-
-      // Load events
-      if (deduped.length > 0) {
-        const calIds = deduped.map(c => c.id);
-        const { data: evts } = await supabase
-          .from('calendar_events')
-          .select('*')
-          .in('calendar_id', calIds)
-          .order('date_time', { ascending: true });
-        setEvents(evts ?? []);
-      } else {
-        setEvents([]);
-      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -1754,11 +1738,12 @@ export default function CalendarScreen() {
   }
 
   function handleCalendarJoined(calId: string, calTitle: string, inviteId: string) {
-    // Immediately clear the badge — don't wait for loadAll()
+    // Filter badge immediately — don't let loadCalendarsAndEvents overwrite it
     setPendingInvites(prev => prev.filter(i => i.id !== inviteId));
     setShowJoin(false);
     setShowSubPicker({ calId, calTitle });
-    loadAll(); // also refresh everything in the background
+    // Refresh calendars + events only — NOT pendingInvites (race condition)
+    loadCalendarsAndEvents();
   }
 
   function handleSubPickerDone() {

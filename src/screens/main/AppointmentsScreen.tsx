@@ -328,21 +328,10 @@ export default function AppointmentsScreen({ navigation, route }: Props) {
     });
   }, [memberName]);
 
-  // Update header + button once we know edit access
+  // Clear headerRight — FAB is now in the screen content
   useEffect(() => {
-    navigation.setOptions({
-      headerRight: canEdit
-        ? () => (
-            <TouchableOpacity
-              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowAddModal(true); }}
-              style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.primaryMuted, alignItems: 'center', justifyContent: 'center', marginRight: 4 }}
-            >
-              <Ionicons name="add" size={22} color={COLORS.primary} />
-            </TouchableOpacity>
-          )
-        : undefined,
-    });
-  }, [canEdit]);
+    navigation.setOptions({ headerRight: undefined });
+  }, []);
 
   useFocusEffect(useCallback(() => {
     scrolledRef.current = false;
@@ -540,6 +529,17 @@ export default function AppointmentsScreen({ navigation, route }: Props) {
         onSaved={() => { setShowAddModal(false); fetchAppointments(); }}
       />
 
+      {/* FAB — sticky bottom-right */}
+      {canEdit && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowAddModal(true); }}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="add" size={30} color="#fff" />
+        </TouchableOpacity>
+      )}
+
       {/* Appointment detail sheet */}
       <Modal
         visible={!!selectedAppt}
@@ -638,6 +638,22 @@ const detailStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { paddingTop: SPACING.base },
+  fab: {
+    position: 'absolute',
+    bottom: 28,
+    right: 20,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 8,
+  },
   sectionLabel: {
     ...FONTS.label,
     color: COLORS.textTertiary,

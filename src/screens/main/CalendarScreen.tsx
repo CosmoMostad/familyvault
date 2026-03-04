@@ -850,7 +850,7 @@ function AddEventModal({ visible, calendars, defaultCalendarId, onSave, onClose 
                   mode="date"
                   display="spinner"
                   onChange={(_, d) => {
-                    if (d) {
+                    if (d && d.getFullYear() > 1971) {
                       setDateTime(prev => {
                         const next = new Date(d);
                         next.setHours(prev.getHours(), prev.getMinutes(), 0, 0);

@@ -218,16 +218,15 @@ function AddAppointmentModal({
                 <DateTimePicker
                   value={selectedDate}
                   mode="date"
-                  display="inline"
-                  accentColor={COLORS.primary}
+                  display="spinner"
                   onChange={(_, date) => {
-                    if (date) {
+                    if (date && date.getFullYear() > 1971) {
                       const merged = new Date(date);
                       merged.setHours(selectedDate.getHours(), selectedDate.getMinutes());
                       setSelectedDate(merged);
                     }
-                    setShowDatePicker(false);
                   }}
+                  style={{ height: 120 }}
                 />
               </View>
             )}

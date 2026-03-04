@@ -50,9 +50,9 @@ function MemberCard({
   onPress: () => void;
   onLongPress?: () => void;
 }) {
-  const age = getAge(member.dob);
-  const conditions = member.health_info?.conditions ?? [];
-  const firstCondition = conditions[0]?.name;
+  const dobFormatted = member.dob
+    ? new Date(member.dob).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : null;
 
   return (
     <TouchableOpacity
@@ -72,26 +72,9 @@ function MemberCard({
       )}
 
       <View style={styles.cardInfo}>
-        <View style={styles.cardNameRow}>
-          <Text style={styles.cardName}>{member.full_name}</Text>
-        </View>
-        <View style={styles.cardMeta}>
-          {member.relationship && (
-            <Text style={styles.cardMetaText}>{member.relationship}</Text>
-          )}
-          {member.relationship && age ? <Text style={styles.metaDot}>·</Text> : null}
-          {age ? <Text style={styles.cardMetaText}>{age} yrs</Text> : null}
-          {(member as any).blood_type ? (
-            <>
-              <Text style={styles.metaDot}>·</Text>
-              <View style={styles.bloodBadge}>
-                <Text style={styles.bloodBadgeText}>{(member as any).blood_type}</Text>
-              </View>
-            </>
-          ) : null}
-        </View>
-        {firstCondition ? (
-          <Text style={styles.conditionText} numberOfLines={1}>{firstCondition}</Text>
+        <Text style={styles.cardName}>{member.full_name}</Text>
+        {dobFormatted ? (
+          <Text style={styles.cardMetaText}>{dobFormatted}</Text>
         ) : null}
       </View>
 

@@ -5,12 +5,12 @@
 -- 1. Go to Supabase → Authentication → Users → Add User
 -- 2. Email: demo@wrenhealth.app | Password: WrenDemo2024!
 -- 3. Copy the UUID from the new user row
--- 4. Replace ALL occurrences of <<DEMO_USER_ID>> below with that UUID
+-- 4. Replace ALL occurrences of ba54d224-4c20-4af1-949a-8887422527d8 below with that UUID
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- ── Profiles ─────────────────────────────────────────────────────────────────
 INSERT INTO profiles (id, email)
-VALUES ('<<DEMO_USER_ID>>', 'demo@wrenhealth.app')
+VALUES ('ba54d224-4c20-4af1-949a-8887422527d8', 'demo@wrenhealth.app')
 ON CONFLICT (id) DO NOTHING;
 
 -- ── Family Members ────────────────────────────────────────────────────────────
@@ -19,7 +19,7 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO family_members (id, owner_id, full_name, date_of_birth, relationship, is_self, blood_type)
 VALUES (
   gen_random_uuid(),
-  '<<DEMO_USER_ID>>',
+  'ba54d224-4c20-4af1-949a-8887422527d8',
   'Alex Rivera',
   '1988-07-14',
   'Self',
@@ -31,7 +31,7 @@ VALUES (
 INSERT INTO family_members (id, owner_id, full_name, date_of_birth, relationship, is_self, blood_type)
 VALUES (
   gen_random_uuid(),
-  '<<DEMO_USER_ID>>',
+  'ba54d224-4c20-4af1-949a-8887422527d8',
   'Jamie Rivera',
   '1990-03-22',
   'Spouse',
@@ -43,7 +43,7 @@ VALUES (
 INSERT INTO family_members (id, owner_id, full_name, date_of_birth, relationship, is_self, blood_type)
 VALUES (
   gen_random_uuid(),
-  '<<DEMO_USER_ID>>',
+  'ba54d224-4c20-4af1-949a-8887422527d8',
   'Lily Rivera',
   '2019-11-05',
   'Child',
@@ -55,7 +55,7 @@ VALUES (
 INSERT INTO family_members (id, owner_id, full_name, date_of_birth, relationship, is_self)
 VALUES (
   gen_random_uuid(),
-  '<<DEMO_USER_ID>>',
+  'ba54d224-4c20-4af1-949a-8887422527d8',
   'Maria Rivera',
   '1959-02-18',
   'Parent',
@@ -70,9 +70,9 @@ DECLARE
   spouse_id uuid;
   child_id  uuid;
 BEGIN
-  SELECT id INTO self_id   FROM family_members WHERE owner_id = '<<DEMO_USER_ID>>' AND is_self = true;
-  SELECT id INTO spouse_id FROM family_members WHERE owner_id = '<<DEMO_USER_ID>>' AND full_name = 'Jamie Rivera';
-  SELECT id INTO child_id  FROM family_members WHERE owner_id = '<<DEMO_USER_ID>>' AND full_name = 'Lily Rivera';
+  SELECT id INTO self_id   FROM family_members WHERE owner_id = 'ba54d224-4c20-4af1-949a-8887422527d8' AND is_self = true;
+  SELECT id INTO spouse_id FROM family_members WHERE owner_id = 'ba54d224-4c20-4af1-949a-8887422527d8' AND full_name = 'Jamie Rivera';
+  SELECT id INTO child_id  FROM family_members WHERE owner_id = 'ba54d224-4c20-4af1-949a-8887422527d8' AND full_name = 'Lily Rivera';
 
   -- Self health info
   INSERT INTO health_info (family_member_id, allergies, medications, conditions, insurance, emergency_contacts, primary_doctor)
@@ -119,7 +119,7 @@ VALUES (
   gen_random_uuid(),
   'Rivera Family',
   '#2D6A4F',
-  '<<DEMO_USER_ID>>'
+  'ba54d224-4c20-4af1-949a-8887422527d8'
 )
 ON CONFLICT DO NOTHING;
 
@@ -128,12 +128,12 @@ DO $$
 DECLARE
   cal_id uuid;
 BEGIN
-  SELECT id INTO cal_id FROM family_calendars WHERE owner_id = '<<DEMO_USER_ID>>' LIMIT 1;
+  SELECT id INTO cal_id FROM family_calendars WHERE owner_id = 'ba54d224-4c20-4af1-949a-8887422527d8' LIMIT 1;
 
   INSERT INTO calendar_events (calendar_id, created_by, title, date_time, location, notes)
   VALUES
-    (cal_id, '<<DEMO_USER_ID>>', 'Annual Physical – Alex', now() + interval '12 days', 'Dr. Chen – 1400 Eastlake Ave E, Seattle', 'Fasting required. Lab work included.'),
-    (cal_id, '<<DEMO_USER_ID>>', 'Lily – Pediatrician Checkup', now() + interval '5 days', 'Dr. Patel – 900 Madison St, Seattle', 'Bring vaccination records.'),
-    (cal_id, '<<DEMO_USER_ID>>', 'Jamie – OB Appointment', now() + interval '21 days', 'Dr. Webb – 550 17th Ave, Seattle', null),
-    (cal_id, '<<DEMO_USER_ID>>', 'Flu Shots – Whole Family', now() - interval '45 days', 'QFC Pharmacy – Bellevue', 'All 4 family members done.');
+    (cal_id, 'ba54d224-4c20-4af1-949a-8887422527d8', 'Annual Physical – Alex', now() + interval '12 days', 'Dr. Chen – 1400 Eastlake Ave E, Seattle', 'Fasting required. Lab work included.'),
+    (cal_id, 'ba54d224-4c20-4af1-949a-8887422527d8', 'Lily – Pediatrician Checkup', now() + interval '5 days', 'Dr. Patel – 900 Madison St, Seattle', 'Bring vaccination records.'),
+    (cal_id, 'ba54d224-4c20-4af1-949a-8887422527d8', 'Jamie – OB Appointment', now() + interval '21 days', 'Dr. Webb – 550 17th Ave, Seattle', null),
+    (cal_id, 'ba54d224-4c20-4af1-949a-8887422527d8', 'Flu Shots – Whole Family', now() - interval '45 days', 'QFC Pharmacy – Bellevue', 'All 4 family members done.');
 END $$;

@@ -584,6 +584,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
             </>
           ) : (
             <>
+              <DisplayField label="Full Name" value={member.full_name} />
               <DisplayField label="Date of Birth" value={member.dob ? new Date(member.dob).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : null} />
               <DisplayField label="Gender" value={member.gender} />
               <DisplayField label="Last 4 SSN" value={ssnDisplay} />

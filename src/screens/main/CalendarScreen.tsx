@@ -481,15 +481,17 @@ const cc = StyleSheet.create({
 // JoinCalendarModal — shows pending invites or "no invites" state
 // ─────────────────────────────────────────────────────────────────────────────
 
-function JoinCalendarModal({ visible, pendingInvites, userEmail, onJoined, onClose }: {
+function JoinCalendarModal({ visible, pendingInvites, userEmail, onJoined, onDeclined, onClose }: {
   visible: boolean;
   pendingInvites: PendingInvite[];
   userEmail: string;
   onJoined: (calId: string, calTitle: string, inviteId: string) => void;
+  onDeclined: (inviteId: string) => void;
   onClose: () => void;
 }) {
   const { session } = useAuth();
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [decliningId, setDecliningId] = useState<string | null>(null);
 
   async function acceptInvite(invite: PendingInvite) {
     if (acceptingId) return; // prevent double-tap
@@ -507,9 +509,15 @@ function JoinCalendarModal({ visible, pendingInvites, userEmail, onJoined, onClo
     } finally { setAcceptingId(null); }
   }
 
-  async function declineInvite(inviteId: string) {
-    await supabase.from('calendar_invitations').update({ status: 'declined' }).eq('id', inviteId);
-    onClose();
+  async function declineInvite(invite: PendingInvite) {
+    if (decliningId) return;
+    setDecliningId(invite.id);
+    try {
+      await supabase.from('calendar_invitations').update({ status: 'declined' }).eq('id', invite.id);
+      onDeclined(invite.id);
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally { setDecliningId(null); }
   }
 
   return (
@@ -550,8 +558,14 @@ function JoinCalendarModal({ visible, pendingInvites, userEmail, onJoined, onClo
                     </View>
                   </View>
                   <View style={jm.inviteActions}>
-                    <TouchableOpacity style={jm.declineBtn} onPress={() => declineInvite(inv.id)}>
-                      <Text style={jm.declineText}>Decline</Text>
+                    <TouchableOpacity
+                      style={[jm.declineBtn, decliningId === inv.id && { opacity: 0.5 }]}
+                      onPress={() => declineInvite(inv)}
+                      disabled={!!decliningId || !!acceptingId}
+                    >
+                      {decliningId === inv.id
+                        ? <ActivityIndicator size="small" color={COLORS.textSecondary} />
+                        : <Text style={jm.declineText}>Decline</Text>}
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={jm.acceptBtn}
@@ -1718,13 +1732,15 @@ export default function CalendarScreen() {
         .or(`invited_user_id.eq.${userId},invited_email.eq.${session.user.email ?? ''}`)
         .eq('status', 'pending');
 
-      const enrichedInvites: PendingInvite[] = (invites ?? []).map(inv => ({
-        id: inv.id,
-        calendar_id: inv.calendar_id,
-        invited_by: inv.invited_by,
-        calendar_title: inv.calendar_title ?? 'Family Calendar',
-        inviter_name: inv.inviter_display_name ?? 'Someone',
-      }));
+      const enrichedInvites: PendingInvite[] = (invites ?? [])
+        .filter(inv => !handledInviteIds.current.has(inv.id))  // never re-add handled invites
+        .map(inv => ({
+          id: inv.id,
+          calendar_id: inv.calendar_id,
+          invited_by: inv.invited_by,
+          calendar_title: inv.calendar_title ?? 'Family Calendar',
+          inviter_name: inv.inviter_display_name ?? 'Someone',
+        }));
       setPendingInvites(enrichedInvites);
     } finally {
       setLoading(false);
@@ -1738,12 +1754,20 @@ export default function CalendarScreen() {
   }
 
   function handleCalendarJoined(calId: string, calTitle: string, inviteId: string) {
-    // Filter badge immediately — don't let loadCalendarsAndEvents overwrite it
+    handledInviteIds.current.add(inviteId);   // permanent — survives any loadAll()
     setPendingInvites(prev => prev.filter(i => i.id !== inviteId));
     setShowJoin(false);
     setShowSubPicker({ calId, calTitle });
-    // Refresh calendars + events only — NOT pendingInvites (race condition)
     loadCalendarsAndEvents();
+  }
+
+  function handleCalendarDeclined(inviteId: string) {
+    handledInviteIds.current.add(inviteId);   // permanent — survives any loadAll()
+    setPendingInvites(prev => {
+      const next = prev.filter(i => i.id !== inviteId);
+      if (next.length === 0) setShowJoin(false);  // auto-close if last invite
+      return next;
+    });
   }
 
   function handleSubPickerDone() {
@@ -1758,6 +1782,8 @@ export default function CalendarScreen() {
 
   const scrollRef = useRef<ScrollView>(null);
   const scrolledRef = useRef(false);
+  // Tracks invite IDs that have been accepted/declined so loadAll() never re-adds them
+  const handledInviteIds = useRef<Set<string>>(new Set());
   const [pastHeight, setPastHeight] = useState(0);
 
   const hasCalendars = calendars.length > 0;
@@ -1968,6 +1994,7 @@ export default function CalendarScreen() {
         pendingInvites={pendingInvites}
         userEmail={session?.user.email ?? ''}
         onJoined={handleCalendarJoined}
+        onDeclined={handleCalendarDeclined}
         onClose={() => setShowJoin(false)}
       />
       {showSubPicker && (

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert, TextInput, KeyboardAvoidingView,
@@ -33,9 +34,23 @@ function getInitials(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
+// Parse a YYYY-MM-DD date string without UTC offset shifting.
+// new Date("1988-07-14") is treated as UTC midnight → wrong day in negative TZs.
+function parseDob(dob: string): Date {
+  return new Date(dob.includes('T') ? dob : dob + 'T12:00:00');
+}
+function dobToString(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function formatDob(dob: string): string {
+  return parseDob(dob).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
 function getAge(dob?: string): string {
   if (!dob) return '';
-  const birth = new Date(dob);
+  const birth = parseDob(dob);
   const now = new Date();
   let age = now.getFullYear() - birth.getFullYear();
   const m = now.getMonth() - birth.getMonth();
@@ -199,6 +214,13 @@ const f = StyleSheet.create({
   },
   editBtnText: { fontSize: 13, fontWeight: '600', color: COLORS.primary },
   emptyHint: { ...FONTS.bodySmall, color: COLORS.textTertiary, fontStyle: 'italic', paddingVertical: SPACING.sm },
+  inputWrap: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: COLORS.surface, borderRadius: 10, borderWidth: 1.5,
+    borderColor: '#C8C2BA', paddingHorizontal: SPACING.base, height: 46,
+  },
+  inputText: { fontSize: 15, color: COLORS.textPrimary, flex: 1 },
+  inputPlaceholder: { fontSize: 15, color: COLORS.textTertiary, flex: 1 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
   chip: {
     paddingHorizontal: SPACING.base, paddingVertical: 7,
@@ -241,6 +263,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
   // General editable state
   const [eName, setEName] = useState('');
   const [eDob, setEDob] = useState('');
+  const [showDobPicker, setShowDobPicker] = useState(false);
   const [eGender, setEGender] = useState('');
   const [eBlood, setEBlood] = useState('');
   const [eSsn, setESsn] = useState('');
@@ -516,7 +539,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
             <Text style={styles.heroName}>{member.full_name}</Text>
             {member.dob ? (
               <Text style={styles.heroDob}>
-                {new Date(member.dob).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                {formatDob(member.dob)}
               </Text>
             ) : null}
           </View>
@@ -578,14 +601,37 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
                 <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
               </TouchableOpacity>
               <FieldInput label="FULL NAME" value={eName} onChangeText={setEName} placeholder="First and last name" autoCapitalize="words" />
-              <FieldInput label="DATE OF BIRTH" value={eDob} onChangeText={setEDob} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" autoCapitalize="none" />
+              {/* DOB — tappable row + spinner picker */}
+              <Text style={[f.label, { marginTop: SPACING.sm }]}>DATE OF BIRTH</Text>
+              <TouchableOpacity
+                style={[f.inputWrap, { marginBottom: SPACING.sm }]}
+                onPress={() => setShowDobPicker(v => !v)}
+                activeOpacity={0.7}
+              >
+                <Text style={eDob ? f.inputText : f.inputPlaceholder}>
+                  {eDob ? formatDob(eDob) : 'Select date of birth'}
+                </Text>
+                <Ionicons name={showDobPicker ? 'chevron-up' : 'chevron-down'} size={16} color={COLORS.textTertiary} />
+              </TouchableOpacity>
+              {showDobPicker && (
+                <DateTimePicker
+                  value={eDob ? parseDob(eDob) : new Date(2000, 0, 1)}
+                  mode="date"
+                  display="spinner"
+                  maximumDate={new Date()}
+                  onChange={(_, d) => {
+                    if (d) setEDob(dobToString(d));
+                  }}
+                  style={{ height: 120, marginBottom: SPACING.sm }}
+                />
+              )}
               <FieldInput label="GENDER" value={eGender} onChangeText={setEGender} placeholder="e.g. Male, Female, Non-binary" />
               <FieldInput label="SSN LAST 4" value={eSsn} onChangeText={(v) => setESsn(v.replace(/\D/g, '').slice(0, 4))} placeholder="1234" keyboardType="number-pad" autoCapitalize="none" />
             </>
           ) : (
             <>
               <DisplayField label="Full Name" value={member.full_name} />
-              <DisplayField label="Date of Birth" value={member.dob ? new Date(member.dob).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : null} />
+              <DisplayField label="Date of Birth" value={member.dob ? formatDob(member.dob) : null} />
               <DisplayField label="Gender" value={member.gender} />
               <DisplayField label="Last 4 SSN" value={ssnDisplay} />
               {canEdit && <EditButton onPress={() => startEditing('general')} />}

@@ -848,7 +848,7 @@ function AddEventModal({ visible, calendars, defaultCalendarId, onSave, onClose 
                 <DateTimePicker
                   value={dateTime}
                   mode="date"
-                  display="inline"
+                  display="spinner"
                   onChange={(_, d) => {
                     if (d) {
                       setDateTime(prev => {
@@ -858,8 +858,7 @@ function AddEventModal({ visible, calendars, defaultCalendarId, onSave, onClose 
                       });
                     }
                   }}
-                  accentColor={COLORS.primary}
-                  style={{ alignSelf: 'center' }}
+                  style={{ height: 120 }}
                 />
               </View>
             )}

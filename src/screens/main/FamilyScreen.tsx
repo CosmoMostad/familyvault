@@ -25,9 +25,12 @@ import { FamilyMember, RootStackParamList } from '../../lib/types';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
 import NotificationsDrawer from '../../components/NotificationsDrawer';
 
+function parseDob(dob: string): Date {
+  return new Date(dob.includes('T') ? dob : dob + 'T12:00:00');
+}
 function getAge(dob?: string): string {
   if (!dob) return '';
-  const birth = new Date(dob);
+  const birth = parseDob(dob);
   const now = new Date();
   let age = now.getFullYear() - birth.getFullYear();
   const m = now.getMonth() - birth.getMonth();
@@ -51,7 +54,7 @@ function MemberCard({
   onLongPress?: () => void;
 }) {
   const dobFormatted = member.dob
-    ? new Date(member.dob).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    ? parseDob(member.dob).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
     : null;
 
   return (

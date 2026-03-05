@@ -35,6 +35,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { RootStackParamList } from '../../lib/types';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
+import { sendPushToUser } from '../../lib/notifications';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'ShareAccount'>;
@@ -131,6 +132,13 @@ export default function ShareAccountScreen({ navigation, route }: Props) {
       });
 
       if (error) throw error;
+      // Notify recipient — best-effort, non-blocking
+      sendPushToUser(
+        recipient.user_id,
+        'New Account Share Request',
+        `Someone wants to share ${memberName}'s health account with you on Wren Health.`,
+        { type: 'share_request' }
+      );
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setStep('success');
     } catch (e: any) {

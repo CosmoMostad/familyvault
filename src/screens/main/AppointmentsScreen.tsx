@@ -14,6 +14,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { RootStackParamList } from '../../lib/types';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
 import { TimePickerWheel, to24Hour, formatTime12 } from '../../components/TimePickerWheel';
+import { scheduleAppointmentReminder, scheduleAppointmentReminderHour, cancelAppointmentReminders } from '../../lib/notifications';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Appointments'>;
@@ -107,11 +108,13 @@ function AppointmentCard({
 function AddAppointmentModal({
   visible,
   memberId,
+  memberName,
   onClose,
   onSaved,
 }: {
   visible: boolean;
   memberId: string;
+  memberName?: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -161,18 +164,24 @@ function AddAppointmentModal({
     }
     setSaving(true);
     try {
-      const { error } = await supabase.from('appointments').insert({
+      const apptDatetime = new Date(
+        pickerDate.getFullYear(), pickerDate.getMonth(), pickerDate.getDate(),
+        to24Hour(pickerHour12, pickerAmPm), pickerMinute, 0, 0
+      );
+      const { data: inserted, error } = await supabase.from('appointments').insert({
         member_id: memberId,
         title: title.trim(),
-        datetime: new Date(
-          pickerDate.getFullYear(), pickerDate.getMonth(), pickerDate.getDate(),
-          to24Hour(pickerHour12, pickerAmPm), pickerMinute, 0, 0
-        ).toISOString(),
+        datetime: apptDatetime.toISOString(),
         doctor: doctor.trim() || null,
         location: location.trim() || null,
         notes: notes.trim() || null,
-      });
+      }).select('id').single();
       if (error) throw error;
+      // Schedule local reminders (best-effort)
+      if (inserted?.id) {
+        scheduleAppointmentReminder(inserted.id, title.trim(), apptDatetime, memberName);
+        scheduleAppointmentReminderHour(inserted.id, title.trim(), apptDatetime, memberName);
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       reset();
       onSaved();
@@ -439,7 +448,10 @@ export default function AppointmentsScreen({ navigation, route }: Props) {
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             const { error } = await supabase.from('appointments').delete().eq('id', appt.id);
             if (error) Alert.alert('Error', error.message);
-            else fetchAppointments();
+            else {
+              cancelAppointmentReminders(appt.id);
+              fetchAppointments();
+            }
           },
         },
       ]
@@ -525,6 +537,7 @@ export default function AppointmentsScreen({ navigation, route }: Props) {
       <AddAppointmentModal
         visible={showAddModal}
         memberId={memberId ?? ''}
+        memberName={memberName}
         onClose={() => setShowAddModal(false)}
         onSaved={() => { setShowAddModal(false); fetchAppointments(); }}
       />

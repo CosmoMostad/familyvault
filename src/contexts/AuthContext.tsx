@@ -3,6 +3,7 @@ import { Session, User } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../lib/types';
+import { registerForPushNotifications } from '../lib/notifications';
 
 const ONBOARDING_KEY = 'wrenhealth_onboarding_complete';
 
@@ -69,6 +70,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
+    // Register push token in the background — non-blocking, non-fatal
+    registerForPushNotifications(userId).catch(() => {});
   }
 
   async function refreshProfile() {

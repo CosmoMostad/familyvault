@@ -3,6 +3,7 @@ export interface Profile {
   user_id: string;
   full_name: string;
   avatar_url?: string;
+  push_token?: string;
   created_at: string;
 }
 

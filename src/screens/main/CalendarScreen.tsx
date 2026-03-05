@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
 import { TimePickerWheel, to24Hour, formatTime12 } from '../../components/TimePickerWheel';
+import { sendPushToUser } from '../../lib/notifications';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -155,6 +156,15 @@ function SubAccountPickerModal({ visible, calendarId, calendarTitle, onDone }: {
         calendar_title: calendarTitle,
         inviter_display_name: inviterName,
       });
+      // Push to recipient if they have a Wren account
+      if (profile?.user_id) {
+        sendPushToUser(
+          profile.user_id,
+          'Calendar Invitation',
+          `${inviterName} invited you to join "${calendarTitle}" on Wren Health.`,
+          { type: 'calendar_invite', calendar_id: calendarId }
+        );
+      }
       Alert.alert('Invited', `Invitation sent to ${email}`);
       setInviteEmail('');
     } catch (e: any) {
@@ -1245,6 +1255,14 @@ function CalendarSettingsModal({ visible, calendars, onClose, onRefresh }: {
         calendar_title: calTitle,
         inviter_display_name: inviterName,
       });
+      if (profile?.user_id) {
+        sendPushToUser(
+          profile.user_id,
+          'Calendar Invitation',
+          `${inviterName} invited you to join "${calTitle}" on Wren Health.`,
+          { type: 'calendar_invite', calendar_id: calendarId }
+        );
+      }
       Alert.alert('Invited', `Invitation sent to ${email}`);
       setInviteEmail(prev => ({ ...prev, [calendarId]: '' }));
     } catch (e: any) {

@@ -118,10 +118,12 @@ export default function DocumentScannerScreen({ navigation, route }: Props) {
         { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
       );
 
-      const fileName = `${memberId}/${Date.now()}.jpg`;
+      // Path: user.id first folder (required by storage RLS), then memberId subfolder
+      const fileName = `${user.id}/${memberId}/${Date.now()}.jpg`;
       const response = await fetch(compressed.uri);
       const blob = await response.blob();
-      const arrayBuffer = await blob.arrayBuffer();
+      // Use new Response(blob).arrayBuffer() — blob.arrayBuffer() is not available in React Native
+      const arrayBuffer = await new Response(blob).arrayBuffer();
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documents')

@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { ActivityIndicator, View, Platform } from 'react-native';
+import { ActivityIndicator, View, Text, Platform, StyleSheet } from 'react-native';
+import Svg, { Ellipse, Circle, Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
@@ -15,6 +16,8 @@ import LandingScreen from '../screens/auth/LandingScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 import SignInScreen from '../screens/auth/SignInScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
+import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
+import ConfirmEmailScreen from '../screens/auth/ConfirmEmailScreen';
 
 // Onboarding
 import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
@@ -79,10 +82,15 @@ function MainTabs() {
   );
 }
 
+const navigationRef = React.createRef<any>();
+
 export default function AppNavigator() {
   const { session, loading } = useAuth();
   const [onboardingSeen, setOnboardingSeen] = useState<boolean | null>(null);
   const [hasSelf, setHasSelf] = useState<boolean | null>(null);
+
+  // No deep link auth handling needed — password reset and email confirmation
+  // are both handled on the web (wrenhealth.app/reset-password, wrenhealth.app/confirmed)
 
   // Load onboarding flag
   useEffect(() => {
@@ -111,14 +119,22 @@ export default function AppNavigator() {
 
   if (!isReady) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background }}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={splashStyles.container}>
+        <Svg width={80} height={80} viewBox="0 0 20 20">
+          <Path d="M6 15 Q3 11 5 7 Q5.5 10.5 7.5 12.5Z" fill="white" />
+          <Ellipse cx="11.5" cy="14" rx="5.5" ry="3.8" fill="white" />
+          <Circle cx="15.5" cy="10" r="3.2" fill="white" />
+          <Path d="M18.2,9.2 L20,10 L18.2,10.8Z" fill="white" />
+          <Circle cx="16.5" cy="9" r="0.55" fill="rgba(0,0,0,0.35)" />
+        </Svg>
+        <Text style={splashStyles.brand}>Wren Health</Text>
+        <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" style={{ marginTop: 48 }} />
       </View>
     );
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         screenOptions={{
           headerStyle: { backgroundColor: COLORS.background },
@@ -149,6 +165,8 @@ export default function AppNavigator() {
             <Stack.Screen name="SignUp" component={SignUpScreen} options={{ headerShown: false }} />
             <Stack.Screen name="SignIn" component={SignInScreen} options={{ headerShown: false }} />
             <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="ConfirmEmail" component={ConfirmEmailScreen} options={{ headerShown: false }} />
           </>
         ) : (
           // Step 3: Authenticated — SetupSelf first if no self record, else MainTabs
@@ -194,9 +212,26 @@ export default function AppNavigator() {
               component={AppointmentsScreen}
               options={{ headerBackTitle: 'Back' }}
             />
+            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} options={{ headerShown: false }} />
           </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
+
+const splashStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  brand: {
+    marginTop: 16,
+    fontSize: 28,
+    fontWeight: '700',
+    color: 'white',
+    letterSpacing: -0.5,
+  },
+});

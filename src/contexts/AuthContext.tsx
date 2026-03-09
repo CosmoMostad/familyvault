@@ -14,7 +14,7 @@ interface AuthContextType {
   loading: boolean;
   isFirstLaunch: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
   completeOnboarding: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -80,9 +80,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  async function signUp(email: string, password: string, fullName: string) {
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) throw error;
+  async function signUp(email: string, password: string, fullName: string): Promise<{ needsConfirmation: boolean }> {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: 'https://wrenhealth.app/confirmed' },
+    });
+
+    // Supabase surfaces "User already registered" directly in some configs
+    if (error) {
+      if (error.message?.toLowerCase().includes('already registered') ||
+          error.message?.toLowerCase().includes('already been registered') ||
+          error.status === 422) {
+        throw new Error('An account with this email already exists. Please sign in instead.');
+      }
+      throw error;
+    }
+
+    // When email confirmation is on, Supabase returns a dummy user for existing emails
+    // (identity_data will be empty). Detect this to avoid a FK crash on profile insert.
+    const identityData = data.user?.identities;
+    if (data.user && identityData !== undefined && identityData.length === 0) {
+      throw new Error('An account with this email already exists. Please sign in instead.');
+    }
 
     if (data.user) {
       const { error: profileError } = await supabase.from('profiles').insert({
@@ -90,9 +110,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         full_name: fullName,
         email: email.trim().toLowerCase(),
       });
-      if (profileError) throw profileError;
+
+      if (profileError) {
+        // FK violation = user already exists in auth but not profiles (edge case)
+        if (profileError.code === '23503') {
+          throw new Error('An account with this email already exists. Please sign in instead.');
+        }
+        throw profileError;
+      }
+
+      // If session is null, email confirmation is required
+      if (!data.session) {
+        return { needsConfirmation: true };
+      }
+
       setIsFirstLaunch(true);
     }
+
+    return { needsConfirmation: false };
   }
 
   async function signIn(email: string, password: string) {

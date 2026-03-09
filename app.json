@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FAF7F4"
+      "backgroundColor": "#2D6A4F"
     },
     "ios": {
       "supportsTablet": false,
@@ -62,6 +62,7 @@
       "eas": {
         "projectId": "6576c33a-d869-4b01-866f-440b8b877189"
       }
-    }
+    },
+    "scheme": "wrenhealth"
   }
 }

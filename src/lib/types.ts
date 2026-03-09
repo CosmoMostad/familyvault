@@ -146,6 +146,8 @@ export type RootStackParamList = {
   SignUp: undefined;
   SignIn: undefined;
   ForgotPassword: undefined;
+  ResetPassword: undefined;
+  ConfirmEmail: { email: string };
   // Main tabs
   MainTabs: undefined;
   // Stack screens within main app

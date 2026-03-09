@@ -37,7 +37,12 @@ export default function SignUpScreen({ navigation }: Props) {
     if (!fullName.trim() || !email.trim() || !password.trim()) { setError('Please fill in all fields.'); return; }
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
     setError(''); setLoading(true);
-    try { await signUp(email.trim(), password, fullName.trim()); }
+    try {
+      const { needsConfirmation } = await signUp(email.trim(), password, fullName.trim());
+      if (needsConfirmation) {
+        navigation.navigate('ConfirmEmail', { email: email.trim() });
+      }
+    }
     catch (e: any) { setError(e.message || 'Sign up failed. Please try again.'); }
     finally { setLoading(false); }
   }

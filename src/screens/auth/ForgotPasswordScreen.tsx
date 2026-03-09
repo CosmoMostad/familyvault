@@ -34,7 +34,9 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
     setError('');
     setLoading(true);
     try {
-      const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim());
+      const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: 'https://wrenhealth.app/reset-password',
+      });
       if (err) throw err;
       setSent(true);
     } catch (e: any) {

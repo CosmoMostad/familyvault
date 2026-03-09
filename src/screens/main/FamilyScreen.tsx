@@ -1,4 +1,10 @@
-import React, { useCallback, useRef, useState } from 'react';
+/**
+ * FamilyScreen — My Accounts tab
+ * 2026 redesign: hero card for self, draggable 2-col grid for family,
+ * spin-to-fill tap transition into MemberProfile.
+ */
+
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,24 +17,23 @@ import {
   Pressable,
   Alert,
   ActivityIndicator,
+  ScrollView,
   Dimensions,
-  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import DraggableFlatList, {
-  RenderItemParams,
-  ScaleDecorator,
-} from 'react-native-draggable-flatlist';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  withSpring,
   withTiming,
-  interpolate,
+  runOnJS,
   Easing,
+  interpolate,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -38,34 +43,37 @@ import { FamilyMember, RootStackParamList } from '../../lib/types';
 import { COLORS, FONTS, SPACING } from '../../lib/design';
 import NotificationsDrawer from '../../components/NotificationsDrawer';
 
-// ─── Layout constants ──────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
+
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const H_PAD = 20;
 const GRID_GAP = 12;
 const CARD_W = (SCREEN_W - H_PAD * 2 - GRID_GAP) / 2;
-const ORDER_KEY = 'wrenhealth_family_order_v2';
+const CARD_H = 152;
+const ROW_H = CARD_H + GRID_GAP;
+const ORDER_KEY = 'wrenhealth_family_order';
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
-type AddCard = { id: '__add__' };
-type GridItem = FamilyMember | AddCard;
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function isAddCard(item: GridItem): item is AddCard {
-  return (item as AddCard).id === '__add__';
-}
-
-// ─── Helpers ───────────────────────────────────────────────────────────────────
 function parseDob(dob: string): Date {
   return new Date(dob.includes('T') ? dob : dob + 'T12:00:00');
 }
 
 function getAge(dob?: string): string {
   if (!dob) return '';
-  const birth = parseDob(dob);
+  const b = parseDob(dob);
   const now = new Date();
-  let age = now.getFullYear() - birth.getFullYear();
-  const m = now.getMonth() - birth.getMonth();
-  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+  let age = now.getFullYear() - b.getFullYear();
+  const m = now.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
   return `${age} yrs`;
+}
+
+function formatDob(dob?: string): string {
+  if (!dob) return '';
+  return parseDob(dob).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+  });
 }
 
 function getInitials(name: string): string {
@@ -74,165 +82,264 @@ function getInitials(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-function formatDob(dob?: string): string {
-  if (!dob) return '';
-  return parseDob(dob).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+function cardCol(index: number) { return index % 2; }
+function cardRow(index: number) { return Math.floor(index / 2); }
+function cardX(index: number) { return cardCol(index) * (CARD_W + GRID_GAP); }
+function cardY(index: number) { return cardRow(index) * ROW_H; }
+
+async function saveOrder(ids: string[]) {
+  await AsyncStorage.setItem(ORDER_KEY, JSON.stringify(ids));
 }
 
-// ─── Hero Card (self) ──────────────────────────────────────────────────────────
+async function loadOrder(): Promise<string[]> {
+  const raw = await AsyncStorage.getItem(ORDER_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+
+function applyOrder(members: FamilyMember[], order: string[]): FamilyMember[] {
+  if (!order.length) return members;
+  const map = new Map(members.map((m) => [m.id, m]));
+  const sorted = order.map((id) => map.get(id)).filter(Boolean) as FamilyMember[];
+  const rest = members.filter((m) => !order.includes(m.id));
+  return [...sorted, ...rest];
+}
+
+// ─── SortableCard ─────────────────────────────────────────────────────────────
+
+interface SortableCardProps {
+  member: FamilyMember;
+  index: number;
+  isDropTarget: boolean;
+  onDragStart: (id: string) => void;
+  onDragMove: (id: string, absX: number, absY: number) => void;
+  onDragEnd: (id: string) => void;
+  onTap: (member: FamilyMember, ref: React.RefObject<View>) => void;
+  onDelete: (member: FamilyMember) => void;
+}
+
+function SortableCard({
+  member,
+  index,
+  isDropTarget,
+  onDragStart,
+  onDragMove,
+  onDragEnd,
+  onTap,
+  onDelete,
+}: SortableCardProps) {
+  const cardRef = useRef<View>(null);
+  const tx = useSharedValue(0);
+  const ty = useSharedValue(0);
+  const scale = useSharedValue(1);
+  const zIdx = useSharedValue(1);
+  const opacity = useSharedValue(1);
+  const isDragging = useSharedValue(false);
+
+  // Animate to new position when index changes (order swap)
+  const posX = useSharedValue(cardX(index));
+  const posY = useSharedValue(cardY(index));
+
+  useEffect(() => {
+    if (!isDragging.value) {
+      posX.value = withSpring(cardX(index), { damping: 18, stiffness: 200 });
+      posY.value = withSpring(cardY(index), { damping: 18, stiffness: 200 });
+    }
+  }, [index]);
+
+  const gesture = Gesture.Pan()
+    .activateAfterLongPress(180)
+    .onStart(() => {
+      'worklet';
+      isDragging.value = true;
+      scale.value = withSpring(1.06, { damping: 12, stiffness: 300 });
+      zIdx.value = 50;
+      runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
+      runOnJS(onDragStart)(member.id);
+    })
+    .onUpdate((e) => {
+      'worklet';
+      tx.value = e.translationX;
+      ty.value = e.translationY;
+      runOnJS(onDragMove)(member.id, e.absoluteX, e.absoluteY);
+    })
+    .onEnd(() => {
+      'worklet';
+      isDragging.value = false;
+      tx.value = withSpring(0, { damping: 20, stiffness: 300 });
+      ty.value = withSpring(0, { damping: 20, stiffness: 300 });
+      scale.value = withSpring(1, { damping: 15, stiffness: 250 });
+      zIdx.value = withTiming(1, { duration: 300 });
+      runOnJS(onDragEnd)(member.id);
+    });
+
+  const animStyle = useAnimatedStyle(() => ({
+    position: 'absolute',
+    left: posX.value + tx.value,
+    top: posY.value + ty.value,
+    width: CARD_W,
+    height: CARD_H,
+    transform: [{ scale: scale.value }],
+    zIndex: zIdx.value,
+    opacity: opacity.value,
+    shadowOpacity: interpolate(scale.value, [1, 1.06], [0.06, 0.22]),
+  }));
+
+  const dobFormatted = formatDob(member.dob);
+
+  return (
+    <GestureDetector gesture={gesture}>
+      <Animated.View
+        ref={cardRef as any}
+        style={[styles.gridCard, animStyle, isDropTarget && styles.gridCardTarget]}
+      >
+        <TouchableOpacity
+          activeOpacity={0.88}
+          onPress={() => onTap(member, cardRef as React.RefObject<View>)}
+          onLongPress={() => onDelete(member)}
+          delayLongPress={700}
+          style={styles.gridCardInner}
+        >
+          {member.photo_url ? (
+            <Image source={{ uri: member.photo_url }} style={styles.gridPhoto} />
+          ) : (
+            <View style={styles.gridAvatar}>
+              <Text style={styles.gridAvatarText}>{getInitials(member.full_name)}</Text>
+            </View>
+          )}
+          <Text style={styles.gridName} numberOfLines={2}>
+            {member.full_name}
+          </Text>
+          {dobFormatted ? (
+            <Text style={styles.gridDob}>{dobFormatted}</Text>
+          ) : null}
+        </TouchableOpacity>
+      </Animated.View>
+    </GestureDetector>
+  );
+}
+
+// ─── Hero Card ────────────────────────────────────────────────────────────────
+
 function HeroCard({
   member,
   onPress,
 }: {
   member: FamilyMember;
-  onPress: (member: FamilyMember, ref: React.RefObject<View>) => void;
+  onPress: (m: FamilyMember, ref: React.RefObject<View>) => void;
 }) {
-  const cardRef = useRef<View>(null);
+  const ref = useRef<View>(null);
   const age = getAge(member.dob);
-  const dobFormatted = member.dob
-    ? parseDob(member.dob).toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      })
-    : null;
+  const dob = formatDob(member.dob);
 
   return (
     <TouchableOpacity
-      ref={cardRef}
-      style={hero.card}
-      onPress={() => onPress(member, cardRef as any)}
-      activeOpacity={0.92}
+      ref={ref as any}
+      activeOpacity={0.9}
+      onPress={() => onPress(member, ref as React.RefObject<View>)}
+      style={styles.heroCard}
     >
-      {/* soft radial glow behind avatar */}
-      <View style={hero.glowBlob} />
-
-      {member.photo_url ? (
-        <Image source={{ uri: member.photo_url }} style={hero.photo} />
-      ) : (
-        <View style={hero.avatar}>
-          <Text style={hero.avatarText}>{getInitials(member.full_name)}</Text>
-        </View>
-      )}
-
-      <View style={hero.info}>
-        <Text style={hero.name}>{member.full_name}</Text>
-        {dobFormatted ? (
-          <Text style={hero.dob}>
-            {dobFormatted}
-            {age ? `  ·  ${age}` : ''}
-          </Text>
-        ) : null}
-        <View style={hero.tagRow}>
-          <View style={hero.tagSelf}>
-            <Text style={hero.tagSelfText}>My Profile</Text>
+      <LinearGradient
+        colors={['rgba(45,106,79,0.07)', 'rgba(45,106,79,0.01)']}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+      <View style={styles.heroGlow} pointerEvents="none" />
+      <View style={styles.heroInner}>
+        {member.photo_url ? (
+          <Image source={{ uri: member.photo_url }} style={styles.heroPhoto} />
+        ) : (
+          <LinearGradient colors={[COLORS.primary, '#40916C']} style={styles.heroAvatar}>
+            <Text style={styles.heroAvatarText}>{getInitials(member.full_name)}</Text>
+          </LinearGradient>
+        )}
+        <View style={styles.heroInfo}>
+          <Text style={styles.heroName} numberOfLines={1}>{member.full_name}</Text>
+          {dob ? (
+            <Text style={styles.heroDob}>{dob}{age ? `  ·  ${age}` : ''}</Text>
+          ) : null}
+          <View style={styles.heroTagRow}>
+            <View style={styles.tagSelf}>
+              <Text style={styles.tagSelfText}>My Profile</Text>
+            </View>
           </View>
         </View>
       </View>
-
-      <Ionicons name="chevron-forward" size={18} color="rgba(45,106,79,0.25)" />
     </TouchableOpacity>
   );
 }
 
-// ─── Grid Card (family member) ─────────────────────────────────────────────────
-function GridCard({
+// ─── Expand Overlay ───────────────────────────────────────────────────────────
+
+function ExpandOverlay({
   member,
-  drag,
-  isActive,
-  onPress,
+  layout,
+  onDone,
 }: {
   member: FamilyMember;
-  drag: () => void;
-  isActive: boolean;
-  onPress: (member: FamilyMember, ref: React.RefObject<View>) => void;
+  layout: { x: number; y: number; w: number; h: number };
+  onDone: () => void;
 }) {
-  const cardRef = useRef<View>(null);
+  const expand = useSharedValue(0);
+  const rotate = useSharedValue(0);
+
+  useEffect(() => {
+    expand.value = withTiming(1, { duration: 520, easing: Easing.inOut(Easing.cubic) });
+    rotate.value = withTiming(360, { duration: 480, easing: Easing.out(Easing.cubic) });
+    const t = setTimeout(() => runOnJS(onDone)(), 480);
+    return () => clearTimeout(t);
+  }, []);
+
+  const animStyle = useAnimatedStyle(() => ({
+    left: interpolate(expand.value, [0, 1], [layout.x, 0]),
+    top: interpolate(expand.value, [0, 1], [layout.y, 0]),
+    width: interpolate(expand.value, [0, 1], [layout.w, SCREEN_W]),
+    height: interpolate(expand.value, [0, 1], [layout.h, SCREEN_H]),
+    borderRadius: interpolate(expand.value, [0, 1], [20, 0]),
+    transform: [{ rotate: `${rotate.value}deg` }],
+  }));
 
   return (
-    <ScaleDecorator activeScale={1.06}>
-      <View ref={cardRef} style={[grid.card, isActive && grid.cardActive]}>
-        <TouchableOpacity
-          onPress={() => onPress(member, cardRef as any)}
-          onLongPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            drag();
-          }}
-          activeOpacity={0.88}
-          style={grid.inner}
-          delayLongPress={250}
-        >
-          {/* glimmer in top-right corner */}
-          <View style={grid.glimmer} />
-
-          {member.photo_url ? (
-            <Image source={{ uri: member.photo_url }} style={grid.photo} />
-          ) : (
-            <View style={grid.avatar}>
-              <Text style={grid.avatarText}>{getInitials(member.full_name)}</Text>
-            </View>
-          )}
-
-          <Text style={grid.name} numberOfLines={2}>
-            {member.full_name}
-          </Text>
-          {member.dob ? (
-            <Text style={grid.dob} numberOfLines={1}>
-              {formatDob(member.dob)}
-            </Text>
-          ) : null}
-        </TouchableOpacity>
+    <Animated.View style={[styles.overlay, animStyle]}>
+      <View style={styles.overlayContent}>
+        {member.photo_url ? (
+          <Image source={{ uri: member.photo_url }} style={styles.overlayPhoto} />
+        ) : (
+          <View style={styles.overlayAvatar}>
+            <Text style={styles.overlayAvatarText}>{getInitials(member.full_name)}</Text>
+          </View>
+        )}
+        <Text style={styles.overlayName}>{member.full_name}</Text>
       </View>
-    </ScaleDecorator>
+    </Animated.View>
   );
 }
 
-// ─── Add Card ──────────────────────────────────────────────────────────────────
-function AddMemberCard({ onPress }: { onPress: () => void }) {
-  return (
-    <TouchableOpacity style={grid.addCard} onPress={onPress} activeOpacity={0.75}>
-      <View style={grid.addCircle}>
-        <Ionicons name="add" size={22} color={COLORS.primary} />
-      </View>
-      <Text style={grid.addLabel}>{'Add Family\nMember'}</Text>
-    </TouchableOpacity>
-  );
-}
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 
-// ─── Main Screen ───────────────────────────────────────────────────────────────
 export default function FamilyScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { session } = useAuth();
 
-  const [members, setMembers] = useState<FamilyMember[]>([]);
+  const [selfMember, setSelfMember] = useState<FamilyMember | null>(null);
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [notifVisible, setNotifVisible] = useState(false);
   const [showDotMenu, setShowDotMenu] = useState(false);
 
-  // Overlay expand animation
-  const [overlayVisible, setOverlayVisible] = useState(false);
-  const [overlayColor, setOverlayColor] = useState(COLORS.primary);
-  const [cardLayout, setCardLayout] = useState({ x: 0, y: 0, w: CARD_W, h: 140 });
-  const expandAnim = useSharedValue(0);
-  const rotateAnim = useSharedValue(0);
+  // Drag-to-reorder state
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
-  const overlayStyle = useAnimatedStyle(() => ({
-    left: interpolate(expandAnim.value, [0, 1], [cardLayout.x, 0]),
-    top: interpolate(expandAnim.value, [0, 1], [cardLayout.y, 0]),
-    width: interpolate(expandAnim.value, [0, 1], [cardLayout.w, SCREEN_W]),
-    height: interpolate(expandAnim.value, [0, 1], [cardLayout.h, SCREEN_H]),
-    borderRadius: interpolate(expandAnim.value, [0, 1], [20, 0]),
-    opacity: interpolate(expandAnim.value, [0, 0.06, 0.85, 1], [0, 1, 1, 0]),
-    transform: [{ rotate: `${rotateAnim.value}deg` }],
-  }));
+  // Stored card positions for hit-testing during drag
+  const cardPositions = useRef<Map<string, { x: number; y: number; w: number; h: number }>>(new Map());
 
-  // ── Data fetching ────────────────────────────────────────────────────────────
+  // Expand overlay
+  const [expandingMember, setExpandingMember] = useState<FamilyMember | null>(null);
+  const [expandLayout, setExpandLayout] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+
+  // ── Fetch ──
   async function fetchData() {
     try {
       const [membersRes, notifRes] = await Promise.all([
@@ -250,129 +357,138 @@ export default function FamilyScreen() {
               .eq('status', 'pending')
           : Promise.resolve({ count: 0, error: null }),
       ]);
-
       if (membersRes.error) throw membersRes.error;
-
-      const raw = membersRes.data || [];
-      const self = raw.filter((m) => m.is_self);
-      let family = raw.filter((m) => !m.is_self);
-
-      // Restore saved order
-      try {
-        const saved = await AsyncStorage.getItem(ORDER_KEY);
-        if (saved) {
-          const order: string[] = JSON.parse(saved);
-          const ordered = order
-            .map((id) => family.find((m) => m.id === id))
-            .filter(Boolean) as FamilyMember[];
-          const rest = family.filter((m) => !order.includes(m.id));
-          family = [...ordered, ...rest];
-        }
-      } catch {}
-
-      setMembers([...self, ...family]);
+      const fetched = membersRes.data || [];
+      const order = await loadOrder();
+      setSelfMember(fetched.find((m) => m.is_self) ?? null);
+      setFamilyMembers(applyOrder(fetched.filter((m) => !m.is_self), order));
       setPendingCount(notifRes.count ?? 0);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchData();
-    }, [session])
-  );
+  useFocusEffect(useCallback(() => { fetchData(); }, [session]));
 
-  // ── Card tap: spin-and-expand animation ──────────────────────────────────────
-  function handleCardPress(member: FamilyMember, ref: React.RefObject<View>) {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    (ref.current as any)?.measureInWindow((x: number, y: number, w: number, h: number) => {
-      setCardLayout({ x, y, w, h });
-      setOverlayColor(member.is_self ? COLORS.primary : '#40916C');
-      setOverlayVisible(true);
-      expandAnim.value = 0;
-      rotateAnim.value = 0;
-
-      expandAnim.value = withTiming(1, {
-        duration: 540,
-        easing: Easing.inOut(Easing.cubic),
-      });
-      rotateAnim.value = withTiming(360, {
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-      });
-
-      setTimeout(() => {
-        navigation.navigate('MemberProfile', {
-          memberId: member.id,
-          memberName: member.full_name,
-        });
-        // Reset after navigation is underway
-        setTimeout(() => {
-          setOverlayVisible(false);
-          expandAnim.value = 0;
-          rotateAnim.value = 0;
-        }, 80);
-      }, 490);
+  // ── Measure card positions at drag start ──
+  function handleDragStart(id: string) {
+    setDraggingId(id);
+    // Snapshot positions of all family cards for hit-testing
+    familyMembers.forEach((m, i) => {
+      const x = cardX(i);
+      const y = cardY(i);
+      cardPositions.current.set(m.id, { x, y, w: CARD_W, h: CARD_H });
     });
   }
 
-  // ── Drag end: persist new order ──────────────────────────────────────────────
-  async function persistOrder(family: FamilyMember[]) {
-    try {
-      await AsyncStorage.setItem(ORDER_KEY, JSON.stringify(family.map((m) => m.id)));
-    } catch {}
+  // ── During drag: find which card the finger is over ──
+  function handleDragMove(id: string, absX: number, absY: number) {
+    let nearest: string | null = null;
+    let nearestDist = Infinity;
+    cardPositions.current.forEach((pos, cardId) => {
+      if (cardId === id) return;
+      // Center of card in absolute coords (approximate — grid starts ~170px from top)
+      const cx = pos.x + pos.w / 2;
+      const cy = pos.y + pos.h / 2;
+      const dist = Math.sqrt(
+        Math.pow(absX - (H_PAD + cx), 2) + Math.pow(absY - cy, 2)
+      );
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearest = cardId;
+      }
+    });
+    if (nearest !== dropTargetId) {
+      setDropTargetId(nearest);
+      if (nearest) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
   }
 
-  // ── Derived data ─────────────────────────────────────────────────────────────
-  const selfMember = members.find((m) => m.is_self);
-  const familyMembers = members.filter((m) => !m.is_self);
-  const gridData: GridItem[] = [...familyMembers, { id: '__add__' }];
+  // ── Drag end: execute swap ──
+  function handleDragEnd(id: string) {
+    if (dropTargetId && dropTargetId !== id) {
+      setFamilyMembers((prev) => {
+        const arr = [...prev];
+        const fromIdx = arr.findIndex((m) => m.id === id);
+        const toIdx = arr.findIndex((m) => m.id === dropTargetId);
+        if (fromIdx !== -1 && toIdx !== -1) {
+          [arr[fromIdx], arr[toIdx]] = [arr[toIdx], arr[fromIdx]];
+          saveOrder(arr.map((m) => m.id));
+        }
+        return arr;
+      });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    setDraggingId(null);
+    setDropTargetId(null);
+  }
 
-  // ── List header: hero card + section labels ──────────────────────────────────
-  const ListHeader = (
-    <View style={{ paddingTop: 4 }}>
-      <Text style={styles.sectionLabel}>MY HEALTH</Text>
-      {selfMember ? (
-        <HeroCard member={selfMember} onPress={handleCardPress} />
-      ) : null}
-      <Text style={[styles.sectionLabel, { marginTop: SPACING.xl, marginBottom: SPACING.sm }]}>
-        FAMILY MEMBERS
-      </Text>
-    </View>
-  );
+  // ── Card tap → spin-to-fill → navigate ──
+  function handleCardTap(member: FamilyMember, ref: React.RefObject<View>) {
+    if (draggingId) return; // Don't navigate during drag
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    (ref.current as any)?.measureInWindow((x: number, y: number, w: number, h: number) => {
+      setExpandLayout({ x, y, w, h });
+      setExpandingMember(member);
+    });
+  }
 
-  // ── Loading state ─────────────────────────────────────────────────────────────
+  function handleOverlayDone() {
+    if (!expandingMember) return;
+    const m = expandingMember;
+    setExpandingMember(null);
+    setExpandLayout(null);
+    navigation.navigate('MemberProfile', { memberId: m.id, memberName: m.full_name });
+  }
+
+  async function handleDelete(member: FamilyMember) {
+    Alert.alert(
+      'Remove Account',
+      `Remove ${member.full_name}? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            await supabase.from('family_members').delete().eq('id', member.id);
+            fetchData();
+          },
+        },
+      ]
+    );
+  }
+
+  // ── Grid height ──
+  const numItems = familyMembers.length + 1; // +1 for Add card
+  const numRows = Math.ceil(numItems / 2);
+  const gridHeight = numRows * ROW_H - GRID_GAP;
+
   if (loading) {
     return (
       <View style={styles.loadingWrap}>
-        <LinearGradient
-          colors={['rgba(45,106,79,0.09)', '#FAF7F4']}
-          style={StyleSheet.absoluteFill}
-        />
         <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Background gradient */}
+      {/* Gradient background */}
       <LinearGradient
-        colors={['rgba(45,106,79,0.10)', 'rgba(45,106,79,0.03)', '#FAF7F4']}
-        locations={[0, 0.3, 0.65]}
+        colors={['rgba(45,106,79,0.09)', 'rgba(45,106,79,0.03)', '#FAF7F4']}
+        locations={[0, 0.28, 0.55]}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
 
       {/* Header */}
-      <SafeAreaView style={styles.safeHeader}>
+      <SafeAreaView>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>My Accounts</Text>
           <View style={styles.headerActions}>
@@ -384,9 +500,7 @@ export default function FamilyScreen() {
               <Ionicons name="notifications-outline" size={22} color={COLORS.textPrimary} />
               {pendingCount > 0 && (
                 <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
-                    {pendingCount > 9 ? '9+' : String(pendingCount)}
-                  </Text>
+                  <Text style={styles.badgeText}>{pendingCount > 9 ? '9+' : String(pendingCount)}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -404,88 +518,93 @@ export default function FamilyScreen() {
         </View>
       </SafeAreaView>
 
-      {/* Draggable grid */}
-      <DraggableFlatList<GridItem>
-        data={gridData}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.columnWrapper}
-        contentContainerStyle={styles.listContent}
-        ListHeaderComponent={ListHeader}
+      {/* Scrollable content */}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => {
-              setRefreshing(true);
-              fetchData();
-            }}
-            tintColor={COLORS.primary}
-          />
-        }
-        onDragEnd={({ data }) => {
-          const newFamily = data.filter((d): d is FamilyMember => !isAddCard(d));
-          setMembers([...(selfMember ? [selfMember] : []), ...newFamily]);
-          persistOrder(newFamily);
-        }}
-        renderItem={({ item, drag, isActive }: RenderItemParams<GridItem>) => {
-          if (isAddCard(item)) {
-            return (
-              <AddMemberCard
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  navigation.navigate('AddEditMember', {});
-                }}
-              />
-            );
-          }
-          return (
-            <GridCard
-              member={item as FamilyMember}
-              drag={drag}
-              isActive={isActive}
-              onPress={handleCardPress}
-            />
-          );
-        }}
-      />
+      >
+        {/* MY HEALTH — hero card */}
+        <Text style={styles.sectionLabel}>MY HEALTH</Text>
+        {selfMember && <HeroCard member={selfMember} onPress={handleCardTap} />}
 
-      {/* Spin-and-expand overlay */}
-      {overlayVisible && (
-        <Animated.View
-          pointerEvents="none"
-          style={[styles.expandOverlay, { backgroundColor: overlayColor }, overlayStyle]}
+        {/* FAMILY MEMBERS — drag grid */}
+        <Text style={[styles.sectionLabel, { marginTop: SPACING.lg }]}>FAMILY MEMBERS</Text>
+
+        {/* Absolute-positioned grid so each card can animate independently */}
+        <View style={[styles.gridContainer, { height: gridHeight }]}>
+
+          {/* Family member cards */}
+          {familyMembers.map((member, i) => (
+            <SortableCard
+              key={member.id}
+              member={member}
+              index={i}
+              isDropTarget={dropTargetId === member.id}
+              onDragStart={handleDragStart}
+              onDragMove={handleDragMove}
+              onDragEnd={handleDragEnd}
+              onTap={handleCardTap}
+              onDelete={handleDelete}
+            />
+          ))}
+
+          {/* Add card — always in the next available slot */}
+          <TouchableOpacity
+            style={[
+              styles.addCard,
+              {
+                position: 'absolute',
+                left: cardX(familyMembers.length),
+                top: cardY(familyMembers.length),
+                width: CARD_W,
+                height: CARD_H,
+              },
+            ]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              navigation.navigate('AddEditMember', {});
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.addIcon}>
+              <Ionicons name="add" size={22} color={COLORS.primary} />
+            </View>
+            <Text style={styles.addLabel}>Add Family{'\n'}Member</Text>
+          </TouchableOpacity>
+
+        </View>
+      </ScrollView>
+
+      {/* Spin-to-fill overlay */}
+      {expandingMember && expandLayout && (
+        <ExpandOverlay
+          member={expandingMember}
+          layout={expandLayout}
+          onDone={handleOverlayDone}
         />
       )}
 
-      {/* Notifications drawer */}
       <NotificationsDrawer
         visible={notifVisible}
         onClose={() => setNotifVisible(false)}
         onCountChange={(count) => setPendingCount(count)}
       />
 
-      {/* 3-dot dropdown */}
-      <Modal
-        visible={showDotMenu}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowDotMenu(false)}
-      >
+      {/* 3-dot menu */}
+      <Modal visible={showDotMenu} transparent animationType="fade" onRequestClose={() => setShowDotMenu(false)}>
         <Pressable style={dotMenu.backdrop} onPress={() => setShowDotMenu(false)}>
           <View style={dotMenu.menu}>
             <TouchableOpacity
               style={dotMenu.item}
-              activeOpacity={0.7}
               onPress={() => {
-                const self = members.filter((m) => m.is_self);
-                const sorted = [...members.filter((m) => !m.is_self)].sort((a, b) =>
-                  a.full_name.localeCompare(b.full_name)
-                );
-                setMembers([...self, ...sorted]);
-                persistOrder(sorted);
+                setFamilyMembers((p) => {
+                  const arr = [...p].sort((a, b) => a.full_name.localeCompare(b.full_name));
+                  saveOrder(arr.map((m) => m.id));
+                  return arr;
+                });
                 setShowDotMenu(false);
               }}
+              activeOpacity={0.7}
             >
               <Ionicons name="text-outline" size={16} color={COLORS.textPrimary} />
               <Text style={dotMenu.itemText}>Sort by Name</Text>
@@ -493,18 +612,19 @@ export default function FamilyScreen() {
             <View style={dotMenu.divider} />
             <TouchableOpacity
               style={dotMenu.item}
-              activeOpacity={0.7}
               onPress={() => {
-                const self = members.filter((m) => m.is_self);
-                const sorted = [...members.filter((m) => !m.is_self)].sort((a, b) => {
-                  const tA = a.dob ? new Date(a.dob).getTime() : 0;
-                  const tB = b.dob ? new Date(b.dob).getTime() : 0;
-                  return tA - tB;
+                setFamilyMembers((p) => {
+                  const arr = [...p].sort((a, b) => {
+                    const at = a.dob ? new Date(a.dob).getTime() : 0;
+                    const bt = b.dob ? new Date(b.dob).getTime() : 0;
+                    return at - bt;
+                  });
+                  saveOrder(arr.map((m) => m.id));
+                  return arr;
                 });
-                setMembers([...self, ...sorted]);
-                persistOrder(sorted);
                 setShowDotMenu(false);
               }}
+              activeOpacity={0.7}
             >
               <Ionicons name="calendar-outline" size={16} color={COLORS.textPrimary} />
               <Text style={dotMenu.itemText}>Sort by Age</Text>
@@ -516,300 +636,150 @@ export default function FamilyScreen() {
   );
 }
 
-// ─── Styles ────────────────────────────────────────────────────────────────────
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background },
-  safeHeader: { backgroundColor: 'transparent' },
+  root: { flex: 1, backgroundColor: '#FAF7F4' },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FAF7F4' },
+
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: H_PAD,
-    paddingTop: SPACING.sm,
-    paddingBottom: SPACING.md,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: H_PAD, paddingTop: SPACING.sm, paddingBottom: SPACING.md,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1A2E1F',
-    letterSpacing: -0.6,
+    fontSize: 28, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.6,
   },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
+  headerActions: { flexDirection: 'row', gap: 4 },
   iconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 38, height: 38, borderRadius: 19,
     backgroundColor: 'rgba(45,106,79,0.08)',
-    position: 'relative',
+    alignItems: 'center', justifyContent: 'center', position: 'relative',
   },
   badge: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
-    minWidth: 15,
-    height: 15,
-    borderRadius: 8,
-    backgroundColor: '#E53E3E',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-    borderWidth: 1.5,
-    borderColor: COLORS.background,
+    position: 'absolute', top: 5, right: 5, minWidth: 15, height: 15, borderRadius: 8,
+    backgroundColor: '#E53E3E', alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 2, borderWidth: 1.5, borderColor: '#FAF7F4',
   },
   badgeText: { fontSize: 8, fontWeight: '700', color: '#fff' },
+
+  scrollContent: { paddingHorizontal: H_PAD, paddingBottom: 120 },
+
   sectionLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#8A9E8D',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    marginBottom: SPACING.sm,
-    paddingLeft: 2,
+    fontSize: 11, fontWeight: '700', color: '#8a9e8d',
+    letterSpacing: 1.2, textTransform: 'uppercase',
+    marginBottom: SPACING.sm, paddingLeft: 2,
   },
-  listContent: {
-    paddingHorizontal: H_PAD,
-    paddingBottom: 110,
-  },
-  columnWrapper: {
-    gap: GRID_GAP,
-    marginBottom: GRID_GAP,
-  },
-  expandOverlay: {
-    position: 'absolute',
-    zIndex: 999,
-  },
-});
 
-// ─── Hero card styles ──────────────────────────────────────────────────────────
-const hero = StyleSheet.create({
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: 'rgba(45,106,79,0.10)',
-    paddingVertical: 18,
-    paddingHorizontal: 18,
-    gap: 14,
-    marginBottom: 4,
-    overflow: 'hidden',
-    // shadow
-    shadowColor: '#2D6A4F',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.09,
-    shadowRadius: 16,
-    elevation: 3,
+  // ── Hero card ──
+  heroCard: {
+    borderRadius: 24, backgroundColor: '#fff',
+    borderWidth: 1, borderColor: 'rgba(45,106,79,0.10)',
+    overflow: 'hidden', marginBottom: SPACING.lg,
+    shadowColor: '#2D6A4F', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10, shadowRadius: 20, elevation: 4,
   },
-  glowBlob: {
-    position: 'absolute',
-    top: -30,
-    right: -30,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(45,106,79,0.07)',
+  heroGlow: {
+    position: 'absolute', top: -40, right: -40, width: 140, height: 140,
+    borderRadius: 70, backgroundColor: 'rgba(45,106,79,0.06)',
   },
-  photo: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    flexShrink: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
+  heroInner: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 16 },
+  heroAvatar: {
+    width: 72, height: 72, borderRadius: 36,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    shadowColor: '#2D6A4F', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.30, shadowRadius: 10,
   },
-  avatar: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.30,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  avatarText: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: -0.5,
-  },
-  info: { flex: 1 },
-  name: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1A2E1F',
-    letterSpacing: -0.3,
-    marginBottom: 3,
-  },
-  dob: {
-    fontSize: 13,
-    color: '#5A7A62',
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  tagRow: { flexDirection: 'row', gap: 6 },
+  heroPhoto: { width: 72, height: 72, borderRadius: 36, flexShrink: 0 },
+  heroAvatarText: { fontSize: 26, fontWeight: '800', color: '#fff', letterSpacing: -1 },
+  heroInfo: { flex: 1 },
+  heroName: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, letterSpacing: -0.4, marginBottom: 4 },
+  heroDob: { fontSize: 13, color: '#5a7a62', fontWeight: '500', marginBottom: 8 },
+  heroTagRow: { flexDirection: 'row' },
   tagSelf: {
-    backgroundColor: 'rgba(45,106,79,0.10)',
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-    borderRadius: 20,
+    backgroundColor: 'rgba(45,106,79,0.10)', paddingHorizontal: 10,
+    paddingVertical: 3, borderRadius: 20,
   },
-  tagSelfText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.primary,
-  },
-});
+  tagSelfText: { fontSize: 11, fontWeight: '700', color: COLORS.primary },
 
-// ─── Grid card styles ──────────────────────────────────────────────────────────
-const grid = StyleSheet.create({
-  card: {
-    width: CARD_W,
-    backgroundColor: 'rgba(255,255,255,0.94)',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(45,106,79,0.08)',
+  // ── Grid ──
+  gridContainer: { width: '100%', position: 'relative' },
+
+  gridCard: {
+    backgroundColor: '#fff', borderRadius: 20,
+    borderWidth: 1, borderColor: 'rgba(45,106,79,0.08)',
+    shadowColor: '#2D6A4F', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06, shadowRadius: 12, elevation: 2,
     overflow: 'hidden',
-    shadowColor: '#2D6A4F',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.07,
-    shadowRadius: 12,
-    elevation: 2,
   },
-  cardActive: {
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.22,
-    shadowRadius: 20,
-    elevation: 8,
-    borderColor: 'rgba(45,106,79,0.20)',
+  gridCardTarget: {
+    borderColor: COLORS.primary, borderWidth: 2,
+    shadowOpacity: 0.20, shadowRadius: 20,
   },
-  inner: {
-    padding: 14,
-    alignItems: 'center',
-    gap: 8,
-    position: 'relative',
-    minHeight: 140,
-    justifyContent: 'center',
+  gridCardInner: {
+    flex: 1, padding: 14, alignItems: 'center',
+    justifyContent: 'center', gap: 8,
   },
-  glimmer: {
-    position: 'absolute',
-    top: -18,
-    right: -18,
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(45,106,79,0.045)',
-  },
-  photo: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.10,
-    shadowRadius: 5,
-  },
-  avatar: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+  gridAvatar: {
+    width: 58, height: 58, borderRadius: 29,
     backgroundColor: 'rgba(45,106,79,0.10)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: COLORS.primary,
-    letterSpacing: -0.3,
+  gridPhoto: { width: 58, height: 58, borderRadius: 29 },
+  gridAvatarText: { fontSize: 20, fontWeight: '800', color: COLORS.primary },
+  gridName: {
+    fontSize: 14, fontWeight: '700', color: COLORS.textPrimary,
+    textAlign: 'center', letterSpacing: -0.2, lineHeight: 18,
   },
-  name: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1A2E1F',
-    textAlign: 'center',
-    letterSpacing: -0.1,
-    lineHeight: 17,
-  },
-  dob: {
-    fontSize: 11,
-    color: '#8A9E8D',
-    fontWeight: '500',
-    textAlign: 'center',
-  },
+  gridDob: { fontSize: 11, color: '#8a9e8d', fontWeight: '500', textAlign: 'center' },
+
+  // ── Add card ──
   addCard: {
-    width: CARD_W,
-    minHeight: 140,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: 'rgba(45,106,79,0.22)',
-    backgroundColor: 'rgba(45,106,79,0.03)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    borderRadius: 20, borderWidth: 1.5, borderStyle: 'dashed',
+    borderColor: 'rgba(45,106,79,0.22)', backgroundColor: 'rgba(45,106,79,0.03)',
+    alignItems: 'center', justifyContent: 'center', gap: 6,
   },
-  addCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  addIcon: {
+    width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(45,106,79,0.10)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
-  addLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.primary,
-    textAlign: 'center',
-    lineHeight: 17,
+  addLabel: { fontSize: 12, fontWeight: '600', color: COLORS.primary, textAlign: 'center', lineHeight: 16 },
+
+  // ── Expand overlay ──
+  overlay: {
+    position: 'absolute', zIndex: 999,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center', justifyContent: 'center',
   },
+  overlayContent: { alignItems: 'center', gap: 16 },
+  overlayPhoto: {
+    width: 80, height: 80, borderRadius: 40,
+    borderWidth: 3, borderColor: 'rgba(255,255,255,0.6)',
+  },
+  overlayAvatar: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)',
+  },
+  overlayAvatarText: { fontSize: 28, fontWeight: '800', color: '#fff' },
+  overlayName: { fontSize: 20, fontWeight: '700', color: '#fff', letterSpacing: -0.4 },
 });
 
-// ─── 3-dot menu styles ─────────────────────────────────────────────────────────
 const dotMenu = StyleSheet.create({
   backdrop: { flex: 1 },
   menu: {
-    position: 'absolute',
-    top: 96,
-    right: H_PAD,
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.13,
-    shadowRadius: 20,
-    elevation: 12,
-    minWidth: 180,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    position: 'absolute', top: 92, right: H_PAD,
+    backgroundColor: '#fff', borderRadius: 12,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.14, shadowRadius: 20, elevation: 12,
+    minWidth: 180, overflow: 'hidden',
+    borderWidth: 1, borderColor: COLORS.border,
   },
   item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    paddingVertical: SPACING.base,
-    paddingHorizontal: SPACING.base,
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.md,
+    paddingVertical: SPACING.base, paddingHorizontal: SPACING.base,
   },
-  itemText: {
-    ...FONTS.body,
-    color: COLORS.textPrimary,
-    fontWeight: '500',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginHorizontal: SPACING.sm,
-  },
+  itemText: { ...FONTS.body, color: COLORS.textPrimary, fontWeight: '500' },
+  divider: { height: 1, backgroundColor: COLORS.border, marginHorizontal: SPACING.sm },
 });

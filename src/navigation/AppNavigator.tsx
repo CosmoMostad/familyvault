@@ -55,7 +55,7 @@ function MainTabs() {
           paddingBottom: Platform.OS === 'ios' ? 24 : 8,
           paddingTop: 8,
         },
-        tabBarActiveTintColor: '#52B788',
+        tabBarActiveTintColor: '#FFFFFF',
         tabBarInactiveTintColor: '#F2FAF5',
         tabBarLabelStyle: {
           fontSize: 11,

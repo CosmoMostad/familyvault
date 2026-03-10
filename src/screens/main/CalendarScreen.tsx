@@ -1700,6 +1700,8 @@ export default function CalendarScreen() {
   const [showSettings, setShowSettings] = useState(false);
   const [showSwitcher, setShowSwitcher] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showPast, setShowPast] = useState(false);
 
   useFocusEffect(useCallback(() => { loadAll(); }, [session]));
 
@@ -1810,10 +1812,14 @@ export default function CalendarScreen() {
     ? events
     : events.filter(e => e.calendar_id === selectedCalendarId);
 
+  const dateFilteredEvents = selectedDate
+    ? filteredEvents.filter(e => toDateKey(e.date_time) === toDateKey(selectedDate.toISOString()))
+    : filteredEvents;
+
   const now = new Date();
   // Past: chronological order (oldest at top, most recent closest to upcoming)
-  const past = filteredEvents.filter(e => new Date(e.date_time) < now);
-  const upcoming = filteredEvents.filter(e => new Date(e.date_time) >= now);
+  const past = dateFilteredEvents.filter(e => new Date(e.date_time) < now);
+  const upcoming = dateFilteredEvents.filter(e => new Date(e.date_time) >= now);
   const upcomingGroups = groupByDate(upcoming);
   const upcomingDates = Object.keys(upcomingGroups).sort();
   const selectedCalendar = calendars.find(c => c.id === selectedCalendarId);
@@ -1852,6 +1858,11 @@ export default function CalendarScreen() {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Calendar</Text>
           <View style={styles.headerActions}>
+            {selectedDate !== null && (
+              <TouchableOpacity onPress={() => setSelectedDate(null)} style={{paddingHorizontal:8,paddingVertical:4}}>
+                <Text style={{fontSize:13,fontWeight:'700',color:'#52B788'}}>Today</Text>
+              </TouchableOpacity>
+            )}
             {/* Bell — always shown, opens join modal */}
             <TouchableOpacity style={styles.iconBtn} onPress={() => setShowJoin(true)}>
               <Ionicons name="notifications-outline" size={22} color={'#F2FAF5'} />
@@ -1869,26 +1880,67 @@ export default function CalendarScreen() {
           </View>
         </View>
 
-        {/* Tappable calendar bar — always shown when user has calendars */}
+        {/* Calendar switcher row */}
         {hasCalendars && (
           <TouchableOpacity
-            style={styles.calBar}
             onPress={() => setShowSwitcher(true)}
             activeOpacity={0.7}
+            style={{flexDirection:'row',alignItems:'center',gap:6,paddingHorizontal:24,paddingBottom:6}}
           >
-            <View style={[styles.calDot, {
-              backgroundColor: selectedCalendarId === 'all'
-                ? COLORS.textTertiary
-                : (calendars.find(c => c.id === selectedCalendarId)?.color ?? COLORS.primary)
-            }]} />
-            <Text style={styles.calBarText}>
+            <Ionicons name="calendar-outline" size={13} color="rgba(237,247,241,0.50)" />
+            <Text style={{fontSize:13,fontWeight:'600',color:'rgba(237,247,241,0.60)'}}>
               {selectedCalendarId === 'all'
                 ? 'All Calendars'
                 : (calendars.find(c => c.id === selectedCalendarId)?.title ?? 'Calendar')}
             </Text>
-            <Ionicons name="chevron-down" size={16} color={'rgba(242,250,245,0.80)'} />
+            <Ionicons name="chevron-down" size={12} color="rgba(237,247,241,0.40)" />
           </TouchableOpacity>
         )}
+
+        {/* Week strip */}
+        {hasCalendars && (() => {
+          const today = new Date();
+          const days: Date[] = [];
+          for (let i = -3; i <= 3; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() + i);
+            days.push(d);
+          }
+          const dayAbbrevs = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+          return (
+            <View style={{backgroundColor:'rgba(255,255,255,0.03)',paddingVertical:12,paddingHorizontal:8}}>
+              <View style={{flexDirection:'row',justifyContent:'space-around'}}>
+                {days.map((day, idx) => {
+                  const isToday = toDateKey(day.toISOString()) === toDateKey(today.toISOString());
+                  const isSelected = selectedDate !== null && toDateKey(day.toISOString()) === toDateKey(selectedDate.toISOString());
+                  const dayISO = day.toISOString();
+                  const hasEvent = filteredEvents.some(e => toDateKey(e.date_time) === toDateKey(dayISO));
+                  return (
+                    <TouchableOpacity
+                      key={idx}
+                      onPress={() => {
+                        if (isSelected) setSelectedDate(null);
+                        else setSelectedDate(day);
+                      }}
+                      style={{
+                        width:44,alignItems:'center',paddingVertical:6,borderRadius:14,
+                        ...(isSelected ? {backgroundColor:'rgba(82,183,136,0.20)',borderWidth:1.5,borderColor:'#52B788'} : {}),
+                      }}
+                    >
+                      <Text style={{fontSize:10,fontWeight:'600',color:isSelected ? 'rgba(237,247,241,0.70)' : isToday ? 'rgba(237,247,241,0.70)' : 'rgba(237,247,241,0.40)'}}>
+                        {dayAbbrevs[day.getDay()]}
+                      </Text>
+                      <Text style={{fontSize:20,fontWeight:'800',color:isSelected ? '#52B788' : isToday ? '#EDF7F1' : 'rgba(237,247,241,0.60)'}}>
+                        {day.getDate()}
+                      </Text>
+                      {hasEvent && <View style={{width:6,height:6,borderRadius:3,backgroundColor:'#52B788',marginTop:3}} />}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          );
+        })()}
 
       </SafeAreaView>
 
@@ -1905,38 +1957,44 @@ export default function CalendarScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadAll(); }} tintColor={'#52B788'} />}
         >
-          {/* ── Past appointments (scroll UP to find) ── */}
+          {/* ── Past appointments (collapsible) ── */}
           {past.length > 0 && (
-            <View style={styles.pastSection} onLayout={handlePastLayout}>
-              <Text style={styles.pastLabel}>PAST APPOINTMENTS</Text>
-              {past.map(evt => {
+            <View onLayout={handlePastLayout}>
+              <TouchableOpacity onPress={()=>setShowPast(v=>!v)} style={{backgroundColor:'rgba(255,255,255,0.04)',borderRadius:12,padding:12,marginBottom:16,flexDirection:'row',alignItems:'center',gap:8}}>
+                <Ionicons name='time-outline' size={16} color='rgba(237,247,241,0.40)'/>
+                <Text style={{fontSize:13,fontWeight:'600',color:'rgba(237,247,241,0.55)',flex:1}}>{past.length} past appointment{past.length!==1?'s':''} — tap to {showPast?'hide':'expand'}</Text>
+                <Ionicons name={showPast?'chevron-up':'chevron-down'} size={14} color='rgba(237,247,241,0.40)'/>
+              </TouchableOpacity>
+              {showPast && <View style={{opacity:0.6}}>{past.map(evt=>{
                 const cal = calendars.find(c => c.id === evt.calendar_id);
                 return (
                   <TouchableOpacity
                     key={evt.id}
-                    style={[styles.eventCard, styles.eventCardPast]}
+                    style={{backgroundColor:'rgba(255,255,255,0.06)',borderRadius:18,marginBottom:10,borderWidth:1,borderColor:'rgba(255,255,255,0.08)',overflow:'hidden'}}
                     activeOpacity={0.8}
                     onPress={() => setSelectedEvent(evt)}
                   >
-                    <View style={[styles.eventColorBar, { backgroundColor: COLORS.border }]} />
-                    <View style={styles.eventBody}>
-                      {calendars.length > 1 && cal && (
-                        <Text style={styles.eventCalName}>{cal.title}</Text>
-                      )}
-                      <Text style={[styles.eventTitle, { color: 'rgba(242,250,245,0.80)' }]}>{evt.title}</Text>
-                      <Text style={styles.eventTime}>
-                        {formatDateHeader(toDateKey(evt.date_time))} · {formatTime(evt.date_time)}
-                      </Text>
+                    <View style={{flexDirection:'row',alignItems:'flex-start'}}>
+                      <View style={{width:4,alignSelf:'stretch',marginRight:14,backgroundColor:'rgba(255,255,255,0.15)'}} />
+                      <View style={{flex:1,paddingVertical:14,paddingRight:14}}>
+                        {calendars.length > 1 && cal && (
+                          <Text style={{fontSize:10,fontWeight:'700',color:'rgba(237,247,241,0.40)',letterSpacing:0.8,textTransform:'uppercase',marginBottom:4}}>{cal.title}</Text>
+                        )}
+                        <Text style={{fontSize:17,fontWeight:'800',color:'#EDF7F1',letterSpacing:-0.3,marginBottom:8}}>{evt.title}</Text>
+                        <View style={{backgroundColor:'rgba(82,183,136,0.15)',borderRadius:20,paddingHorizontal:10,paddingVertical:3,alignSelf:'flex-start'}}>
+                          <Text style={{fontSize:12,fontWeight:'700',color:'#52B788'}}>{formatTime(evt.date_time)}</Text>
+                        </View>
+                        {evt.location ? (
+                          <View style={{flexDirection:'row',alignItems:'center',gap:4,marginTop:6}}>
+                            <Ionicons name="location-outline" size={12} color="rgba(237,247,241,0.40)" />
+                            <Text style={{fontSize:12,color:'rgba(237,247,241,0.40)'}}>{evt.location}</Text>
+                          </View>
+                        ) : null}
+                      </View>
                     </View>
                   </TouchableOpacity>
                 );
-              })}
-              {/* Divider separating past from upcoming */}
-              <View style={styles.todayDivider}>
-                <View style={styles.todayLine} />
-                <Text style={styles.todayLabel}>UPCOMING</Text>
-                <View style={styles.todayLine} />
-              </View>
+              })}</View>}
             </View>
           )}
 
@@ -1944,41 +2002,48 @@ export default function CalendarScreen() {
           {/* minHeight ensures past section is always scrollable off the top */}
           <View style={{ minHeight: Dimensions.get('window').height }}>
           {upcoming.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="calendar-outline" size={48} color={'rgba(242,250,245,0.55)'} />
-              <Text style={styles.emptyTitle}>No upcoming appointments</Text>
-              <TouchableOpacity style={styles.addLink} onPress={() => setShowAddModal(true)}>
-                <Ionicons name="add-circle-outline" size={16} color={'#52B788'} />
-                <Text style={styles.addLinkText}>Add your first appointment</Text>
-              </TouchableOpacity>
+            <View style={{alignItems:'center',paddingTop:60,gap:12}}>
+              <View style={{width:80,height:80,borderRadius:40,backgroundColor:'rgba(255,255,255,0.04)',alignItems:'center',justifyContent:'center'}}>
+                <Ionicons name='calendar-outline' size={36} color='rgba(237,247,241,0.25)'/>
+              </View>
+              <Text style={{fontSize:16,fontWeight:'600',color:'rgba(237,247,241,0.40)'}}>No appointments</Text>
+              <Text style={{fontSize:13,color:'rgba(237,247,241,0.30)'}}>Tap + to add one</Text>
             </View>
           ) : (
             upcomingDates.map(dateKey => (
               <View key={dateKey}>
-                <Text style={styles.dateHeader}>{formatDateHeader(dateKey)}</Text>
+                <View style={{flexDirection:'row',alignItems:'center',gap:8,paddingTop:24,paddingBottom:8}}>
+                  <View style={{flex:1,height:1,backgroundColor:'rgba(255,255,255,0.07)'}}/>
+                  <Text style={{fontSize:11,fontWeight:'700',color:'rgba(237,247,241,0.40)',textTransform:'uppercase',letterSpacing:1.2}}>{formatDateHeader(dateKey)}</Text>
+                  <View style={{flex:1,height:1,backgroundColor:'rgba(255,255,255,0.07)'}}/>
+                </View>
                 {upcomingGroups[dateKey].map(evt => {
                   const cal = calendars.find(c => c.id === evt.calendar_id);
                   return (
                     <TouchableOpacity
                       key={evt.id}
-                      style={styles.eventCard}
+                      style={{backgroundColor:'rgba(255,255,255,0.06)',borderRadius:18,marginBottom:10,borderWidth:1,borderColor:'rgba(255,255,255,0.08)',overflow:'hidden'}}
                       activeOpacity={0.8}
                       onPress={() => setSelectedEvent(evt)}
                     >
-                      <View style={[styles.eventColorBar, { backgroundColor: cal?.color ?? COLORS.primary }]} />
-                      <View style={styles.eventBody}>
-                        {calendars.length > 1 && cal && (
-                          <Text style={styles.eventCalName}>{cal.title}</Text>
-                        )}
-                        <Text style={styles.eventTitle}>{evt.title}</Text>
-                        <View style={styles.eventMeta}>
-                          <Text style={styles.eventTime}>{formatTime(evt.date_time)}</Text>
+                      <View style={{flexDirection:'row',alignItems:'flex-start'}}>
+                        <View style={{width:4,alignSelf:'stretch',marginRight:14,backgroundColor:cal?.color ?? '#52B788'}} />
+                        <View style={{flex:1,paddingVertical:14,paddingRight:14}}>
+                          {calendars.length > 1 && cal && (
+                            <Text style={{fontSize:10,fontWeight:'700',color:'rgba(237,247,241,0.40)',letterSpacing:0.8,textTransform:'uppercase',marginBottom:4}}>{cal.title}</Text>
+                          )}
+                          <Text style={{fontSize:17,fontWeight:'800',color:'#EDF7F1',letterSpacing:-0.3,marginBottom:8}}>{evt.title}</Text>
+                          <View style={{backgroundColor:'rgba(82,183,136,0.15)',borderRadius:20,paddingHorizontal:10,paddingVertical:3,alignSelf:'flex-start'}}>
+                            <Text style={{fontSize:12,fontWeight:'700',color:'#52B788'}}>{formatTime(evt.date_time)}</Text>
+                          </View>
                           {evt.location ? (
-                            <><Text style={styles.metaDot}>·</Text><Text style={styles.eventMetaText}>{evt.location}</Text></>
+                            <View style={{flexDirection:'row',alignItems:'center',gap:4,marginTop:6}}>
+                              <Ionicons name="location-outline" size={12} color="rgba(237,247,241,0.40)" />
+                              <Text style={{fontSize:12,color:'rgba(237,247,241,0.40)'}}>{evt.location}</Text>
+                            </View>
                           ) : null}
                         </View>
                       </View>
-                      <Ionicons name="chevron-forward" size={16} color={'rgba(242,250,245,0.55)'} />
                     </TouchableOpacity>
                   );
                 })}

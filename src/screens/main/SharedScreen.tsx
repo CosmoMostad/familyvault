@@ -51,42 +51,27 @@ function SharedCard({ share }: { share: AcceptedShare }) {
   if (share.member_blood_type) metaParts.push(share.member_blood_type);
   const meta = metaParts.join(' · ');
   const canEdit = share.access_level === 'edit';
-
   return (
-    <TouchableOpacity
-      style={styles.card}
-      activeOpacity={0.8}
-      onPress={() => navigation.navigate('MemberProfile', {
-        memberId: share.account_id,
-        memberName: share.member_name,
-      })}
-    >
-      {/* Green left accent bar */}
-      <View style={styles.cardAccent} />
-
-      <View style={styles.cardRow}>
-        {share.member_photo ? (
-          <Image source={{ uri: share.member_photo }} style={styles.avatar} />
-        ) : (
-          <LinearGradient
-            colors={['rgba(82,183,136,0.30)', 'rgba(45,106,79,0.20)']}
-            style={styles.avatarPlaceholder}
-          >
-            <Text style={styles.avatarText}>{getInitials(share.member_name)}</Text>
+    <TouchableOpacity style={{backgroundColor:'rgba(255,255,255,0.06)',borderRadius:20,borderWidth:1,borderColor:'rgba(255,255,255,0.09)',padding:16,marginBottom:12,overflow:'hidden'}} activeOpacity={0.8} onPress={()=>navigation.navigate('MemberProfile',{memberId:share.account_id,memberName:share.member_name})}>
+      <View style={{flexDirection:'row',alignItems:'flex-start',gap:14}}>
+        {share.member_photo?(
+          <Image source={{uri:share.member_photo}} style={{width:64,height:64,borderRadius:32,borderWidth:2,borderColor:'rgba(82,183,136,0.25)'}}/>
+        ):(
+          <LinearGradient colors={['rgba(82,183,136,0.30)','rgba(45,106,79,0.20)']} style={{width:64,height:64,borderRadius:32,borderWidth:2,borderColor:'rgba(82,183,136,0.25)',alignItems:'center',justifyContent:'center'}}>
+            <Text style={{fontSize:22,fontWeight:'800',color:'#52B788'}}>{getInitials(share.member_name)}</Text>
           </LinearGradient>
         )}
-
-        <View style={styles.cardInfo}>
-          <Text style={styles.cardName}>{share.member_name}</Text>
-          {meta ? <Text style={styles.cardMeta}>{meta}</Text> : null}
-          <Text style={styles.sharedBy}>Shared by {share.owner_name}</Text>
+        <View style={{flex:1}}>
+          <Text style={{fontSize:17,fontWeight:'800',color:'#EDF7F1',letterSpacing:-0.3,marginBottom:4}}>{share.member_name}</Text>
+          {meta?<Text style={{fontSize:13,color:'rgba(237,247,241,0.55)',marginBottom:6}}>{meta}</Text>:null}
+          <View style={{backgroundColor:canEdit?'rgba(82,183,136,0.12)':'rgba(255,255,255,0.07)',borderRadius:8,paddingHorizontal:8,paddingVertical:3,alignSelf:'flex-start'}}>
+            <Text style={{fontSize:11,fontWeight:'700',color:canEdit?'#52B788':'rgba(237,247,241,0.60)'}}>{canEdit?'Editor':'Viewer'}</Text>
+          </View>
         </View>
-
-        <View style={[styles.accessBadge, canEdit ? styles.badgeEdit : styles.badgeView]}>
-          <Text style={[styles.accessBadgeText, canEdit ? styles.badgeEditText : styles.badgeViewText]}>
-            {canEdit ? 'Editor' : 'Viewer'}
-          </Text>
-        </View>
+      </View>
+      <View style={{borderTopWidth:1,borderTopColor:'rgba(255,255,255,0.06)',paddingTop:10,marginTop:10,flexDirection:'row',alignItems:'center',gap:5}}>
+        <Ionicons name='person-circle-outline' size={13} color='rgba(237,247,241,0.35)'/>
+        <Text style={{fontSize:12,color:'rgba(237,247,241,0.35)',fontWeight:'500'}}>Shared by {share.owner_name}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -205,8 +190,8 @@ export default function SharedScreen() {
               { icon: 'people-outline', text: 'Accepted accounts appear here for easy access' },
             ].map(({ icon, text }, i) => (
               <View key={i} style={styles.howToRow}>
-                <View style={styles.howToNum}>
-                  <Ionicons name={icon as any} size={14} color={COLORS.primary} />
+                <View style={{width:24,height:24,borderRadius:12,backgroundColor:'rgba(82,183,136,0.15)',alignItems:'center',justifyContent:'center'}}>
+                  <Text style={{fontSize:12,fontWeight:'800',color:'#52B788'}}>{i+1}</Text>
                 </View>
                 <Text style={styles.howToText}>{text}</Text>
               </View>
@@ -260,7 +245,7 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 8, fontWeight: '700', color: '#fff' },
 
   sectionLabel: {
-    fontSize: 11, fontWeight: '700', color: COLORS.primary,
+    fontSize: 11, fontWeight: '700', color: 'rgba(237,247,241,0.40)',
     letterSpacing: 1.4, textTransform: 'uppercase',
   },
 

@@ -121,7 +121,7 @@ function Row({
 const row = StyleSheet.create({
   row: {
     flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 14, paddingHorizontal: SPACING.base, gap: SPACING.md,
+    paddingVertical: 16, paddingHorizontal: SPACING.base, gap: SPACING.md,
   },
   divider: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
   iconBg: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
@@ -235,9 +235,7 @@ export default function SettingsScreen() {
                 <Text style={styles.profileName}>{profile.full_name}</Text>
                 {userEmail ? <Text style={styles.profileEmail}>{userEmail}</Text> : null}
               </View>
-              <View style={styles.profileBadge}>
-                <Text style={styles.profileBadgeText}>Free</Text>
-              </View>
+
             </View>
           )}
 
@@ -245,13 +243,13 @@ export default function SettingsScreen() {
           <Text style={styles.sectionLabel}>ACCOUNT</Text>
           <View style={styles.card}>
             <Row
-              icon="mail-outline" iconColor={COLORS.primary}
+              icon="mail-outline" iconColor='#60A5FA'
               label="Change Email"
               value={userEmail ? userEmail.split('@')[0] + '…' : ''}
               onPress={() => { setNewEmail(''); setShowEmailModal(true); }}
             />
             <Row
-              icon="lock-closed-outline" iconColor={COLORS.primaryLight}
+              icon="lock-closed-outline" iconColor='#F59E0B'
               label="Change Password"
               onPress={() => { setNewPassword(''); setConfirmPassword(''); setShowPasswordModal(true); }}
               isLast
@@ -262,7 +260,7 @@ export default function SettingsScreen() {
           <Text style={styles.sectionLabel}>APP</Text>
           <View style={styles.card}>
             <Row
-              icon="notifications-outline" iconColor={COLORS.primary}
+              icon="notifications-outline" iconColor='#A78BFA'
               label="Appointment Reminders"
               rightElement={
                 <Switch
@@ -274,12 +272,12 @@ export default function SettingsScreen() {
               }
             />
             <Row
-              icon="star-outline" iconColor="#F59E0B"
+              icon="star-outline" iconColor='#FBBF24'
               label="Rate Wren Health"
               onPress={() => Linking.openURL('https://apps.apple.com')}
             />
             <Row
-              icon="share-outline" iconColor={COLORS.primary}
+              icon="share-outline" iconColor='#34D399'
               label="Share with a Friend"
               onPress={() => Share.share({ message: 'Check out Wren Health — a family health manager app: https://wrenhealth.app' })}
               isLast
@@ -289,8 +287,8 @@ export default function SettingsScreen() {
           {/* Support */}
           <Text style={styles.sectionLabel}>SUPPORT</Text>
           <View style={styles.card}>
-            <Row icon="help-circle-outline" iconColor={COLORS.primary} label="Help & FAQ" onPress={() => Linking.openURL('https://wrenhealth.app/help')} />
-            <Row icon="chatbubble-ellipses-outline" iconColor={COLORS.primaryLight} label="Contact Support" onPress={() => Linking.openURL('mailto:support@wrenhealth.app')} />
+            <Row icon="help-circle-outline" iconColor='#60A5FA' label="Help & FAQ" onPress={() => Linking.openURL('https://wrenhealth.app/help')} />
+            <Row icon="chatbubble-ellipses-outline" iconColor='#93C5FD' label="Contact Support" onPress={() => Linking.openURL('mailto:support@wrenhealth.app')} />
             <Row icon="shield-checkmark-outline" iconColor={COLORS.primary} label="Privacy Policy" onPress={() => Linking.openURL('https://wrenhealth.app/privacy')} />
             <Row icon="document-text-outline" iconColor="rgba(237,247,241,0.5)" label="Terms of Service" onPress={() => Linking.openURL('https://wrenhealth.app/terms')} isLast />
           </View>
@@ -344,30 +342,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)',
     flexDirection: 'row', alignItems: 'center',
-    padding: SPACING.base, marginBottom: SPACING.xl, gap: SPACING.md,
+    padding: 20, marginBottom: SPACING.xl, gap: SPACING.md,
     shadowColor: 'rgba(82,183,136,0.25)', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 1, shadowRadius: 16, elevation: 6,
   },
   profileAvatar: {
-    width: 52, height: 52, borderRadius: 26,
+    width: 64, height: 64, borderRadius: 32,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.5, shadowRadius: 10,
+    shadowColor: '#52B788', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35, shadowRadius: 14,
   },
   profileAvatarText: { fontSize: 18, fontWeight: '800', color: '#090D0B', letterSpacing: -0.5 },
-  profileName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, letterSpacing: -0.2 },
+  profileName: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.3 },
   profileEmail: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
-  profileBadge: {
-    backgroundColor: 'rgba(82,183,136,0.12)',
-    borderRadius: 20, paddingHorizontal: SPACING.md, paddingVertical: 4,
-    borderWidth: 1, borderColor: 'rgba(82,183,136,0.25)',
-  },
-  profileBadgeText: { fontSize: 12, color: COLORS.primary, fontWeight: '700' },
 
   sectionLabel: {
-    fontSize: 11, fontWeight: '700', color: COLORS.primary,
+    fontSize: 11, fontWeight: '700', color: 'rgba(237,247,241,0.40)',
     letterSpacing: 1.4, textTransform: 'uppercase',
-    marginBottom: SPACING.sm, marginTop: SPACING.base, paddingLeft: 2,
+    marginBottom: SPACING.sm, marginTop: 32, paddingLeft: 2,
   },
 
   card: {
@@ -380,9 +372,11 @@ const styles = StyleSheet.create({
 
   signOutBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: SPACING.sm, height: 52, borderRadius: 16, marginTop: SPACING.xl,
+    gap: SPACING.sm, height: 56, borderRadius: 18, marginTop: 40,
     backgroundColor: 'rgba(224,122,95,0.10)',
     borderWidth: 1, borderColor: 'rgba(224,122,95,0.25)',
+    shadowColor: '#E07A5F', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18, shadowRadius: 12, elevation: 4,
   },
   signOutText: { fontSize: 15, color: COLORS.rose, fontWeight: '700' },
 

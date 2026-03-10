@@ -666,7 +666,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: H_PAD, paddingBottom: 120 },
 
   sectionLabel: {
-    fontSize: 11, fontWeight: '700', color: '#8a9e8d',
+    fontSize: 11, fontWeight: '700', color: 'rgba(237,247,241,0.40)',
     letterSpacing: 1.2, textTransform: 'uppercase',
     marginBottom: SPACING.sm, paddingLeft: 2,
   },

@@ -34,7 +34,7 @@ function ChangeModal({
                   value={f.value}
                   onChangeText={f.set}
                   placeholder={f.placeholder ?? ''}
-                  placeholderTextColor="rgba(237,247,241,0.30)"
+                  placeholderTextColor="rgba(242,250,245,0.55)"
                   secureTextEntry={f.secure}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -110,7 +110,7 @@ function Row({
       <Text style={[row.label, destructive && { color: COLORS.rose }]}>{label}</Text>
       <View style={row.right}>
         {value ? <Text style={row.value}>{value}</Text> : null}
-        {rightElement ?? (onPress ? <Ionicons name="chevron-forward" size={15} color="rgba(237,247,241,0.25)" /> : null)}
+        {rightElement ?? (onPress ? <Ionicons name="chevron-forward" size={15} color="rgba(242,250,245,0.55)" /> : null)}
       </View>
     </View>
   );
@@ -387,5 +387,5 @@ const styles = StyleSheet.create({
   signOutText: { fontSize: 15, color: COLORS.rose, fontWeight: '700' },
 
   deleteBtn: { alignItems: 'center', paddingVertical: SPACING.base, marginTop: SPACING.sm },
-  deleteText: { fontSize: 13, color: 'rgba(237,247,241,0.25)', fontWeight: '500' },
+  deleteText: { fontSize: 13, color: 'rgba(242,250,245,0.55)', fontWeight: '500' },
 });

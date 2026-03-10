@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: SPACING.xl, paddingTop: SPACING.sm, paddingBottom: SPACING.md,
   },
-  headerTitle: { fontSize: 28, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.6 },
+  headerTitle: { fontSize: 28, fontWeight: '800', color: '#F2FAF5', letterSpacing: -0.6 },
   iconBtn: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.07)',
@@ -279,14 +279,14 @@ const styles = StyleSheet.create({
   avatarPlaceholder: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   avatarText: { fontSize: 18, fontWeight: '800', color: COLORS.primary },
   cardInfo: { flex: 1 },
-  cardName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 2, letterSpacing: -0.2 },
-  cardMeta: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 2 },
-  sharedBy: { fontSize: 12, color: COLORS.textTertiary, fontWeight: '500' },
+  cardName: { fontSize: 16, fontWeight: '700', color: '#F2FAF5', marginBottom: 2, letterSpacing: -0.2 },
+  cardMeta: { fontSize: 13, color: 'rgba(242,250,245,0.80)', marginBottom: 2 },
+  sharedBy: { fontSize: 12, color: 'rgba(242,250,245,0.55)', fontWeight: '500' },
   accessBadge: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, flexShrink: 0 },
   badgeView: { backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
   badgeEdit: { backgroundColor: 'rgba(82,183,136,0.15)', borderWidth: 1, borderColor: 'rgba(82,183,136,0.3)' },
   accessBadgeText: { fontSize: 11, fontWeight: '700' },
-  badgeViewText: { color: COLORS.textSecondary },
+  badgeViewText: { color: 'rgba(242,250,245,0.80)' },
   badgeEditText: { color: COLORS.primary },
 
   // ── Pending banner ──
@@ -307,8 +307,8 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(82,183,136,0.2)',
     alignItems: 'center', justifyContent: 'center', marginBottom: SPACING.xl,
   },
-  emptyTitle: { fontSize: 22, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'center', marginBottom: SPACING.sm, letterSpacing: -0.3 },
-  emptyDesc: { fontSize: 15, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 23, marginBottom: SPACING.xxl },
+  emptyTitle: { fontSize: 22, fontWeight: '700', color: '#F2FAF5', textAlign: 'center', marginBottom: SPACING.sm, letterSpacing: -0.3 },
+  emptyDesc: { fontSize: 15, color: 'rgba(242,250,245,0.80)', textAlign: 'center', lineHeight: 23, marginBottom: SPACING.xxl },
 
   howToCard: {
     width: '100%', backgroundColor: 'rgba(255,255,255,0.04)',
@@ -322,5 +322,5 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(82,183,136,0.2)',
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  howToText: { fontSize: 14, color: COLORS.textSecondary, flex: 1, lineHeight: 20 },
+  howToText: { fontSize: 14, color: 'rgba(242,250,245,0.80)', flex: 1, lineHeight: 20 },
 });

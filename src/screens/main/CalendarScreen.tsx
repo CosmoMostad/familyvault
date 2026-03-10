@@ -249,10 +249,10 @@ function SubAccountPickerModal({ visible, calendarId, calendarTitle, onDone }: {
 const sp = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#090D0B' },
   header: { paddingHorizontal: SPACING.xl, paddingTop: SPACING.xl, paddingBottom: SPACING.lg, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)' },
-  title: { ...FONTS.h3, color: '#EDF7F1', marginBottom: SPACING.xs },
-  subtitle: { ...FONTS.body, color: 'rgba(237,247,241,0.60)', lineHeight: 22 },
+  title: { ...FONTS.h3, color: '#F2FAF5', marginBottom: SPACING.xs },
+  subtitle: { ...FONTS.body, color: 'rgba(242,250,245,0.80)', lineHeight: 22 },
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: SPACING.xl },
-  emptyText: { ...FONTS.body, color: 'rgba(237,247,241,0.35)', textAlign: 'center' },
+  emptyText: { ...FONTS.body, color: 'rgba(242,250,245,0.55)', textAlign: 'center' },
   list: { paddingHorizontal: SPACING.xl, paddingTop: SPACING.base, paddingBottom: 20, gap: SPACING.sm },
   row: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -260,7 +260,7 @@ const sp = StyleSheet.create({
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.09)',
   },
   rowSelected: { borderColor: COLORS.primary, backgroundColor: 'rgba(82,183,136,0.12)' },
-  rowName: { ...FONTS.body, color: '#EDF7F1', fontWeight: '500' },
+  rowName: { ...FONTS.body, color: '#F2FAF5', fontWeight: '500' },
   rowNameSelected: { color: '#52B788', fontWeight: '600' },
   check: {
     width: 24, height: 24, borderRadius: 12,
@@ -279,7 +279,7 @@ const sp = StyleSheet.create({
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.09)',
     alignItems: 'center', justifyContent: 'center',
   },
-  skipText: { ...FONTS.body, color: 'rgba(237,247,241,0.60)', fontWeight: '500' },
+  skipText: { ...FONTS.body, color: 'rgba(242,250,245,0.80)', fontWeight: '500' },
   confirmBtn: {
     flex: 2, height: 50, borderRadius: 14,
     backgroundColor: COLORS.primary,
@@ -290,13 +290,13 @@ const sp = StyleSheet.create({
     paddingHorizontal: SPACING.xl, paddingTop: SPACING.base, paddingBottom: SPACING.sm,
     borderTopWidth: 1, borderTopColor: COLORS.border,
   },
-  inviteLabel: { ...FONTS.caption, color: 'rgba(237,247,241,0.60)', fontWeight: '600', marginBottom: SPACING.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
+  inviteLabel: { ...FONTS.caption, color: 'rgba(242,250,245,0.80)', fontWeight: '600', marginBottom: SPACING.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
   inviteRow: { flexDirection: 'row', gap: SPACING.sm, alignItems: 'center' },
   inviteInput: {
     flex: 1, height: 44, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)',
     backgroundColor: 'rgba(255,255,255,0.07)',
     paddingHorizontal: SPACING.base,
-    ...FONTS.body, color: '#EDF7F1',
+    ...FONTS.body, color: '#F2FAF5',
   },
   inviteBtn: {
     height: 44, paddingHorizontal: SPACING.base, borderRadius: 10,
@@ -351,8 +351,8 @@ const ce = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)',
     alignItems: 'center', justifyContent: 'center', marginBottom: SPACING.xl,
   },
-  title: { ...FONTS.h3, color: '#EDF7F1', textAlign: 'center', marginBottom: SPACING.sm },
-  desc: { ...FONTS.body, color: 'rgba(237,247,241,0.60)', textAlign: 'center', lineHeight: 24, marginBottom: SPACING.lg },
+  title: { ...FONTS.h3, color: '#F2FAF5', textAlign: 'center', marginBottom: SPACING.sm },
+  desc: { ...FONTS.body, color: 'rgba(242,250,245,0.80)', textAlign: 'center', lineHeight: 24, marginBottom: SPACING.lg },
   badge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: 'rgba(82,183,136,0.12)', borderRadius: 20,
@@ -418,7 +418,7 @@ function CreateCalendarModal({ visible, onCreated, onClose }: {
       <SafeAreaView style={cc.container}>
         <View style={cc.header}>
           <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close" size={24} color={'#EDF7F1'} />
+            <Ionicons name="close" size={24} color={'#F2FAF5'} />
           </TouchableOpacity>
           <Text style={cc.title}>New Calendar</Text>
           <View style={{ width: 24 }} />
@@ -463,14 +463,14 @@ const cc = StyleSheet.create({
     paddingHorizontal: SPACING.xl, paddingVertical: SPACING.base,
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)',
   },
-  title: { ...FONTS.h3, color: '#EDF7F1' },
+  title: { ...FONTS.h3, color: '#F2FAF5' },
   scroll: { paddingHorizontal: SPACING.xl, paddingTop: SPACING.xl, paddingBottom: 60 },
-  label: { fontSize: 11, fontWeight: '700', color: 'rgba(237,247,241,0.35)', letterSpacing: 0.8, marginBottom: SPACING.md },
+  label: { fontSize: 11, fontWeight: '700', color: 'rgba(242,250,245,0.55)', letterSpacing: 0.8, marginBottom: SPACING.md },
   input: {
     backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14,
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.09)',
     paddingHorizontal: SPACING.base, height: 52,
-    fontSize: 16, color: '#EDF7F1',
+    fontSize: 16, color: '#F2FAF5',
   },
   colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginBottom: SPACING.xxxl },
   colorDot: {
@@ -536,7 +536,7 @@ function JoinCalendarModal({ visible, pendingInvites, userEmail, onJoined, onDec
       <SafeAreaView style={jm.container}>
         <View style={jm.header}>
           <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close" size={24} color={'#EDF7F1'} />
+            <Ionicons name="close" size={24} color={'#F2FAF5'} />
           </TouchableOpacity>
           <Text style={jm.title}>Join a Calendar</Text>
           <View style={{ width: 24 }} />
@@ -545,7 +545,7 @@ function JoinCalendarModal({ visible, pendingInvites, userEmail, onJoined, onDec
         <ScrollView contentContainerStyle={jm.scroll}>
           {pendingInvites.length === 0 ? (
             <View style={jm.empty}>
-              <Ionicons name="mail-outline" size={48} color={'rgba(237,247,241,0.35)'} />
+              <Ionicons name="mail-outline" size={48} color={'rgba(242,250,245,0.55)'} />
               <Text style={jm.emptyTitle}>No pending invitations</Text>
               <Text style={jm.emptyDesc}>
                 Ask a family member to invite you to their calendar using your email:
@@ -575,7 +575,7 @@ function JoinCalendarModal({ visible, pendingInvites, userEmail, onJoined, onDec
                       disabled={!!decliningId || !!acceptingId}
                     >
                       {decliningId === inv.id
-                        ? <ActivityIndicator size="small" color={'rgba(237,247,241,0.60)'} />
+                        ? <ActivityIndicator size="small" color={'rgba(242,250,245,0.80)'} />
                         : <Text style={jm.declineText}>Decline</Text>}
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -605,12 +605,12 @@ const jm = StyleSheet.create({
     paddingHorizontal: SPACING.xl, paddingVertical: SPACING.base,
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)',
   },
-  title: { ...FONTS.h3, color: '#EDF7F1' },
+  title: { ...FONTS.h3, color: '#F2FAF5' },
   scroll: { paddingHorizontal: SPACING.xl, paddingTop: SPACING.xl, paddingBottom: 60 },
-  sectionLabel: { fontSize: 11, fontWeight: '700', color: 'rgba(237,247,241,0.35)', letterSpacing: 0.8, marginBottom: SPACING.md },
+  sectionLabel: { fontSize: 11, fontWeight: '700', color: 'rgba(242,250,245,0.55)', letterSpacing: 0.8, marginBottom: SPACING.md },
   empty: { alignItems: 'center', paddingTop: SPACING.xxl, gap: SPACING.md },
-  emptyTitle: { ...FONTS.h3, color: '#EDF7F1', textAlign: 'center' },
-  emptyDesc: { ...FONTS.body, color: 'rgba(237,247,241,0.60)', textAlign: 'center', lineHeight: 23 },
+  emptyTitle: { ...FONTS.h3, color: '#F2FAF5', textAlign: 'center' },
+  emptyDesc: { ...FONTS.body, color: 'rgba(242,250,245,0.80)', textAlign: 'center', lineHeight: 23 },
   emailBox: {
     backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12,
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.09)',
@@ -625,15 +625,15 @@ const jm = StyleSheet.create({
     backgroundColor: 'rgba(82,183,136,0.12)',
     alignItems: 'center', justifyContent: 'center',
   },
-  inviteTitle: { ...FONTS.h4, color: '#EDF7F1' },
-  inviteFrom: { ...FONTS.bodySmall, color: 'rgba(237,247,241,0.60)' },
+  inviteTitle: { ...FONTS.h4, color: '#F2FAF5' },
+  inviteFrom: { ...FONTS.bodySmall, color: 'rgba(242,250,245,0.80)' },
   inviteActions: { flexDirection: 'row', gap: SPACING.sm },
   declineBtn: {
     flex: 1, height: 42, borderRadius: 10,
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.09)',
     alignItems: 'center', justifyContent: 'center',
   },
-  declineText: { fontSize: 13, fontWeight: '500', color: 'rgba(237,247,241,0.60)' },
+  declineText: { fontSize: 13, fontWeight: '500', color: 'rgba(242,250,245,0.80)' },
   acceptBtn: {
     flex: 2, height: 42, borderRadius: 10,
     backgroundColor: COLORS.primary,
@@ -687,7 +687,7 @@ function AppointmentDetailModal({ event, calendar, onClose, onDelete }: {
       <SafeAreaView style={adm.container}>
         <View style={adm.header}>
           <TouchableOpacity onPress={onClose} style={adm.closeBtn}>
-            <Ionicons name="close" size={22} color={'rgba(237,247,241,0.60)'} />
+            <Ionicons name="close" size={22} color={'rgba(242,250,245,0.80)'} />
           </TouchableOpacity>
           <Text style={adm.title} numberOfLines={1}>Appointment</Text>
           {isOwner ? (
@@ -769,21 +769,21 @@ const adm = StyleSheet.create({
   },
   closeBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   deleteBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  title: { ...FONTS.h4, color: '#EDF7F1', flex: 1, textAlign: 'center' },
+  title: { ...FONTS.h4, color: '#F2FAF5', flex: 1, textAlign: 'center' },
   scroll: { paddingHorizontal: SPACING.xl, paddingTop: SPACING.xl, paddingBottom: 60, gap: SPACING.lg },
   titleRow: {
     flexDirection: 'row', alignItems: 'center', gap: SPACING.md,
     ...CARD, padding: SPACING.base,
   },
   colorBar: { width: 4, alignSelf: 'stretch', borderRadius: 2 },
-  eventTitle: { ...FONTS.h2, color: '#EDF7F1', flex: 1 },
+  eventTitle: { ...FONTS.h2, color: '#F2FAF5', flex: 1 },
   row: {
     flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.md,
     ...CARD, padding: SPACING.base,
   },
   rowIcon: { marginTop: 2 },
-  rowText: { ...FONTS.body, color: '#EDF7F1', flex: 1 },
-  rowSub: { ...FONTS.bodySmall, color: 'rgba(237,247,241,0.60)', marginTop: 2 },
+  rowText: { ...FONTS.body, color: '#F2FAF5', flex: 1 },
+  rowSub: { ...FONTS.bodySmall, color: 'rgba(242,250,245,0.80)', marginTop: 2 },
   chip: {
     backgroundColor: 'rgba(82,183,136,0.12)', borderRadius: 20,
     paddingHorizontal: SPACING.md, paddingVertical: 5,
@@ -927,7 +927,7 @@ function AddEventModal({ visible, calendars, defaultCalendarId, onSave, onClose 
       <SafeAreaView style={modal.container}>
         <View style={modal.header}>
           <TouchableOpacity onPress={onClose} style={modal.closeBtn}>
-            <Ionicons name="close" size={22} color={'rgba(237,247,241,0.60)'} />
+            <Ionicons name="close" size={22} color={'rgba(242,250,245,0.80)'} />
           </TouchableOpacity>
           <Text style={modal.title}>New Appointment</Text>
           <TouchableOpacity onPress={save} disabled={saving} style={modal.saveBtn}>
@@ -960,7 +960,7 @@ function AddEventModal({ visible, calendars, defaultCalendarId, onSave, onClose 
               <Text style={modal.pickerValue}>
                 {pickerDate.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}
               </Text>
-              <Ionicons name={showDatePicker ? 'chevron-up' : 'chevron-down'} size={16} color={'rgba(237,247,241,0.35)'} />
+              <Ionicons name={showDatePicker ? 'chevron-up' : 'chevron-down'} size={16} color={'rgba(242,250,245,0.55)'} />
             </TouchableOpacity>
             {showDatePicker && (
               <View style={modal.pickerCard}>
@@ -989,7 +989,7 @@ function AddEventModal({ visible, calendars, defaultCalendarId, onSave, onClose 
               <Text style={modal.pickerValue}>
                 {formatTime12(pickerHour12, pickerMinute, pickerAmPm)}
               </Text>
-              <Ionicons name={showTimePicker ? 'chevron-up' : 'chevron-down'} size={16} color={'rgba(237,247,241,0.35)'} />
+              <Ionicons name={showTimePicker ? 'chevron-up' : 'chevron-down'} size={16} color={'rgba(242,250,245,0.55)'} />
             </TouchableOpacity>
             {showTimePicker && (
               <TimePickerWheel
@@ -1085,17 +1085,17 @@ const modal = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)',
   },
   closeBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  title: { ...FONTS.h4, color: '#EDF7F1' },
+  title: { ...FONTS.h4, color: '#F2FAF5' },
   saveBtn: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs },
   saveBtnText: { ...FONTS.body, color: '#52B788', fontWeight: '700' },
   scroll: { paddingHorizontal: SPACING.xl, paddingTop: SPACING.base, paddingBottom: 60, gap: SPACING.lg },
   field: { gap: 6 },
-  label: { fontSize: 11, fontWeight: '700', color: 'rgba(237,247,241,0.35)', letterSpacing: 0.6 },
+  label: { fontSize: 11, fontWeight: '700', color: 'rgba(242,250,245,0.55)', letterSpacing: 0.6 },
   input: {
     backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12,
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.09)',
     paddingHorizontal: SPACING.base, height: 48,
-    fontSize: 15, color: '#EDF7F1',
+    fontSize: 15, color: '#F2FAF5',
   },
   calChip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -1103,14 +1103,14 @@ const modal = StyleSheet.create({
     borderRadius: 20, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.09)', backgroundColor: 'rgba(255,255,255,0.07)',
   },
   calDot: { width: 10, height: 10, borderRadius: 5 },
-  calChipText: { fontSize: 13, color: 'rgba(237,247,241,0.60)' },
+  calChipText: { fontSize: 13, color: 'rgba(242,250,245,0.80)' },
   memberChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: SPACING.md, paddingVertical: 7,
     borderRadius: 20, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.09)', backgroundColor: 'rgba(255,255,255,0.07)',
   },
   memberChipSelected: { borderColor: COLORS.primary, backgroundColor: 'rgba(82,183,136,0.12)' },
-  memberChipText: { fontSize: 13, color: 'rgba(237,247,241,0.60)', fontWeight: '500' },
+  memberChipText: { fontSize: 13, color: 'rgba(242,250,245,0.80)', fontWeight: '500' },
   memberChipTextSelected: { color: '#52B788', fontWeight: '600' },
   pickerRow: {
     flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
@@ -1118,7 +1118,7 @@ const modal = StyleSheet.create({
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.09)',
     paddingHorizontal: SPACING.base, height: 48,
   },
-  pickerValue: { ...FONTS.body, color: '#EDF7F1', flex: 1 },
+  pickerValue: { ...FONTS.body, color: '#F2FAF5', flex: 1 },
   pickerCard: {
     backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14,
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.09)',
@@ -1323,7 +1323,7 @@ function CalendarSettingsModal({ visible, calendars, onClose, onRefresh }: {
         <View style={csm.header}>
           <Text style={csm.title}>Calendar Settings</Text>
           <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="close" size={24} color={'#EDF7F1'} />
+            <Ionicons name="close" size={24} color={'#F2FAF5'} />
           </TouchableOpacity>
         </View>
 
@@ -1408,7 +1408,7 @@ function CalendarSettingsModal({ visible, calendars, onClose, onRefresh }: {
                             onPress={() => removeUserFromCalendar(cal.id, group.user_id, group.display_name)}
                             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                           >
-                            <Ionicons name="close-circle-outline" size={20} color={'rgba(237,247,241,0.35)'} />
+                            <Ionicons name="close-circle-outline" size={20} color={'rgba(242,250,245,0.55)'} />
                           </TouchableOpacity>
                         )}
                       </View>
@@ -1465,7 +1465,7 @@ function CalendarSettingsModal({ visible, calendars, onClose, onRefresh }: {
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity style={csm.leaveBtn} onPress={() => leaveCalendar(cal.id)}>
-                    <Ionicons name="log-out-outline" size={16} color={'rgba(237,247,241,0.60)'} />
+                    <Ionicons name="log-out-outline" size={16} color={'rgba(242,250,245,0.80)'} />
                     <Text style={csm.leaveBtnText}>Leave Calendar</Text>
                   </TouchableOpacity>
                 )}
@@ -1494,7 +1494,7 @@ const csm = StyleSheet.create({
     paddingHorizontal: SPACING.xl, paddingVertical: SPACING.lg,
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)',
   },
-  title: { ...FONTS.h3, color: '#EDF7F1' },
+  title: { ...FONTS.h3, color: '#F2FAF5' },
   scroll: { paddingHorizontal: SPACING.xl, paddingTop: SPACING.lg, paddingBottom: 80 },
   calCard: { ...CARD, overflow: 'hidden', marginBottom: SPACING.lg },
   calHeader: {
@@ -1503,25 +1503,25 @@ const csm = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)',
   },
   calDot: { width: 14, height: 14, borderRadius: 7, flexShrink: 0 },
-  calTitle: { ...FONTS.h4, color: '#EDF7F1', flex: 1 },
+  calTitle: { ...FONTS.h4, color: '#F2FAF5', flex: 1 },
   roleBadge: { backgroundColor: 'rgba(82,183,136,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
   roleBadgeMember: { backgroundColor: 'rgba(255,255,255,0.07)' },
   roleText: { fontSize: 11, fontWeight: '700', color: '#52B788' },
-  roleTextMember: { color: 'rgba(237,247,241,0.60)' },
+  roleTextMember: { color: 'rgba(242,250,245,0.80)' },
 
   // Section layout
   section: {
     paddingHorizontal: SPACING.base, paddingVertical: SPACING.base,
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)',
   },
-  sectionLabel: { fontSize: 10, fontWeight: '700', color: 'rgba(237,247,241,0.35)', letterSpacing: 0.8, marginBottom: SPACING.sm },
+  sectionLabel: { fontSize: 10, fontWeight: '700', color: 'rgba(242,250,245,0.55)', letterSpacing: 0.8, marginBottom: SPACING.sm },
 
   // Name row
   nameRow: { flexDirection: 'row', gap: SPACING.sm, alignItems: 'center' },
   nameInput: {
     flex: 1, backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 10, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.09)',
-    paddingHorizontal: SPACING.base, height: 44, fontSize: 14, color: '#EDF7F1',
+    paddingHorizontal: SPACING.base, height: 44, fontSize: 14, color: '#F2FAF5',
   },
   saveNameBtn: {
     backgroundColor: COLORS.primary, borderRadius: 10,
@@ -1543,7 +1543,7 @@ const csm = StyleSheet.create({
   },
 
   // Members
-  emptyMembers: { ...FONTS.bodySmall, color: 'rgba(237,247,241,0.35)', fontStyle: 'italic', marginBottom: SPACING.sm },
+  emptyMembers: { ...FONTS.bodySmall, color: 'rgba(242,250,245,0.55)', fontStyle: 'italic', marginBottom: SPACING.sm },
   groupBlock: { marginBottom: SPACING.md },
   groupHeader: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, paddingVertical: SPACING.xs },
   groupAvatar: {
@@ -1551,10 +1551,10 @@ const csm = StyleSheet.create({
     backgroundColor: 'rgba(82,183,136,0.12)',
     alignItems: 'center', justifyContent: 'center',
   },
-  groupName: { ...FONTS.body, color: '#EDF7F1', fontWeight: '600', flex: 1 },
+  groupName: { ...FONTS.body, color: '#F2FAF5', fontWeight: '600', flex: 1 },
   subRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: 40, paddingVertical: 4 },
   subDash: { width: 16, height: 1, backgroundColor: COLORS.border, marginRight: SPACING.sm },
-  subName: { ...FONTS.bodySmall, color: 'rgba(237,247,241,0.60)' },
+  subName: { ...FONTS.bodySmall, color: 'rgba(242,250,245,0.80)' },
   manageSubBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingLeft: 40, paddingVertical: 6,
@@ -1575,7 +1575,7 @@ const csm = StyleSheet.create({
   deleteBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: SPACING.sm },
   deleteBtnText: { fontSize: 13, color: '#E07A5F', fontWeight: '600' },
   leaveBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: SPACING.sm },
-  leaveBtnText: { fontSize: 13, color: 'rgba(237,247,241,0.60)', fontWeight: '600' },
+  leaveBtnText: { fontSize: 13, color: 'rgba(242,250,245,0.80)', fontWeight: '600' },
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1597,7 +1597,7 @@ function CalendarSwitcherModal({ visible, calendars, selectedId, onSelect, onVie
         <View style={csw.header}>
           <Text style={csw.title}>Calendars</Text>
           <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="close" size={24} color={'#EDF7F1'} />
+            <Ionicons name="close" size={24} color={'#F2FAF5'} />
           </TouchableOpacity>
         </View>
         <ScrollView contentContainerStyle={csw.scroll}>
@@ -1630,7 +1630,7 @@ function CalendarSwitcherModal({ visible, calendars, selectedId, onSelect, onVie
               <Ionicons name="list-outline" size={20} color={'#52B788'} />
             </View>
             <Text style={csw.actionText}>View All Appointments</Text>
-            <Ionicons name="chevron-forward" size={16} color={'rgba(237,247,241,0.35)'} />
+            <Ionicons name="chevron-forward" size={16} color={'rgba(242,250,245,0.55)'} />
           </TouchableOpacity>
 
           {/* Create new calendar */}
@@ -1639,7 +1639,7 @@ function CalendarSwitcherModal({ visible, calendars, selectedId, onSelect, onVie
               <Ionicons name="add-circle-outline" size={20} color={'#52B788'} />
             </View>
             <Text style={csw.actionText}>Create New Calendar</Text>
-            <Ionicons name="chevron-forward" size={16} color={'rgba(237,247,241,0.35)'} />
+            <Ionicons name="chevron-forward" size={16} color={'rgba(242,250,245,0.55)'} />
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
@@ -1654,7 +1654,7 @@ const csw = StyleSheet.create({
     paddingHorizontal: SPACING.xl, paddingVertical: SPACING.lg,
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)',
   },
-  title: { ...FONTS.h3, color: '#EDF7F1' },
+  title: { ...FONTS.h3, color: '#F2FAF5' },
   scroll: { paddingHorizontal: SPACING.xl, paddingTop: SPACING.base, paddingBottom: 60 },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: SPACING.md,
@@ -1662,8 +1662,8 @@ const csw = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)',
   },
   dot: { width: 14, height: 14, borderRadius: 7, flexShrink: 0 },
-  rowText: { ...FONTS.body, color: '#EDF7F1', fontWeight: '500', flex: 1 },
-  rowSub: { ...FONTS.caption, color: 'rgba(237,247,241,0.35)' },
+  rowText: { ...FONTS.body, color: '#F2FAF5', fontWeight: '500', flex: 1 },
+  rowSub: { ...FONTS.caption, color: 'rgba(242,250,245,0.55)' },
   divider: { height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.base },
   actionRow: {
     flexDirection: 'row', alignItems: 'center', gap: SPACING.md,
@@ -1675,7 +1675,7 @@ const csw = StyleSheet.create({
     backgroundColor: 'rgba(82,183,136,0.12)',
     alignItems: 'center', justifyContent: 'center',
   },
-  actionText: { ...FONTS.body, color: '#EDF7F1', fontWeight: '500', flex: 1 },
+  actionText: { ...FONTS.body, color: '#F2FAF5', fontWeight: '500', flex: 1 },
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1854,7 +1854,7 @@ export default function CalendarScreen() {
           <View style={styles.headerActions}>
             {/* Bell — always shown, opens join modal */}
             <TouchableOpacity style={styles.iconBtn} onPress={() => setShowJoin(true)}>
-              <Ionicons name="notifications-outline" size={22} color={'#EDF7F1'} />
+              <Ionicons name="notifications-outline" size={22} color={'#F2FAF5'} />
               {pendingInvites.length > 0 && (
                 <View style={styles.bellBadge}>
                   <Text style={styles.bellBadgeText}>{pendingInvites.length}</Text>
@@ -1863,7 +1863,7 @@ export default function CalendarScreen() {
             </TouchableOpacity>
             {hasCalendars && (
               <TouchableOpacity style={styles.iconBtn} onPress={() => setShowSettings(true)}>
-                <Ionicons name="settings-outline" size={20} color={'#EDF7F1'} />
+                <Ionicons name="settings-outline" size={20} color={'#F2FAF5'} />
               </TouchableOpacity>
             )}
           </View>
@@ -1886,7 +1886,7 @@ export default function CalendarScreen() {
                 ? 'All Calendars'
                 : (calendars.find(c => c.id === selectedCalendarId)?.title ?? 'Calendar')}
             </Text>
-            <Ionicons name="chevron-down" size={16} color={'rgba(237,247,241,0.60)'} />
+            <Ionicons name="chevron-down" size={16} color={'rgba(242,250,245,0.80)'} />
           </TouchableOpacity>
         )}
 
@@ -1923,7 +1923,7 @@ export default function CalendarScreen() {
                       {calendars.length > 1 && cal && (
                         <Text style={styles.eventCalName}>{cal.title}</Text>
                       )}
-                      <Text style={[styles.eventTitle, { color: 'rgba(237,247,241,0.60)' }]}>{evt.title}</Text>
+                      <Text style={[styles.eventTitle, { color: 'rgba(242,250,245,0.80)' }]}>{evt.title}</Text>
                       <Text style={styles.eventTime}>
                         {formatDateHeader(toDateKey(evt.date_time))} · {formatTime(evt.date_time)}
                       </Text>
@@ -1945,7 +1945,7 @@ export default function CalendarScreen() {
           <View style={{ minHeight: Dimensions.get('window').height }}>
           {upcoming.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="calendar-outline" size={48} color={'rgba(237,247,241,0.35)'} />
+              <Ionicons name="calendar-outline" size={48} color={'rgba(242,250,245,0.55)'} />
               <Text style={styles.emptyTitle}>No upcoming appointments</Text>
               <TouchableOpacity style={styles.addLink} onPress={() => setShowAddModal(true)}>
                 <Ionicons name="add-circle-outline" size={16} color={'#52B788'} />
@@ -1978,7 +1978,7 @@ export default function CalendarScreen() {
                           ) : null}
                         </View>
                       </View>
-                      <Ionicons name="chevron-forward" size={16} color={'rgba(237,247,241,0.35)'} />
+                      <Ionicons name="chevron-forward" size={16} color={'rgba(242,250,245,0.55)'} />
                     </TouchableOpacity>
                   );
                 })}
@@ -2066,7 +2066,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: SPACING.xl, paddingTop: SPACING.sm, paddingBottom: SPACING.base,
   },
-  headerTitle: { ...FONTS.h2, color: '#EDF7F1' },
+  headerTitle: { ...FONTS.h2, color: '#F2FAF5' },
   headerActions: { flexDirection: 'row', gap: SPACING.xs },
   iconBtn: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
   bellBadge: {
@@ -2084,7 +2084,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.09)',
     paddingHorizontal: SPACING.base, paddingVertical: 10,
   },
-  calBarText: { ...FONTS.body, color: '#EDF7F1', fontWeight: '600', flex: 1 },
+  calBarText: { ...FONTS.body, color: '#F2FAF5', fontWeight: '600', flex: 1 },
   calDot: { width: 10, height: 10, borderRadius: 5 },
   fab: {
     position: 'absolute', bottom: 32, right: 24,
@@ -2095,7 +2095,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25, shadowRadius: 8, elevation: 8,
   },
   listContent: { paddingHorizontal: SPACING.xl, paddingTop: SPACING.sm },
-  dateHeader: { ...FONTS.h4, color: '#EDF7F1', marginTop: SPACING.xl, marginBottom: SPACING.sm },
+  dateHeader: { ...FONTS.h4, color: '#F2FAF5', marginTop: SPACING.xl, marginBottom: SPACING.sm },
   eventCard: {
     ...CARD, flexDirection: 'row', alignItems: 'center',
     overflow: 'hidden', marginBottom: SPACING.sm,
@@ -2104,18 +2104,18 @@ const styles = StyleSheet.create({
   eventCardPast: { opacity: 0.65 },
   eventColorBar: { width: 4, alignSelf: 'stretch', marginRight: SPACING.md, borderRadius: 2 },
   eventBody: { flex: 1, gap: 3 },
-  eventCalName: { fontSize: 11, color: 'rgba(237,247,241,0.35)', fontWeight: '600' },
-  eventTitle: { ...FONTS.h4, color: '#EDF7F1' },
+  eventCalName: { fontSize: 11, color: 'rgba(242,250,245,0.55)', fontWeight: '600' },
+  eventTitle: { ...FONTS.h4, color: '#F2FAF5' },
   eventMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  eventTime: { ...FONTS.caption, color: 'rgba(237,247,241,0.60)' },
-  metaDot: { ...FONTS.caption, color: 'rgba(237,247,241,0.35)' },
-  eventMetaText: { ...FONTS.caption, color: 'rgba(237,247,241,0.60)' },
+  eventTime: { ...FONTS.caption, color: 'rgba(242,250,245,0.80)' },
+  metaDot: { ...FONTS.caption, color: 'rgba(242,250,245,0.55)' },
+  eventMetaText: { ...FONTS.caption, color: 'rgba(242,250,245,0.80)' },
   emptyState: { alignItems: 'center', paddingTop: 60, gap: SPACING.md },
-  emptyTitle: { ...FONTS.h4, color: 'rgba(237,247,241,0.35)' },
+  emptyTitle: { ...FONTS.h4, color: 'rgba(242,250,245,0.55)' },
   addLink: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   addLinkText: { ...FONTS.body, color: '#52B788', fontWeight: '600' },
   pastSection: { paddingBottom: SPACING.sm },
-  pastLabel: { fontSize: 11, fontWeight: '700', color: 'rgba(237,247,241,0.35)', letterSpacing: 0.8, marginBottom: SPACING.md, marginTop: SPACING.sm },
+  pastLabel: { fontSize: 11, fontWeight: '700', color: 'rgba(242,250,245,0.55)', letterSpacing: 0.8, marginBottom: SPACING.md, marginTop: SPACING.sm },
   todayDivider: {
     flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
     marginTop: SPACING.lg, marginBottom: SPACING.xs,

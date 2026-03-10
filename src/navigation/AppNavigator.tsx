@@ -56,10 +56,10 @@ function MainTabs() {
           paddingTop: 8,
         },
         tabBarActiveTintColor: '#52B788',
-        tabBarInactiveTintColor: 'rgba(237,247,241,0.30)',
+        tabBarInactiveTintColor: '#F2FAF5',
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '600',
+          fontWeight: '700',
         },
         tabBarIcon: ({ color, focused }) => {
           const icons: Record<string, { active: keyof typeof Ionicons.glyphMap; inactive: keyof typeof Ionicons.glyphMap }> = {

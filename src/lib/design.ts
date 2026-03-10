@@ -22,9 +22,9 @@ export const COLORS = {
   amberLight: 'rgba(242,166,90,0.15)',
 
   // ── Text ─────────────────────────────────────────────────────
-  textPrimary: '#EDF7F1',         // warm off-white with green tint
-  textSecondary: 'rgba(237,247,241,0.60)',
-  textTertiary: 'rgba(237,247,241,0.35)',
+  textPrimary: '#F2FAF5',         // bright white with green tint
+  textSecondary: 'rgba(242,250,245,0.78)',
+  textTertiary: 'rgba(242,250,245,0.52)',
   textInverse: '#090D0B',
 
   // ── UI Chrome ────────────────────────────────────────────────
@@ -44,11 +44,11 @@ export const FONTS = {
   h2: { fontSize: 28, fontWeight: '800' as const, lineHeight: 36, letterSpacing: -0.6 },
   h3: { fontSize: 22, fontWeight: '700' as const, lineHeight: 30, letterSpacing: -0.3 },
   h4: { fontSize: 17, fontWeight: '600' as const, lineHeight: 24, letterSpacing: -0.2 },
-  bodyLarge: { fontSize: 17, fontWeight: '400' as const, lineHeight: 26 },
-  body: { fontSize: 15, fontWeight: '400' as const, lineHeight: 23 },
-  bodySmall: { fontSize: 14, fontWeight: '400' as const, lineHeight: 21 },
+  bodyLarge: { fontSize: 17, fontWeight: '500' as const, lineHeight: 26 },
+  body: { fontSize: 15, fontWeight: '500' as const, lineHeight: 23 },
+  bodySmall: { fontSize: 14, fontWeight: '500' as const, lineHeight: 21 },
   label: { fontSize: 11, fontWeight: '700' as const, letterSpacing: 1.4 },
-  caption: { fontSize: 13, fontWeight: '400' as const },
+  caption: { fontSize: 13, fontWeight: '500' as const },
 };
 
 export const CARD = {

@@ -694,8 +694,8 @@ const styles = StyleSheet.create({
   heroPhoto: { width: 72, height: 72, borderRadius: 36, flexShrink: 0 },
   heroAvatarText: { fontSize: 26, fontWeight: '800', color: '#fff', letterSpacing: -1 },
   heroInfo: { flex: 1 },
-  heroName: { fontSize: 20, fontWeight: '700', color: '#EDF7F1', letterSpacing: -0.4, marginBottom: 4 },
-  heroDob: { fontSize: 13, color: 'rgba(237,247,241,0.60)', fontWeight: '500', marginBottom: 8 },
+  heroName: { fontSize: 20, fontWeight: '700', color: '#F2FAF5', letterSpacing: -0.4, marginBottom: 4 },
+  heroDob: { fontSize: 13, color: 'rgba(242,250,245,0.80)', fontWeight: '500', marginBottom: 8 },
   heroTagRow: { flexDirection: 'row' },
   tagSelf: {
     backgroundColor: 'rgba(82,183,136,0.15)', paddingHorizontal: 10,
@@ -731,10 +731,10 @@ const styles = StyleSheet.create({
   gridPhoto: { width: 58, height: 58, borderRadius: 29 },
   gridAvatarText: { fontSize: 20, fontWeight: '800', color: COLORS.primary },
   gridName: {
-    fontSize: 14, fontWeight: '700', color: '#EDF7F1',
+    fontSize: 14, fontWeight: '700', color: '#F2FAF5',
     textAlign: 'center', letterSpacing: -0.2, lineHeight: 18,
   },
-  gridDob: { fontSize: 11, color: 'rgba(237,247,241,0.50)', fontWeight: '500', textAlign: 'center' },
+  gridDob: { fontSize: 11, color: 'rgba(242,250,245,0.72)', fontWeight: '500', textAlign: 'center' },
 
   // ── Add card ──
   addCard: {
@@ -784,6 +784,6 @@ const dotMenu = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: SPACING.md,
     paddingVertical: SPACING.base, paddingHorizontal: SPACING.base,
   },
-  itemText: { fontSize: 15, color: '#EDF7F1', fontWeight: '500' },
+  itemText: { fontSize: 15, color: '#F2FAF5', fontWeight: '500' },
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginHorizontal: SPACING.sm },
 });

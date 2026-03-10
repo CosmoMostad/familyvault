@@ -98,7 +98,7 @@ function SharedCard({ share }: { share: AcceptedShare }) {
 
 export default function SharedScreen() {
   const { user } = useAuth();
-  const { isDark, colors } = useTheme();
+  const { colors } = useTheme();
   const [shares, setShares] = useState<AcceptedShare[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
@@ -150,7 +150,7 @@ export default function SharedScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <StatusBar barStyle='dark-content' />
 
       <ThemedBackground />
 
@@ -159,7 +159,7 @@ export default function SharedScreen() {
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Shared With Me</Text>
           <TouchableOpacity
-            style={[styles.iconBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.30)' }]}
+            style={[styles.iconBtn, { backgroundColor: 'rgba(45,106,79,0.10)' }]}
             onPress={() => setNotifVisible(true)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >

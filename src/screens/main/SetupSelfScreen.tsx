@@ -45,7 +45,7 @@ function formatDob(d: Date): string {
 
 export default function SetupSelfScreen({ navigation, onSetupComplete }: Props) {
   const { session } = useAuth();
-  const { isDark, colors } = useTheme();
+  const { colors } = useTheme();
   const [name, setName] = useState('');
   const [dob, setDob] = useState<Date>(defaultDob());
   const [showDobPicker, setShowDobPicker] = useState(false);

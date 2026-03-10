@@ -319,7 +319,7 @@ function AddAppointmentModal({
 export default function AppointmentsScreen({ navigation, route }: Props) {
   const { memberId, memberName } = route.params ?? {};
   const { session } = useAuth();
-  const { isDark, colors } = useTheme();
+  const { colors } = useTheme();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [canEdit, setCanEdit] = useState(false);

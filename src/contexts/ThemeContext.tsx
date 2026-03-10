@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DARK_COLORS, LIGHT_COLORS, DARK_GRADIENTS, LIGHT_GRADIENTS } from '../lib/design';
-
-const THEME_KEY = 'wrenhealth_theme';
+/**
+ * ThemeContext — single warm palette. Dark mode removed.
+ * API is kept identical so no consumer files need changes.
+ */
+import React from 'react';
+import { COLORS, GRADIENTS } from '../lib/design';
 
 export interface ThemeColors {
   background: string;
@@ -40,51 +41,18 @@ export interface ThemeGradients {
   danger: readonly string[];
 }
 
-interface ThemeContextType {
-  isDark: boolean;
-  toggleTheme: () => void;
-  colors: ThemeColors;
-  gradients: ThemeGradients;
-}
-
-const ThemeContext = createContext<ThemeContextType>({
-  isDark: true,
+const THEME_VALUE = {
+  isDark: false,
   toggleTheme: () => {},
-  colors: DARK_COLORS,
-  gradients: DARK_GRADIENTS,
-});
+  colors: COLORS as ThemeColors,
+  gradients: GRADIENTS as unknown as ThemeGradients,
+};
 
+// ThemeProvider is now a simple passthrough — kept for App.tsx compatibility
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [isDark, setIsDark] = useState(false); // default: light
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    AsyncStorage.getItem(THEME_KEY).then((val) => {
-      if (val !== null) setIsDark(val === 'dark');
-      setLoaded(true);
-    });
-  }, []);
-
-  function toggleTheme() {
-    setIsDark((prev) => {
-      const next = !prev;
-      AsyncStorage.setItem(THEME_KEY, next ? 'dark' : 'light');
-      return next;
-    });
-  }
-
-  return (
-    <ThemeContext.Provider value={{
-      isDark,
-      toggleTheme,
-      colors: isDark ? DARK_COLORS : LIGHT_COLORS,
-      gradients: isDark ? DARK_GRADIENTS : LIGHT_GRADIENTS,
-    }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <>{children}</>;
 }
 
 export function useTheme() {
-  return useContext(ThemeContext);
+  return THEME_VALUE;
 }

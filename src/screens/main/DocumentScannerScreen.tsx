@@ -32,7 +32,7 @@ type Props = {
 export default function DocumentScannerScreen({ navigation, route }: Props) {
   const { memberId, memberName } = route.params;
   const { user } = useAuth();
-  const { isDark, colors } = useTheme();
+  const { colors } = useTheme();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);

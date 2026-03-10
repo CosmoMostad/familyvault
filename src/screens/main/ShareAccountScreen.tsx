@@ -84,7 +84,7 @@ function StepIndicator({ current }: { current: number }) {
 export default function ShareAccountScreen({ navigation, route }: Props) {
   const { memberId, memberName } = route.params;
   const { user } = useAuth();
-  const { isDark, colors } = useTheme();
+  const { colors } = useTheme();
   const [step, setStep] = useState<Step>(1);
   const [email, setEmail] = useState('');
   const [fields, setFields] = useState<FieldToggle[]>(DEFAULT_FIELDS);

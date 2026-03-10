@@ -21,13 +21,13 @@ function ChangeModal({
   fields: { label: string; value: string; set: (v: string) => void; secure?: boolean; placeholder?: string }[];
   onClose: () => void; onSave: () => void; saving: boolean;
 }) {
-  const { isDark, colors } = useTheme();
+  const { colors } = useTheme();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={[modal.backdrop, { backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.45)' }]}>
+        <View style={[modal.backdrop, { backgroundColor: 'rgba(0,0,0,0.50)' }]}>
           <View style={[modal.sheet, {
-            backgroundColor: isDark ? '#111A14' : '#FFFFFF',
+            backgroundColor: '#FFFFFF',
             borderTopColor: colors.border,
           }]}>
             <View style={[modal.handle, { backgroundColor: colors.border }]} />
@@ -146,7 +146,7 @@ const row = StyleSheet.create({
 
 export default function SettingsScreen() {
   const { profile, session, signOut } = useAuth();
-  const { isDark, toggleTheme, colors } = useTheme();
+  const { colors } = useTheme();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -222,7 +222,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <StatusBar barStyle='dark-content' />
       <ThemedBackground />
 
       <SafeAreaView style={{ flex: 1 }}>
@@ -275,19 +275,6 @@ export default function SettingsScreen() {
                   onValueChange={setNotificationsEnabled}
                   trackColor={{ false: colors.border, true: `${colors.primary}80` }}
                   thumbColor={notificationsEnabled ? colors.primary : colors.textTertiary}
-                />
-              }
-            />
-            <Row
-              icon={isDark ? 'moon-outline' : 'sunny-outline'}
-              iconColor='#A78BFA'
-              label={isDark ? 'Dark Mode' : 'Light Mode'}
-              rightElement={
-                <Switch
-                  value={isDark}
-                  onValueChange={toggleTheme}
-                  trackColor={{ false: colors.border, true: `${colors.primary}80` }}
-                  thumbColor={isDark ? colors.primary : colors.textTertiary}
                 />
               }
             />

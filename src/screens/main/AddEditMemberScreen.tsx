@@ -72,7 +72,7 @@ function formatDob(d: Date): string {
 
 export default function AddEditMemberScreen({ navigation, route }: Props) {
   const { user } = useAuth();
-  const { isDark, colors } = useTheme();
+  const { colors } = useTheme();
   const { memberId } = route.params ?? {};
   const isEditing = !!memberId;
 

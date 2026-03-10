@@ -3,7 +3,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert, TextInput, KeyboardAvoidingView,
-  Platform, StatusBar, Linking, Image, Dimensions,
+  Platform, StatusBar, Linking, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -18,7 +18,6 @@ import {
   EmergencyContact, Doctor,
 } from '../../lib/types';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
-import ProfileBotanical from '../../components/ProfileBotanical';
 import ThemedBackground from '../../components/ThemedBackground';
 
 type Props = {
@@ -259,7 +258,7 @@ const f = StyleSheet.create({
 export default function MemberProfileScreen({ navigation, route }: Props) {
   const { memberId, memberName } = route.params;
   const { session } = useAuth();
-  const { isDark, colors } = useTheme();
+  const { colors } = useTheme();
   const [member, setMember] = useState<FamilyMember | null>(null);
   const [healthInfo, setHealthInfo] = useState<HealthInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -299,8 +298,8 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
   useEffect(() => {
     navigation.setOptions({
       title: memberName,
-      headerStyle: { backgroundColor: colors.background },
-      headerTintColor: COLORS.textPrimary,
+      headerStyle: { backgroundColor: '#FFFFFF' },
+      headerTintColor: '#1C1C1E',
       headerShadowVisible: false,
     });
   }, [memberName]);
@@ -514,13 +513,11 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
   const age = getAge(member.dob);
   const ssnDisplay = (member as any).ssn_last_four ?? null;
 
-  const { width: screenW, height: screenH } = Dimensions.get('window');
 
   return (
     <KeyboardAvoidingView style={[{ flex: 1 }, styles.container, { backgroundColor: colors.background }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <StatusBar barStyle='dark-content' />
       <ThemedBackground />
-      <ProfileBotanical width={screenW} height={screenH} />
       <ScrollView
         style={{ flex: 1, backgroundColor: 'transparent' }}
         contentContainerStyle={styles.content}

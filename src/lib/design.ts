@@ -1,89 +1,53 @@
-// Wren Health Design System — 2026 Dual Theme
-// Dark: deep forest at night. Light: open meadow morning.
+// Wren Health Design System — 2026
+// Single warm palette: cream background, forest green accents, terracotta highlights.
+// Target audience: parents managing family health. Warm, trustworthy, organized.
 
-// ── Dark Palette ──────────────────────────────────────────────────────────────
-export const DARK_COLORS = {
-  background: '#090D0B',
-  surface: 'rgba(255,255,255,0.05)',
-  surfaceAlt: 'rgba(255,255,255,0.08)',
-  surfaceSolid: '#111A14',
-  primary: '#52B788',
-  primaryDark: '#2D6A4F',
-  primaryLight: '#74C69D',
-  primaryMuted: 'rgba(82,183,136,0.15)',
-  primaryGlow: 'rgba(82,183,136,0.20)',
-  rose: '#E07A5F',
-  roseLight: 'rgba(224,122,95,0.15)',
-  amber: '#F2A65A',
-  amberLight: 'rgba(242,166,90,0.15)',
-  textPrimary: '#F2FAF5',
-  textSecondary: 'rgba(242,250,245,0.78)',
-  textTertiary: 'rgba(242,250,245,0.42)',
-  textInverse: '#090D0B',
-  border: 'rgba(255,255,255,0.09)',
-  borderStrong: 'rgba(82,183,136,0.25)',
-  divider: 'rgba(255,255,255,0.05)',
-  shadow: 'rgba(0,0,0,0.5)',
-  overlay: 'rgba(9,13,11,0.85)',
-  legacyBackground: '#FAF7F4',
-  legacySurface: '#FFFFFF',
-};
-
-// ── Light Palette ─────────────────────────────────────────────────────────────
-// Light mode = deep forest green background, pure white cards.
-// Background is darkest forest green so nav header & gradient start match.
-export const LIGHT_COLORS = {
-  background: '#1B4332',           // deepest forest green — matches gradient start, no seam
-  surface: '#FFFFFF',              // white cards that pop off the green
-  surfaceAlt: '#EEF7F2',
+// ── Core Palette ──────────────────────────────────────────────────────────────
+export const COLORS = {
+  background: '#FAF7F4',           // warm cream — main screen bg
+  surface: '#FFFFFF',              // white cards
+  surfaceAlt: '#F2EDE8',           // slightly warmer cream for secondary surfaces
   surfaceSolid: '#FFFFFF',
-  primary: '#2D6A4F',             // dark forest green for accents on white cards
-  primaryDark: '#1B4332',
-  primaryLight: '#52B788',
-  primaryMuted: 'rgba(45,106,79,0.12)',
-  primaryGlow: 'rgba(45,106,79,0.15)',
-  rose: '#C0472B',
-  roseLight: 'rgba(192,71,43,0.10)',
+  primary: '#2D6A4F',             // dark forest green — headers, labels, icons, active states
+  primaryDark: '#1B4332',         // deepest forest
+  primaryLight: '#40916C',        // medium green
+  primaryMuted: 'rgba(45,106,79,0.10)',  // very subtle green tint
+  primaryGlow: 'rgba(45,106,79,0.12)',
+  rose: '#C9614A',                // terracotta — warm accent, CTAs, highlights
+  roseLight: 'rgba(201,97,74,0.10)',
   amber: '#9A5800',
   amberLight: 'rgba(154,88,0,0.10)',
-  textPrimary: '#0D1810',          // dark text — 7.6:1 contrast on #52B788 ✓
-  textSecondary: 'rgba(13,24,16,0.72)',
-  textTertiary: 'rgba(13,24,16,0.52)',
+  textPrimary: '#1C1C1E',          // near-black — high contrast, readable
+  textSecondary: 'rgba(28,28,30,0.62)',
+  textTertiary: 'rgba(28,28,30,0.40)',
   textInverse: '#FFFFFF',
-  border: 'rgba(0,0,0,0.10)',
-  borderStrong: 'rgba(45,106,79,0.30)',
-  divider: 'rgba(0,0,0,0.07)',
-  shadow: 'rgba(0,0,0,0.20)',
-  overlay: 'rgba(45,106,79,0.92)',
+  border: 'rgba(0,0,0,0.08)',
+  borderStrong: 'rgba(45,106,79,0.28)',
+  divider: 'rgba(0,0,0,0.05)',
+  shadow: 'rgba(0,0,0,0.08)',
+  overlay: 'rgba(28,28,30,0.72)',
   legacyBackground: '#FAF7F4',
   legacySurface: '#FFFFFF',
 };
 
-// ── Legacy alias (backward compat — dark by default) ─────────────────────────
-export const COLORS = DARK_COLORS;
+// ── Legacy aliases (backward compat) ─────────────────────────────────────────
+export const DARK_COLORS = COLORS;
+export const LIGHT_COLORS = COLORS;
 
-// ── Dark Gradients ────────────────────────────────────────────────────────────
-export const DARK_GRADIENTS = {
-  background: ['#090D0B', '#0D1810', '#090D0B'] as const,
-  topGlow: ['rgba(82,183,136,0.18)', 'rgba(82,183,136,0.06)', 'transparent'] as const,
-  card: ['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.03)'] as const,
-  primaryBtn: ['#5BC898', '#2D6A4F'] as const,
-  sectionAccent: ['rgba(82,183,136,0.22)', 'transparent'] as const,
-  danger: ['rgba(224,122,95,0.20)', 'transparent'] as const,
+// ── Gradients ─────────────────────────────────────────────────────────────────
+export const GRADIENTS = {
+  background: ['#FAF7F4', '#FAF7F4', '#F2EDE8'] as const,       // subtle warm gradient
+  topGlow: ['rgba(45,106,79,0.06)', 'rgba(45,106,79,0.01)', 'transparent'] as const,
+  card: ['#FFFFFF', '#FDFAF8'] as const,
+  primaryBtn: ['#40916C', '#2D6A4F'] as const,                   // forest green CTA
+  terraCTA: ['#D97355', '#C9614A'] as const,                     // terracotta CTA
+  sectionAccent: ['rgba(45,106,79,0.08)', 'transparent'] as const,
+  danger: ['rgba(201,97,74,0.12)', 'transparent'] as const,
 };
 
-// ── Light Gradients ───────────────────────────────────────────────────────────
-export const LIGHT_GRADIENTS = {
-  background: ['#1B4332', '#2D6A4F', '#40916C'] as const,  // deep forest → rich green (no mint)
-  topGlow: ['rgba(27,67,50,0.60)', 'rgba(27,67,50,0.20)', 'transparent'] as const,
-  card: ['rgba(255,255,255,0.98)', 'rgba(255,255,255,0.85)'] as const,
-  primaryBtn: ['#52C48A', '#2D6A4F'] as const,
-  sectionAccent: ['rgba(45,106,79,0.10)', 'transparent'] as const,
-  danger: ['rgba(192,71,43,0.12)', 'transparent'] as const,
-};
-
-// ── Legacy alias (backward compat) ───────────────────────────────────────────
-export const GRADIENTS = DARK_GRADIENTS;
+// ── Legacy aliases ─────────────────────────────────────────────────────────────
+export const DARK_GRADIENTS = GRADIENTS;
+export const LIGHT_GRADIENTS = GRADIENTS;
 
 // ── Typography ────────────────────────────────────────────────────────────────
 export const FONTS = {
@@ -99,27 +63,27 @@ export const FONTS = {
 };
 
 export const CARD = {
-  backgroundColor: 'rgba(255,255,255,0.05)',
+  backgroundColor: '#FFFFFF',
   borderRadius: 20,
   borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.09)',
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.4,
-  shadowRadius: 16,
-  elevation: 6,
+  borderColor: 'rgba(0,0,0,0.06)',
+  shadowColor: 'rgba(0,0,0,0.08)',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 1,
+  shadowRadius: 8,
+  elevation: 3,
 };
 
 export const GLASS = {
-  backgroundColor: 'rgba(255,255,255,0.05)',
+  backgroundColor: '#FFFFFF',
   borderRadius: 20,
   borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.09)',
-  shadowColor: 'rgba(82,183,136,0.3)',
+  borderColor: 'rgba(0,0,0,0.06)',
+  shadowColor: 'rgba(45,106,79,0.15)',
   shadowOffset: { width: 0, height: 4 },
   shadowOpacity: 1,
-  shadowRadius: 20,
-  elevation: 8,
+  shadowRadius: 16,
+  elevation: 6,
 };
 
 export const BUTTON = {
@@ -129,11 +93,11 @@ export const BUTTON = {
     height: 52,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.45,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowColor: 'rgba(45,106,79,0.35)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 6,
   },
   secondary: {
     backgroundColor: 'transparent',

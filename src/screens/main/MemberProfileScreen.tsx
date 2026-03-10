@@ -568,7 +568,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
               { icon: 'document-text-outline' as const, label: 'Documents', onPress: () => navigation.navigate('DocumentScanner', { memberId, memberName }) },
             ]
           ).map((a, i) => (
-            <TouchableOpacity key={i} style={[styles.actionBtn, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); a.onPress(); }} activeOpacity={0.7}>
+            <TouchableOpacity key={i} style={[styles.actionBtn, { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: colors.shadow }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); a.onPress(); }} activeOpacity={0.7}>
               <View style={[styles.actionIconBg, { backgroundColor: colors.primaryMuted }]}>
                 <Ionicons name={a.icon} size={20} color={colors.primary} />
               </View>
@@ -908,10 +908,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between',
     marginBottom: SPACING.xl, gap: SPACING.sm,
   },
-  actionBtn: { flex: 1, alignItems: 'center', gap: 6 },
+  actionBtn: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 16,
+    paddingVertical: 14,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    elevation: 3,
+  },
   actionIconBg: {
-    width: 48, height: 48, borderRadius: 14,
-    backgroundColor: COLORS.primaryMuted, alignItems: 'center', justifyContent: 'center',
+    width: 44, height: 44, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
   },
   actionLabel: { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary },
 });

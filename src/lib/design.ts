@@ -9,7 +9,7 @@ export const DARK_COLORS = {
   surfaceSolid: '#111A14',
   primary: '#52B788',
   primaryDark: '#2D6A4F',
-  primaryLight: '#95D5B2',
+  primaryLight: '#74C69D',
   primaryMuted: 'rgba(82,183,136,0.15)',
   primaryGlow: 'rgba(82,183,136,0.20)',
   rose: '#E07A5F',
@@ -30,12 +30,12 @@ export const DARK_COLORS = {
 };
 
 // ── Light Palette ─────────────────────────────────────────────────────────────
-// Light mode = vivid forest green background, pure white cards.
-// Background uses the same brand green family as the splash screen (#52B788).
+// Light mode = deep forest green background, pure white cards.
+// Background is darkest forest green so nav header & gradient start match.
 export const LIGHT_COLORS = {
-  background: '#52B788',           // brand green — same as splash/icon
+  background: '#1B4332',           // deepest forest green — matches gradient start, no seam
   surface: '#FFFFFF',              // white cards that pop off the green
-  surfaceAlt: '#F4FAF7',
+  surfaceAlt: '#EEF7F2',
   surfaceSolid: '#FFFFFF',
   primary: '#2D6A4F',             // dark forest green for accents on white cards
   primaryDark: '#1B4332',
@@ -74,7 +74,7 @@ export const DARK_GRADIENTS = {
 
 // ── Light Gradients ───────────────────────────────────────────────────────────
 export const LIGHT_GRADIENTS = {
-  background: ['#2D6A4F', '#40916C', '#52B788'] as const,  // forest green → brand green
+  background: ['#1B4332', '#2D6A4F', '#40916C'] as const,  // deep forest → rich green (no mint)
   topGlow: ['rgba(27,67,50,0.60)', 'rgba(27,67,50,0.20)', 'transparent'] as const,
   card: ['rgba(255,255,255,0.98)', 'rgba(255,255,255,0.85)'] as const,
   primaryBtn: ['#52C48A', '#2D6A4F'] as const,

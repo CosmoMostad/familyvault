@@ -6,9 +6,9 @@ interface Props {
   height: number;
 }
 
-const DARK  = '#2D6A4F';  // forest green
-const MID   = '#40916C';  // mid green
-const LIGHT = '#74C69D';  // lighter green
+const DARK  = '#1B4332';  // deepest forest green
+const MID   = '#2D6A4F';  // dark forest green
+const LIGHT = '#40916C';  // mid forest green (no mint)
 
 // ── Reusable leaf paths (all pointing "up" from origin at base) ──────────────
 

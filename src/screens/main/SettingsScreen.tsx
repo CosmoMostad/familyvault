@@ -7,8 +7,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { supabase } from '../../lib/supabase';
-import { COLORS, FONTS, SPACING } from '../../lib/design';
+import { SPACING } from '../../lib/design';
 
 // ─── Change Credential Modal ──────────────────────────────────────────────────
 
@@ -19,22 +20,30 @@ function ChangeModal({
   fields: { label: string; value: string; set: (v: string) => void; secure?: boolean; placeholder?: string }[];
   onClose: () => void; onSave: () => void; saving: boolean;
 }) {
+  const { isDark, colors } = useTheme();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={modal.backdrop}>
-          <View style={modal.sheet}>
-            <View style={modal.handle} />
-            <Text style={modal.title}>{title}</Text>
+        <View style={[modal.backdrop, { backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.45)' }]}>
+          <View style={[modal.sheet, {
+            backgroundColor: isDark ? '#111A14' : '#FFFFFF',
+            borderTopColor: colors.border,
+          }]}>
+            <View style={[modal.handle, { backgroundColor: colors.border }]} />
+            <Text style={[modal.title, { color: colors.textPrimary }]}>{title}</Text>
             {fields.map((f, i) => (
               <View key={i} style={modal.field}>
-                <Text style={modal.label}>{f.label}</Text>
+                <Text style={[modal.label, { color: colors.primary }]}>{f.label}</Text>
                 <TextInput
-                  style={modal.input}
+                  style={[modal.input, {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    color: colors.textPrimary,
+                  }]}
                   value={f.value}
                   onChangeText={f.set}
                   placeholder={f.placeholder ?? ''}
-                  placeholderTextColor="rgba(242,250,245,0.55)"
+                  placeholderTextColor={colors.textTertiary}
                   secureTextEntry={f.secure}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -42,16 +51,19 @@ function ChangeModal({
               </View>
             ))}
             <View style={modal.actions}>
-              <TouchableOpacity style={modal.cancelBtn} onPress={onClose}>
-                <Text style={modal.cancelText}>Cancel</Text>
+              <TouchableOpacity
+                style={[modal.cancelBtn, { borderColor: colors.border }]}
+                onPress={onClose}
+              >
+                <Text style={[modal.cancelText, { color: colors.textSecondary }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[modal.saveBtn, saving && { opacity: 0.6 }]}
+                style={[modal.saveBtn, { backgroundColor: colors.primary, shadowColor: colors.primary }, saving && { opacity: 0.6 }]}
                 onPress={onSave} disabled={saving}
               >
                 {saving
-                  ? <ActivityIndicator size="small" color="#090D0B" />
-                  : <Text style={modal.saveText}>Save</Text>}
+                  ? <ActivityIndicator size="small" color={colors.textInverse} />
+                  : <Text style={[modal.saveText, { color: colors.textInverse }]}>Save</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -62,55 +74,58 @@ function ChangeModal({
 }
 
 const modal = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: '#111A14', borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
     padding: SPACING.xl, gap: SPACING.base,
-    borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.09)',
+    borderTopWidth: 1,
   },
-  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.15)', alignSelf: 'center', marginBottom: SPACING.sm },
-  title: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4, letterSpacing: -0.3 },
+  handle: { width: 36, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: SPACING.sm },
+  title: { fontSize: 20, fontWeight: '700', marginBottom: 4, letterSpacing: -0.3 },
   field: { gap: 6 },
-  label: { fontSize: 11, fontWeight: '700', color: COLORS.primary, letterSpacing: 1.2, textTransform: 'uppercase' },
+  label: { fontSize: 11, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
-    paddingHorizontal: SPACING.base, height: 52, fontSize: 15, color: COLORS.textPrimary,
+    borderRadius: 14, borderWidth: 1,
+    paddingHorizontal: SPACING.base, height: 52, fontSize: 15,
   },
   actions: { flexDirection: 'row', gap: SPACING.md, marginTop: 4 },
   cancelBtn: {
     flex: 1, height: 50, borderRadius: 14, borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center',
-  },
-  cancelText: { fontSize: 15, color: COLORS.textSecondary, fontWeight: '600' },
-  saveBtn: {
-    flex: 1, height: 50, borderRadius: 14, backgroundColor: COLORS.primary,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 6 },
+  },
+  cancelText: { fontSize: 15, fontWeight: '600' },
+  saveBtn: {
+    flex: 1, height: 50, borderRadius: 14,
+    alignItems: 'center', justifyContent: 'center',
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.5, shadowRadius: 14,
   },
-  saveText: { fontSize: 15, color: '#090D0B', fontWeight: '800' },
+  saveText: { fontSize: 15, fontWeight: '800' },
 });
 
 // ─── Row ─────────────────────────────────────────────────────────────────────
 
 function Row({
-  icon, iconColor = 'rgba(237,247,241,0.5)', label, value,
+  icon, iconColor, label, value,
   onPress, isLast = false, rightElement, destructive = false,
 }: {
   icon: keyof typeof Ionicons.glyphMap; iconColor?: string;
   label: string; value?: string; onPress?: () => void;
   isLast?: boolean; rightElement?: React.ReactNode; destructive?: boolean;
 }) {
+  const { colors } = useTheme();
+  const ic = iconColor ?? colors.textTertiary;
   const content = (
-    <View style={[row.row, !isLast && row.divider]}>
-      <View style={[row.iconBg, { backgroundColor: `${iconColor}1A` }]}>
-        <Ionicons name={icon} size={17} color={iconColor} />
+    <View style={[row.row, !isLast && { borderBottomWidth: 1, borderBottomColor: colors.divider }]}>
+      <View style={[row.iconBg, { backgroundColor: `${ic}1A` }]}>
+        <Ionicons name={icon} size={17} color={ic} />
       </View>
-      <Text style={[row.label, destructive && { color: COLORS.rose }]}>{label}</Text>
+      <Text style={[row.label, { color: destructive ? colors.rose : colors.textPrimary }]}>{label}</Text>
       <View style={row.right}>
-        {value ? <Text style={row.value}>{value}</Text> : null}
-        {rightElement ?? (onPress ? <Ionicons name="chevron-forward" size={15} color="rgba(242,250,245,0.55)" /> : null)}
+        {value ? <Text style={[row.value, { color: colors.textSecondary }]}>{value}</Text> : null}
+        {rightElement ?? (onPress
+          ? <Ionicons name="chevron-forward" size={15} color={colors.textTertiary} />
+          : null)}
       </View>
     </View>
   );
@@ -119,21 +134,19 @@ function Row({
 }
 
 const row = StyleSheet.create({
-  row: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 16, paddingHorizontal: SPACING.base, gap: SPACING.md,
-  },
-  divider: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, paddingHorizontal: SPACING.base, gap: SPACING.md },
   iconBg: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  label: { fontSize: 15, color: COLORS.textPrimary, flex: 1, fontWeight: '500' },
+  label: { fontSize: 15, flex: 1, fontWeight: '500' },
   right: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-  value: { fontSize: 13, color: COLORS.textSecondary },
+  value: { fontSize: 13 },
 });
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function SettingsScreen() {
   const { profile, session, signOut } = useAuth();
+  const { isDark, toggleTheme, colors, gradients } = useTheme();
+
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [newEmail, setNewEmail] = useState('');
@@ -207,11 +220,11 @@ export default function SettingsScreen() {
   const userEmail = session?.user?.email ?? '';
 
   return (
-    <View style={styles.root}>
-      <StatusBar barStyle="light-content" />
-      <LinearGradient colors={['#090D0B', '#0D1810', '#090D0B']} style={StyleSheet.absoluteFill} />
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <LinearGradient colors={gradients.background as any} style={StyleSheet.absoluteFill} />
       <LinearGradient
-        colors={['rgba(82,183,136,0.14)', 'rgba(82,183,136,0.04)', 'transparent']}
+        colors={gradients.topGlow as any}
         locations={[0, 0.35, 0.7]}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
@@ -222,26 +235,25 @@ export default function SettingsScreen() {
 
           {/* Header */}
           <View style={styles.headerArea}>
-            <Text style={styles.pageTitle}>Settings</Text>
+            <Text style={[styles.pageTitle, { color: colors.textPrimary }]}>Settings</Text>
           </View>
 
           {/* Profile card */}
           {profile && (
-            <View style={styles.profileCard}>
-              <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.profileAvatar}>
-                <Text style={styles.profileAvatarText}>{getInitials(profile.full_name)}</Text>
+            <View style={[styles.profileCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.profileAvatar}>
+                <Text style={[styles.profileAvatarText, { color: colors.textInverse }]}>{getInitials(profile.full_name)}</Text>
               </LinearGradient>
               <View style={{ flex: 1 }}>
-                <Text style={styles.profileName}>{profile.full_name}</Text>
-                {userEmail ? <Text style={styles.profileEmail}>{userEmail}</Text> : null}
+                <Text style={[styles.profileName, { color: colors.textPrimary }]}>{profile.full_name}</Text>
+                {userEmail ? <Text style={[styles.profileEmail, { color: colors.textSecondary }]}>{userEmail}</Text> : null}
               </View>
-
             </View>
           )}
 
           {/* Account */}
-          <Text style={styles.sectionLabel}>ACCOUNT</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>ACCOUNT</Text>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Row
               icon="mail-outline" iconColor='#60A5FA'
               label="Change Email"
@@ -257,8 +269,8 @@ export default function SettingsScreen() {
           </View>
 
           {/* App */}
-          <Text style={styles.sectionLabel}>APP</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>APP</Text>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Row
               icon="notifications-outline" iconColor='#A78BFA'
               label="Appointment Reminders"
@@ -266,8 +278,21 @@ export default function SettingsScreen() {
                 <Switch
                   value={notificationsEnabled}
                   onValueChange={setNotificationsEnabled}
-                  trackColor={{ false: 'rgba(255,255,255,0.1)', true: 'rgba(82,183,136,0.5)' }}
-                  thumbColor={notificationsEnabled ? COLORS.primary : 'rgba(237,247,241,0.4)'}
+                  trackColor={{ false: colors.border, true: `${colors.primary}80` }}
+                  thumbColor={notificationsEnabled ? colors.primary : colors.textTertiary}
+                />
+              }
+            />
+            <Row
+              icon={isDark ? 'moon-outline' : 'sunny-outline'}
+              iconColor='#A78BFA'
+              label={isDark ? 'Dark Mode' : 'Light Mode'}
+              rightElement={
+                <Switch
+                  value={isDark}
+                  onValueChange={toggleTheme}
+                  trackColor={{ false: colors.border, true: `${colors.primary}80` }}
+                  thumbColor={isDark ? colors.primary : colors.textTertiary}
                 />
               }
             />
@@ -285,29 +310,31 @@ export default function SettingsScreen() {
           </View>
 
           {/* Support */}
-          <Text style={styles.sectionLabel}>SUPPORT</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>SUPPORT</Text>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Row icon="help-circle-outline" iconColor='#60A5FA' label="Help & FAQ" onPress={() => Linking.openURL('https://wrenhealth.app/help')} />
             <Row icon="chatbubble-ellipses-outline" iconColor='#93C5FD' label="Contact Support" onPress={() => Linking.openURL('mailto:support@wrenhealth.app')} />
-            <Row icon="shield-checkmark-outline" iconColor={COLORS.primary} label="Privacy Policy" onPress={() => Linking.openURL('https://wrenhealth.app/privacy')} />
-            <Row icon="document-text-outline" iconColor="rgba(237,247,241,0.5)" label="Terms of Service" onPress={() => Linking.openURL('https://wrenhealth.app/terms')} isLast />
+            <Row icon="shield-checkmark-outline" iconColor={colors.primary} label="Privacy Policy" onPress={() => Linking.openURL('https://wrenhealth.app/privacy')} />
+            <Row icon="document-text-outline" iconColor={colors.textTertiary} label="Terms of Service" onPress={() => Linking.openURL('https://wrenhealth.app/terms')} isLast />
           </View>
 
           {/* About */}
-          <Text style={styles.sectionLabel}>ABOUT</Text>
-          <View style={styles.card}>
-            <Row icon="leaf-outline" iconColor={COLORS.primary} label="Wren Health" value="v1.0.0" isLast />
+          <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>ABOUT</Text>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Row icon="leaf-outline" iconColor={colors.primary} label="Wren Health" value="v1.0.0" isLast />
           </View>
 
           {/* Sign out */}
-          <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} activeOpacity={0.8}>
-            <Ionicons name="log-out-outline" size={18} color={COLORS.rose} />
-            <Text style={styles.signOutText}>Sign Out</Text>
+          <TouchableOpacity
+            style={[styles.signOutBtn, { backgroundColor: `${colors.rose}1A`, borderColor: `${colors.rose}40` }]}
+            onPress={handleSignOut} activeOpacity={0.8}
+          >
+            <Ionicons name="log-out-outline" size={18} color={colors.rose} />
+            <Text style={[styles.signOutText, { color: colors.rose }]}>Sign Out</Text>
           </TouchableOpacity>
 
-          {/* Delete account — subtle, as it should be */}
           <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteAccount} activeOpacity={0.7}>
-            <Text style={styles.deleteText}>Delete Account</Text>
+            <Text style={[styles.deleteText, { color: colors.textTertiary }]}>Delete Account</Text>
           </TouchableOpacity>
 
           <View style={{ height: 80 }} />
@@ -332,54 +359,47 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#090D0B' },
+  root: { flex: 1 },
   content: { paddingHorizontal: SPACING.xl, paddingTop: SPACING.base },
 
   headerArea: { paddingTop: SPACING.sm, marginBottom: SPACING.xl },
-  pageTitle: { fontSize: 28, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.6 },
+  pageTitle: { fontSize: 28, fontWeight: '800', letterSpacing: -0.6 },
 
   profileCard: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)',
+    borderRadius: 22, borderWidth: 1,
     flexDirection: 'row', alignItems: 'center',
     padding: 20, marginBottom: SPACING.xl, gap: SPACING.md,
-    shadowColor: 'rgba(82,183,136,0.25)', shadowOffset: { width: 0, height: 4 },
+    shadowColor: 'rgba(0,0,0,0.15)', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 1, shadowRadius: 16, elevation: 6,
   },
   profileAvatar: {
     width: 64, height: 64, borderRadius: 32,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#52B788', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35, shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 14,
   },
-  profileAvatarText: { fontSize: 18, fontWeight: '800', color: '#090D0B', letterSpacing: -0.5 },
-  profileName: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.3 },
-  profileEmail: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+  profileAvatarText: { fontSize: 18, fontWeight: '800', letterSpacing: -0.5 },
+  profileName: { fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
+  profileEmail: { fontSize: 13, marginTop: 2 },
 
   sectionLabel: {
-    fontSize: 11, fontWeight: '700', color: 'rgba(237,247,241,0.40)',
-    letterSpacing: 1.4, textTransform: 'uppercase',
+    fontSize: 11, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase',
     marginBottom: SPACING.sm, marginTop: 32, paddingLeft: 2,
   },
 
   card: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)',
-    overflow: 'hidden', marginBottom: 4,
-    shadowColor: 'rgba(82,183,136,0.15)', shadowOffset: { width: 0, height: 4 },
+    borderRadius: 20, borderWidth: 1, overflow: 'hidden', marginBottom: 4,
+    shadowColor: 'rgba(0,0,0,0.1)', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 1, shadowRadius: 16, elevation: 4,
   },
 
   signOutBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: SPACING.sm, height: 56, borderRadius: 18, marginTop: 40,
-    backgroundColor: 'rgba(224,122,95,0.10)',
-    borderWidth: 1, borderColor: 'rgba(224,122,95,0.25)',
-    shadowColor: '#E07A5F', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18, shadowRadius: 12, elevation: 4,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 12, elevation: 4,
   },
-  signOutText: { fontSize: 15, color: COLORS.rose, fontWeight: '700' },
+  signOutText: { fontSize: 15, fontWeight: '700' },
 
   deleteBtn: { alignItems: 'center', paddingVertical: SPACING.base, marginTop: SPACING.sm },
-  deleteText: { fontSize: 13, color: 'rgba(242,250,245,0.55)', fontWeight: '500' },
+  deleteText: { fontSize: 13, fontWeight: '500' },
 });

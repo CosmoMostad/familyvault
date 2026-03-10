@@ -39,8 +39,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { FamilyMember, RootStackParamList } from '../../lib/types';
-import { COLORS, FONTS, SPACING } from '../../lib/design';
+import { COLORS, SPACING } from '../../lib/design';
 import NotificationsDrawer from '../../components/NotificationsDrawer';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -118,15 +119,10 @@ interface SortableCardProps {
 }
 
 function SortableCard({
-  member,
-  index,
-  isDropTarget,
-  onDragStart,
-  onDragMove,
-  onDragEnd,
-  onTap,
-  onDelete,
+  member, index, isDropTarget,
+  onDragStart, onDragMove, onDragEnd, onTap, onDelete,
 }: SortableCardProps) {
+  const { colors } = useTheme();
   const cardRef = useRef<View>(null);
   const tx = useSharedValue(0);
   const ty = useSharedValue(0);
@@ -135,7 +131,6 @@ function SortableCard({
   const opacity = useSharedValue(1);
   const isDragging = useSharedValue(false);
 
-  // Animate to new position when index changes (order swap)
   const posX = useSharedValue(cardX(index));
   const posY = useSharedValue(cardY(index));
 
@@ -190,7 +185,12 @@ function SortableCard({
     <GestureDetector gesture={gesture}>
       <Animated.View
         ref={cardRef as any}
-        style={[styles.gridCard, animStyle, isDropTarget && styles.gridCardTarget]}
+        style={[
+          styles.gridCard,
+          { backgroundColor: colors.surface, borderColor: isDropTarget ? colors.primary : colors.border },
+          isDropTarget && { borderWidth: 1.5, shadowColor: colors.primary, shadowOpacity: 1, shadowRadius: 24 },
+          animStyle,
+        ]}
       >
         <TouchableOpacity
           activeOpacity={0.88}
@@ -202,15 +202,18 @@ function SortableCard({
           {member.photo_url ? (
             <Image source={{ uri: member.photo_url }} style={styles.gridPhoto} />
           ) : (
-            <View style={styles.gridAvatar}>
-              <Text style={styles.gridAvatarText}>{getInitials(member.full_name)}</Text>
+            <View style={[styles.gridAvatar, {
+              backgroundColor: colors.primaryMuted,
+              borderColor: colors.borderStrong,
+            }]}>
+              <Text style={[styles.gridAvatarText, { color: colors.primary }]}>{getInitials(member.full_name)}</Text>
             </View>
           )}
-          <Text style={styles.gridName} numberOfLines={2}>
+          <Text style={[styles.gridName, { color: colors.textPrimary }]} numberOfLines={2}>
             {member.full_name}
           </Text>
           {dobFormatted ? (
-            <Text style={styles.gridDob}>{dobFormatted}</Text>
+            <Text style={[styles.gridDob, { color: colors.textSecondary }]}>{dobFormatted}</Text>
           ) : null}
         </TouchableOpacity>
       </Animated.View>
@@ -220,13 +223,11 @@ function SortableCard({
 
 // ─── Hero Card ────────────────────────────────────────────────────────────────
 
-function HeroCard({
-  member,
-  onPress,
-}: {
+function HeroCard({ member, onPress }: {
   member: FamilyMember;
   onPress: (m: FamilyMember, ref: React.RefObject<View>) => void;
 }) {
+  const { colors, isDark } = useTheme();
   const ref = useRef<View>(null);
   const age = getAge(member.dob);
   const dob = formatDob(member.dob);
@@ -236,15 +237,17 @@ function HeroCard({
       ref={ref as any}
       activeOpacity={0.9}
       onPress={() => onPress(member, ref as React.RefObject<View>)}
-      style={styles.heroCard}
+      style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
     >
       <LinearGradient
-        colors={['rgba(45,106,79,0.07)', 'rgba(45,106,79,0.01)']}
+        colors={isDark
+          ? ['rgba(45,106,79,0.07)', 'rgba(45,106,79,0.01)']
+          : ['rgba(45,106,79,0.04)', 'rgba(45,106,79,0.00)']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
-      <View style={styles.heroGlow} pointerEvents="none" />
+      <View style={[styles.heroGlow, { backgroundColor: colors.primaryMuted }]} pointerEvents="none" />
       <View style={styles.heroInner}>
         {member.photo_url ? (
           <Image source={{ uri: member.photo_url }} style={styles.heroPhoto} />
@@ -254,13 +257,13 @@ function HeroCard({
           </LinearGradient>
         )}
         <View style={styles.heroInfo}>
-          <Text style={styles.heroName} numberOfLines={1}>{member.full_name}</Text>
+          <Text style={[styles.heroName, { color: colors.textPrimary }]} numberOfLines={1}>{member.full_name}</Text>
           {dob ? (
-            <Text style={styles.heroDob}>{dob}{age ? `  ·  ${age}` : ''}</Text>
+            <Text style={[styles.heroDob, { color: colors.textSecondary }]}>{dob}{age ? `  ·  ${age}` : ''}</Text>
           ) : null}
           <View style={styles.heroTagRow}>
-            <View style={styles.tagSelf}>
-              <Text style={styles.tagSelfText}>My Profile</Text>
+            <View style={[styles.tagSelf, { backgroundColor: colors.primaryMuted, borderColor: colors.borderStrong }]}>
+              <Text style={[styles.tagSelfText, { color: colors.primary }]}>My Profile</Text>
             </View>
           </View>
         </View>
@@ -272,9 +275,7 @@ function HeroCard({
 // ─── Expand Overlay ───────────────────────────────────────────────────────────
 
 function ExpandOverlay({
-  member,
-  layout,
-  onDone,
+  member, layout, onDone,
 }: {
   member: FamilyMember;
   layout: { x: number; y: number; w: number; h: number };
@@ -320,6 +321,7 @@ function ExpandOverlay({
 export default function FamilyScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { session } = useAuth();
+  const { isDark, colors, gradients } = useTheme();
 
   const [selfMember, setSelfMember] = useState<FamilyMember | null>(null);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
@@ -328,18 +330,13 @@ export default function FamilyScreen() {
   const [notifVisible, setNotifVisible] = useState(false);
   const [showDotMenu, setShowDotMenu] = useState(false);
 
-  // Drag-to-reorder state
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
-
-  // Stored card positions for hit-testing during drag
   const cardPositions = useRef<Map<string, { x: number; y: number; w: number; h: number }>>(new Map());
 
-  // Expand overlay
   const [expandingMember, setExpandingMember] = useState<FamilyMember | null>(null);
   const [expandLayout, setExpandLayout] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
 
-  // ── Fetch ──
   async function fetchData() {
     try {
       const [membersRes, notifRes] = await Promise.all([
@@ -372,33 +369,22 @@ export default function FamilyScreen() {
 
   useFocusEffect(useCallback(() => { fetchData(); }, [session]));
 
-  // ── Measure card positions at drag start ──
   function handleDragStart(id: string) {
     setDraggingId(id);
-    // Snapshot positions of all family cards for hit-testing
     familyMembers.forEach((m, i) => {
-      const x = cardX(i);
-      const y = cardY(i);
-      cardPositions.current.set(m.id, { x, y, w: CARD_W, h: CARD_H });
+      cardPositions.current.set(m.id, { x: cardX(i), y: cardY(i), w: CARD_W, h: CARD_H });
     });
   }
 
-  // ── During drag: find which card the finger is over ──
   function handleDragMove(id: string, absX: number, absY: number) {
     let nearest: string | null = null;
     let nearestDist = Infinity;
     cardPositions.current.forEach((pos, cardId) => {
       if (cardId === id) return;
-      // Center of card in absolute coords (approximate — grid starts ~170px from top)
       const cx = pos.x + pos.w / 2;
       const cy = pos.y + pos.h / 2;
-      const dist = Math.sqrt(
-        Math.pow(absX - (H_PAD + cx), 2) + Math.pow(absY - cy, 2)
-      );
-      if (dist < nearestDist) {
-        nearestDist = dist;
-        nearest = cardId;
-      }
+      const dist = Math.sqrt(Math.pow(absX - (H_PAD + cx), 2) + Math.pow(absY - cy, 2));
+      if (dist < nearestDist) { nearestDist = dist; nearest = cardId; }
     });
     if (nearest !== dropTargetId) {
       setDropTargetId(nearest);
@@ -406,7 +392,6 @@ export default function FamilyScreen() {
     }
   }
 
-  // ── Drag end: execute swap ──
   function handleDragEnd(id: string) {
     if (dropTargetId && dropTargetId !== id) {
       setFamilyMembers((prev) => {
@@ -425,9 +410,8 @@ export default function FamilyScreen() {
     setDropTargetId(null);
   }
 
-  // ── Card tap → spin-to-fill → navigate ──
   function handleCardTap(member: FamilyMember, ref: React.RefObject<View>) {
-    if (draggingId) return; // Don't navigate during drag
+    if (draggingId) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     (ref.current as any)?.measureInWindow((x: number, y: number, w: number, h: number) => {
       setExpandLayout({ x, y, w, h });
@@ -444,45 +428,38 @@ export default function FamilyScreen() {
   }
 
   async function handleDelete(member: FamilyMember) {
-    Alert.alert(
-      'Remove Account',
-      `Remove ${member.full_name}? This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            await supabase.from('family_members').delete().eq('id', member.id);
-            fetchData();
-          },
+    Alert.alert('Remove Account', `Remove ${member.full_name}? This cannot be undone.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove', style: 'destructive',
+        onPress: async () => {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          await supabase.from('family_members').delete().eq('id', member.id);
+          fetchData();
         },
-      ]
-    );
+      },
+    ]);
   }
 
-  // ── Grid height ──
-  const numItems = familyMembers.length + 1; // +1 for Add card
+  const numItems = familyMembers.length + 1;
   const numRows = Math.ceil(numItems / 2);
   const gridHeight = numRows * ROW_H - GRID_GAP;
 
   if (loading) {
     return (
-      <View style={styles.loadingWrap}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={[styles.loadingWrap, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.root}>
-      <StatusBar barStyle="light-content" />
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      {/* Gradient background */}
-      <LinearGradient colors={['#090D0B', '#0D1810', '#090D0B']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={gradients.background as any} style={StyleSheet.absoluteFill} />
       <LinearGradient
-        colors={['rgba(82,183,136,0.18)', 'rgba(82,183,136,0.06)', 'transparent']}
+        colors={gradients.topGlow as any}
         locations={[0, 0.35, 0.7]}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
@@ -491,50 +468,42 @@ export default function FamilyScreen() {
       {/* Header */}
       <SafeAreaView>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>My Accounts</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>My Accounts</Text>
           <View style={styles.headerActions}>
             <TouchableOpacity
-              style={styles.iconBtn}
+              style={[styles.iconBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)' }]}
               onPress={() => setNotifVisible(true)}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="notifications-outline" size={22} color={COLORS.textPrimary} />
+              <Ionicons name="notifications-outline" size={22} color={colors.textPrimary} />
               {pendingCount > 0 && (
-                <View style={styles.badge}>
+                <View style={[styles.badge, { borderColor: colors.background }]}>
                   <Text style={styles.badgeText}>{pendingCount > 9 ? '9+' : String(pendingCount)}</Text>
                 </View>
               )}
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.iconBtn}
+              style={[styles.iconBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)' }]}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setShowDotMenu(true);
               }}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="ellipsis-vertical" size={22} color={COLORS.textPrimary} />
+              <Ionicons name="ellipsis-vertical" size={22} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
         </View>
       </SafeAreaView>
 
       {/* Scrollable content */}
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* MY HEALTH — hero card */}
-        <Text style={styles.sectionLabel}>MY HEALTH</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>MY HEALTH</Text>
         {selfMember && <HeroCard member={selfMember} onPress={handleCardTap} />}
 
-        {/* FAMILY MEMBERS — drag grid */}
-        <Text style={[styles.sectionLabel, { marginTop: SPACING.lg }]}>FAMILY MEMBERS</Text>
+        <Text style={[styles.sectionLabel, { marginTop: SPACING.lg, color: colors.textTertiary }]}>FAMILY MEMBERS</Text>
 
-        {/* Absolute-positioned grid so each card can animate independently */}
         <View style={[styles.gridContainer, { height: gridHeight }]}>
-
-          {/* Family member cards */}
           {familyMembers.map((member, i) => (
             <SortableCard
               key={member.id}
@@ -549,7 +518,6 @@ export default function FamilyScreen() {
             />
           ))}
 
-          {/* Add card — always in the next available slot */}
           <TouchableOpacity
             style={[
               styles.addCard,
@@ -559,6 +527,8 @@ export default function FamilyScreen() {
                 top: cardY(familyMembers.length),
                 width: CARD_W,
                 height: CARD_H,
+                borderColor: colors.borderStrong,
+                backgroundColor: colors.primaryMuted,
               },
             ]}
             onPress={() => {
@@ -567,16 +537,14 @@ export default function FamilyScreen() {
             }}
             activeOpacity={0.7}
           >
-            <View style={styles.addIcon}>
-              <Ionicons name="add" size={22} color={COLORS.primary} />
+            <View style={[styles.addIcon, { backgroundColor: isDark ? 'rgba(82,183,136,0.12)' : 'rgba(45,106,79,0.10)' }]}>
+              <Ionicons name="add" size={22} color={colors.primary} />
             </View>
-            <Text style={styles.addLabel}>Add Family{'\n'}Member</Text>
+            <Text style={[styles.addLabel, { color: colors.primary }]}>Add Family{'\n'}Member</Text>
           </TouchableOpacity>
-
         </View>
       </ScrollView>
 
-      {/* Spin-to-fill overlay */}
       {expandingMember && expandLayout && (
         <ExpandOverlay
           member={expandingMember}
@@ -594,7 +562,10 @@ export default function FamilyScreen() {
       {/* 3-dot menu */}
       <Modal visible={showDotMenu} transparent animationType="fade" onRequestClose={() => setShowDotMenu(false)}>
         <Pressable style={dotMenu.backdrop} onPress={() => setShowDotMenu(false)}>
-          <View style={dotMenu.menu}>
+          <View style={[dotMenu.menu, {
+            backgroundColor: isDark ? '#111A14' : '#FFFFFF',
+            borderColor: colors.border,
+          }]}>
             <TouchableOpacity
               style={dotMenu.item}
               onPress={() => {
@@ -607,10 +578,10 @@ export default function FamilyScreen() {
               }}
               activeOpacity={0.7}
             >
-              <Ionicons name="text-outline" size={16} color={COLORS.textPrimary} />
-              <Text style={dotMenu.itemText}>Sort by Name</Text>
+              <Ionicons name="text-outline" size={16} color={colors.textPrimary} />
+              <Text style={[dotMenu.itemText, { color: colors.textPrimary }]}>Sort by Name</Text>
             </TouchableOpacity>
-            <View style={dotMenu.divider} />
+            <View style={[dotMenu.divider, { backgroundColor: colors.divider }]} />
             <TouchableOpacity
               style={dotMenu.item}
               onPress={() => {
@@ -627,8 +598,8 @@ export default function FamilyScreen() {
               }}
               activeOpacity={0.7}
             >
-              <Ionicons name="calendar-outline" size={16} color={COLORS.textPrimary} />
-              <Text style={dotMenu.itemText}>Sort by Age</Text>
+              <Ionicons name="calendar-outline" size={16} color={colors.textPrimary} />
+              <Text style={[dotMenu.itemText, { color: colors.textPrimary }]}>Sort by Age</Text>
             </TouchableOpacity>
           </View>
         </Pressable>
@@ -640,49 +611,41 @@ export default function FamilyScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#090D0B' },
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#090D0B' },
+  root: { flex: 1 },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: H_PAD, paddingTop: SPACING.sm, paddingBottom: SPACING.md,
   },
-  headerTitle: {
-    fontSize: 28, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.6,
-  },
+  headerTitle: { fontSize: 28, fontWeight: '800', letterSpacing: -0.6 },
   headerActions: { flexDirection: 'row', gap: 4 },
   iconBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.07)',
     alignItems: 'center', justifyContent: 'center', position: 'relative',
   },
   badge: {
     position: 'absolute', top: 5, right: 5, minWidth: 15, height: 15, borderRadius: 8,
     backgroundColor: '#E53E3E', alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 2, borderWidth: 1.5, borderColor: '#090D0B',
+    paddingHorizontal: 2, borderWidth: 1.5,
   },
   badgeText: { fontSize: 8, fontWeight: '700', color: '#fff' },
 
   scrollContent: { paddingHorizontal: H_PAD, paddingBottom: 120 },
 
   sectionLabel: {
-    fontSize: 11, fontWeight: '700', color: 'rgba(237,247,241,0.40)',
-    letterSpacing: 1.2, textTransform: 'uppercase',
+    fontSize: 11, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase',
     marginBottom: SPACING.sm, paddingLeft: 2,
   },
 
   // ── Hero card ──
   heroCard: {
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
-    overflow: 'hidden', marginBottom: SPACING.lg,
-    shadowColor: 'rgba(82,183,136,0.35)', shadowOffset: { width: 0, height: 6 },
+    borderRadius: 24, borderWidth: 1, overflow: 'hidden', marginBottom: SPACING.lg,
+    shadowColor: 'rgba(82,183,136,0.25)', shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 1, shadowRadius: 24, elevation: 8,
   },
   heroGlow: {
-    position: 'absolute', top: -40, right: -40, width: 140, height: 140,
-    borderRadius: 70, backgroundColor: 'rgba(82,183,136,0.08)',
+    position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: 70,
   },
   heroInner: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 16 },
   heroAvatar: {
@@ -694,60 +657,33 @@ const styles = StyleSheet.create({
   heroPhoto: { width: 72, height: 72, borderRadius: 36, flexShrink: 0 },
   heroAvatarText: { fontSize: 26, fontWeight: '800', color: '#fff', letterSpacing: -1 },
   heroInfo: { flex: 1 },
-  heroName: { fontSize: 20, fontWeight: '700', color: '#F2FAF5', letterSpacing: -0.4, marginBottom: 4 },
-  heroDob: { fontSize: 13, color: 'rgba(242,250,245,0.80)', fontWeight: '500', marginBottom: 8 },
+  heroName: { fontSize: 20, fontWeight: '700', letterSpacing: -0.4, marginBottom: 4 },
+  heroDob: { fontSize: 13, fontWeight: '500', marginBottom: 8 },
   heroTagRow: { flexDirection: 'row' },
-  tagSelf: {
-    backgroundColor: 'rgba(82,183,136,0.15)', paddingHorizontal: 10,
-    paddingVertical: 3, borderRadius: 20,
-    borderWidth: 1, borderColor: 'rgba(82,183,136,0.3)',
-  },
-  tagSelfText: { fontSize: 11, fontWeight: '700', color: COLORS.primary },
+  tagSelf: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20, borderWidth: 1 },
+  tagSelfText: { fontSize: 11, fontWeight: '700' },
 
   // ── Grid ──
   gridContainer: { width: '100%', position: 'relative' },
-
   gridCard: {
-    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)',
-    shadowColor: 'rgba(82,183,136,0.2)', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1, shadowRadius: 16, elevation: 4,
-    overflow: 'hidden',
+    borderRadius: 20, borderWidth: 1,
+    shadowColor: 'rgba(82,183,136,0.15)', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1, shadowRadius: 16, elevation: 4, overflow: 'hidden',
   },
-  gridCardTarget: {
-    borderColor: COLORS.primary, borderWidth: 1.5,
-    shadowColor: COLORS.primary, shadowOpacity: 1, shadowRadius: 24,
-  },
-  gridCardInner: {
-    flex: 1, padding: 14, alignItems: 'center',
-    justifyContent: 'center', gap: 8,
-  },
+  gridCardInner: { flex: 1, padding: 14, alignItems: 'center', justifyContent: 'center', gap: 8 },
   gridAvatar: {
     width: 58, height: 58, borderRadius: 29,
-    backgroundColor: 'rgba(82,183,136,0.12)',
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(82,183,136,0.2)',
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1,
   },
   gridPhoto: { width: 58, height: 58, borderRadius: 29 },
-  gridAvatarText: { fontSize: 20, fontWeight: '800', color: COLORS.primary },
-  gridName: {
-    fontSize: 14, fontWeight: '700', color: '#F2FAF5',
-    textAlign: 'center', letterSpacing: -0.2, lineHeight: 18,
-  },
-  gridDob: { fontSize: 11, color: 'rgba(242,250,245,0.72)', fontWeight: '500', textAlign: 'center' },
+  gridAvatarText: { fontSize: 20, fontWeight: '800' },
+  gridName: { fontSize: 14, fontWeight: '700', textAlign: 'center', letterSpacing: -0.2, lineHeight: 18 },
+  gridDob: { fontSize: 11, fontWeight: '500', textAlign: 'center' },
 
   // ── Add card ──
-  addCard: {
-    borderRadius: 20, borderWidth: 1.5, borderStyle: 'dashed',
-    borderColor: 'rgba(82,183,136,0.22)', backgroundColor: 'rgba(82,183,136,0.04)',
-    alignItems: 'center', justifyContent: 'center', gap: 6,
-  },
-  addIcon: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: 'rgba(82,183,136,0.12)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  addLabel: { fontSize: 12, fontWeight: '600', color: COLORS.primary, textAlign: 'center', lineHeight: 16 },
+  addCard: { borderRadius: 20, borderWidth: 1.5, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  addIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  addLabel: { fontSize: 12, fontWeight: '600', textAlign: 'center', lineHeight: 16 },
 
   // ── Expand overlay ──
   overlay: {
@@ -756,10 +692,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   overlayContent: { alignItems: 'center', gap: 16 },
-  overlayPhoto: {
-    width: 80, height: 80, borderRadius: 40,
-    borderWidth: 3, borderColor: 'rgba(255,255,255,0.6)',
-  },
+  overlayPhoto: { width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: 'rgba(255,255,255,0.6)' },
   overlayAvatar: {
     width: 80, height: 80, borderRadius: 40,
     backgroundColor: 'rgba(255,255,255,0.2)',
@@ -774,16 +707,12 @@ const dotMenu = StyleSheet.create({
   backdrop: { flex: 1 },
   menu: {
     position: 'absolute', top: 92, right: H_PAD,
-    backgroundColor: '#111A14', borderRadius: 16,
+    borderRadius: 16,
     shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.6, shadowRadius: 24, elevation: 12,
-    minWidth: 180, overflow: 'hidden',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)',
+    shadowOpacity: 0.4, shadowRadius: 24, elevation: 12,
+    minWidth: 180, overflow: 'hidden', borderWidth: 1,
   },
-  item: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACING.md,
-    paddingVertical: SPACING.base, paddingHorizontal: SPACING.base,
-  },
-  itemText: { fontSize: 15, color: '#F2FAF5', fontWeight: '500' },
-  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginHorizontal: SPACING.sm },
+  item: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, paddingVertical: SPACING.base, paddingHorizontal: SPACING.base },
+  itemText: { fontSize: 15, fontWeight: '500' },
+  divider: { height: 1, marginHorizontal: SPACING.sm },
 });

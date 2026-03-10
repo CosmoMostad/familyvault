@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator,
-  Alert, SafeAreaView, TextInput, Modal, RefreshControl, Platform, Dimensions, KeyboardAvoidingView,
+  Alert, SafeAreaView, TextInput, Modal, RefreshControl, Platform, Dimensions, KeyboardAvoidingView, StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -9,6 +9,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TimePickerWheel, to24Hour, formatTime12 } from '../../components/TimePickerWheel';
@@ -1685,6 +1686,7 @@ const csw = StyleSheet.create({
 export default function CalendarScreen() {
   const { session } = useAuth();
   const navigation = useNavigation();
+  const { isDark, colors, gradients } = useTheme();
   const [calendars, setCalendars] = useState<CalendarData[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -1839,33 +1841,34 @@ export default function CalendarScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingWrap}>
-        <ActivityIndicator size="large" color={'#52B788'} />
+      <View style={[styles.loadingWrap, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <LinearGradient colors={['#090D0B', '#0D1810', '#090D0B']} style={StyleSheet.absoluteFill} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <LinearGradient colors={gradients.background as any} style={StyleSheet.absoluteFill} />
       <LinearGradient
-        colors={['rgba(82,183,136,0.16)', 'rgba(82,183,136,0.05)', 'transparent']}
+        colors={gradients.topGlow as any}
         locations={[0, 0.35, 0.7]}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
       <SafeAreaView style={{ backgroundColor: 'transparent' }}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Calendar</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Calendar</Text>
           <View style={styles.headerActions}>
             {selectedDate !== null && (
               <TouchableOpacity onPress={() => setSelectedDate(null)} style={{paddingHorizontal:8,paddingVertical:4}}>
-                <Text style={{fontSize:13,fontWeight:'700',color:'#52B788'}}>Today</Text>
+                <Text style={{fontSize:13,fontWeight:'700',color:colors.primary}}>Today</Text>
               </TouchableOpacity>
             )}
             {/* Bell — always shown, opens join modal */}
             <TouchableOpacity style={styles.iconBtn} onPress={() => setShowJoin(true)}>
-              <Ionicons name="notifications-outline" size={22} color={'#F2FAF5'} />
+              <Ionicons name="notifications-outline" size={22} color={colors.textPrimary} />
               {pendingInvites.length > 0 && (
                 <View style={styles.bellBadge}>
                   <Text style={styles.bellBadgeText}>{pendingInvites.length}</Text>
@@ -1874,7 +1877,7 @@ export default function CalendarScreen() {
             </TouchableOpacity>
             {hasCalendars && (
               <TouchableOpacity style={styles.iconBtn} onPress={() => setShowSettings(true)}>
-                <Ionicons name="settings-outline" size={20} color={'#F2FAF5'} />
+                <Ionicons name="settings-outline" size={20} color={colors.textPrimary} />
               </TouchableOpacity>
             )}
           </View>
@@ -1887,13 +1890,13 @@ export default function CalendarScreen() {
             activeOpacity={0.7}
             style={{flexDirection:'row',alignItems:'center',gap:6,paddingHorizontal:24,paddingBottom:6}}
           >
-            <Ionicons name="calendar-outline" size={13} color="rgba(237,247,241,0.50)" />
-            <Text style={{fontSize:13,fontWeight:'600',color:'rgba(237,247,241,0.60)'}}>
+            <Ionicons name="calendar-outline" size={13} color={colors.textTertiary} />
+            <Text style={{fontSize:13,fontWeight:'600',color:colors.textSecondary}}>
               {selectedCalendarId === 'all'
                 ? 'All Calendars'
                 : (calendars.find(c => c.id === selectedCalendarId)?.title ?? 'Calendar')}
             </Text>
-            <Ionicons name="chevron-down" size={12} color="rgba(237,247,241,0.40)" />
+            <Ionicons name="chevron-down" size={12} color={colors.textTertiary} />
           </TouchableOpacity>
         )}
 
@@ -1908,7 +1911,7 @@ export default function CalendarScreen() {
           }
           const dayAbbrevs = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
           return (
-            <View style={{backgroundColor:'rgba(255,255,255,0.03)',paddingVertical:12,paddingHorizontal:8}}>
+            <View style={{backgroundColor:isDark?'rgba(255,255,255,0.03)':'rgba(0,0,0,0.03)',paddingVertical:12,paddingHorizontal:8}}>
               <View style={{flexDirection:'row',justifyContent:'space-around'}}>
                 {days.map((day, idx) => {
                   const isToday = toDateKey(day.toISOString()) === toDateKey(today.toISOString());
@@ -1924,16 +1927,16 @@ export default function CalendarScreen() {
                       }}
                       style={{
                         width:44,alignItems:'center',paddingVertical:6,borderRadius:14,
-                        ...(isSelected ? {backgroundColor:'rgba(82,183,136,0.20)',borderWidth:1.5,borderColor:'#52B788'} : {}),
+                        ...(isSelected ? {backgroundColor:colors.primaryMuted,borderWidth:1.5,borderColor:colors.primary} : {}),
                       }}
                     >
-                      <Text style={{fontSize:10,fontWeight:'600',color:isSelected ? 'rgba(237,247,241,0.70)' : isToday ? 'rgba(237,247,241,0.70)' : 'rgba(237,247,241,0.40)'}}>
+                      <Text style={{fontSize:10,fontWeight:'600',color:isSelected ? colors.textSecondary : isToday ? colors.textSecondary : colors.textTertiary}}>
                         {dayAbbrevs[day.getDay()]}
                       </Text>
-                      <Text style={{fontSize:20,fontWeight:'800',color:isSelected ? '#52B788' : isToday ? '#EDF7F1' : 'rgba(237,247,241,0.60)'}}>
+                      <Text style={{fontSize:20,fontWeight:'800',color:isSelected ? colors.primary : isToday ? colors.textPrimary : colors.textSecondary}}>
                         {day.getDate()}
                       </Text>
-                      {hasEvent && <View style={{width:6,height:6,borderRadius:3,backgroundColor:'#52B788',marginTop:3}} />}
+                      {hasEvent && <View style={{width:6,height:6,borderRadius:3,backgroundColor:colors.primary,marginTop:3}} />}
                     </TouchableOpacity>
                   );
                 })}

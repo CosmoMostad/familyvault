@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../lib/types';
 import { COLORS, FONTS } from '../lib/design';
+import { useTheme } from '../contexts/ThemeContext';
 
 // Auth
 import LandingScreen from '../screens/auth/LandingScreen';
@@ -43,20 +44,21 @@ const Tab = createBottomTabNavigator();
 const ONBOARDING_KEY = 'wrenhealth_onboarding_seen';
 
 function MainTabs() {
+  const { isDark, colors } = useTheme();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: 'rgba(9,13,11,0.94)',
-          borderTopColor: 'rgba(255,255,255,0.07)',
+          backgroundColor: isDark ? 'rgba(9,13,11,0.94)' : 'rgba(244,249,246,0.97)',
+          borderTopColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)',
           borderTopWidth: 1,
           height: Platform.OS === 'ios' ? 84 : 64,
           paddingBottom: Platform.OS === 'ios' ? 24 : 8,
           paddingTop: 8,
         },
-        tabBarActiveTintColor: '#FFFFFF',
-        tabBarInactiveTintColor: '#F2FAF5',
+        tabBarActiveTintColor: isDark ? '#FFFFFF' : colors.primaryDark,
+        tabBarInactiveTintColor: isDark ? 'rgba(242,250,245,0.45)' : 'rgba(13,24,16,0.35)',
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '700',
@@ -86,6 +88,7 @@ const navigationRef = React.createRef<any>();
 
 export default function AppNavigator() {
   const { session, loading } = useAuth();
+  const { isDark, colors } = useTheme();
   const [onboardingSeen, setOnboardingSeen] = useState<boolean | null>(null);
   const [hasSelf, setHasSelf] = useState<boolean | null>(null);
 
@@ -137,11 +140,11 @@ export default function AppNavigator() {
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         screenOptions={{
-          headerStyle: { backgroundColor: COLORS.background },
-          headerTintColor: COLORS.textPrimary,
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.textPrimary,
           headerTitleStyle: { fontWeight: '600', fontSize: 17 },
           headerShadowVisible: false,
-          contentStyle: { backgroundColor: COLORS.background },
+          contentStyle: { backgroundColor: colors.background },
           animation: 'slide_from_right',
         }}
       >

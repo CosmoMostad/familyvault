@@ -252,7 +252,7 @@ export default function SettingsScreen() {
           )}
 
           {/* Account */}
-          <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>ACCOUNT</Text>
+          <Text style={[styles.sectionLabel, { color: colors.primary }]}>ACCOUNT</Text>
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Row
               icon="mail-outline" iconColor='#60A5FA'
@@ -269,7 +269,7 @@ export default function SettingsScreen() {
           </View>
 
           {/* App */}
-          <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>APP</Text>
+          <Text style={[styles.sectionLabel, { color: colors.primary }]}>APP</Text>
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Row
               icon="notifications-outline" iconColor='#A78BFA'
@@ -310,7 +310,7 @@ export default function SettingsScreen() {
           </View>
 
           {/* Support */}
-          <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>SUPPORT</Text>
+          <Text style={[styles.sectionLabel, { color: colors.primary }]}>SUPPORT</Text>
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Row icon="help-circle-outline" iconColor='#60A5FA' label="Help & FAQ" onPress={() => Linking.openURL('https://wrenhealth.app/help')} />
             <Row icon="chatbubble-ellipses-outline" iconColor='#93C5FD' label="Contact Support" onPress={() => Linking.openURL('mailto:support@wrenhealth.app')} />
@@ -319,7 +319,7 @@ export default function SettingsScreen() {
           </View>
 
           {/* About */}
-          <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>ABOUT</Text>
+          <Text style={[styles.sectionLabel, { color: colors.primary }]}>ABOUT</Text>
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Row icon="leaf-outline" iconColor={colors.primary} label="Wren Health" value="v1.0.0" isLast />
           </View>

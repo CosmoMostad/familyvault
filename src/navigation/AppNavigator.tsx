@@ -50,15 +50,15 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: isDark ? 'rgba(9,13,11,0.94)' : 'rgba(244,249,246,0.97)',
-          borderTopColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)',
+          backgroundColor: '#090D0B',
+          borderTopColor: 'rgba(255,255,255,0.07)',
           borderTopWidth: 1,
           height: Platform.OS === 'ios' ? 84 : 64,
           paddingBottom: Platform.OS === 'ios' ? 24 : 8,
           paddingTop: 8,
         },
-        tabBarActiveTintColor: isDark ? '#FFFFFF' : colors.primaryDark,
-        tabBarInactiveTintColor: isDark ? 'rgba(242,250,245,0.45)' : 'rgba(13,24,16,0.35)',
+        tabBarActiveTintColor: '#52B788',
+        tabBarInactiveTintColor: 'rgba(255,255,255,0.42)',
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '700',

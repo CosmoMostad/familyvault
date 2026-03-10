@@ -202,7 +202,7 @@ export default function SharedScreen() {
             When someone shares a health account with your email, it'll show up here after you accept.
           </Text>
           <View style={[styles.howToCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>HOW IT WORKS</Text>
+            <Text style={[styles.sectionLabel, { color: colors.primary }]}>HOW IT WORKS</Text>
             {[
               { icon: 'mail-outline', text: 'Someone shares a health account with your email' },
               { icon: 'notifications-outline', text: 'Tap the bell icon above to review and accept' },
@@ -231,7 +231,7 @@ export default function SharedScreen() {
               <Ionicons name="chevron-forward" size={16} color={colors.amber} />
             </TouchableOpacity>
           )}
-          <Text style={[styles.sectionLabel, { marginBottom: SPACING.md, color: colors.textTertiary }]}>
+          <Text style={[styles.sectionLabel, { marginBottom: SPACING.md, color: colors.primary }]}>
             {shares.length} SHARED ACCOUNT{shares.length !== 1 ? 'S' : ''}
           </Text>
           {shares.map((share) => <SharedCard key={share.id} share={share} />)}

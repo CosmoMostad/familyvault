@@ -15,7 +15,9 @@ import { SPACING } from '../../lib/design';
 const { height } = Dimensions.get('window');
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'SignIn'> };
 
-function Field({ label, icon, extra, children }: { label: string; icon: any; extra?: React.ReactNode; children: React.ReactNode }) {
+function Field({ label, icon, extra, children }: {
+  label: string; icon: any; extra?: React.ReactNode; children: React.ReactNode;
+}) {
   return (
     <View style={{ gap: 6 }}>
       <View style={S.labelRow}>
@@ -23,7 +25,7 @@ function Field({ label, icon, extra, children }: { label: string; icon: any; ext
         {extra}
       </View>
       <View style={S.inputWrap}>
-        <Ionicons name={icon} size={18} color="rgba(242,250,245,0.40)" style={{ marginRight: 10 }} />
+        <Ionicons name={icon} size={18} color="rgba(45,106,79,0.50)" style={{ marginRight: 10 }} />
         {children}
       </View>
     </View>
@@ -49,14 +51,8 @@ export default function SignInScreen({ navigation }: Props) {
 
   return (
     <View style={S.root}>
-      <StatusBar barStyle="light-content" />
-      <LinearGradient colors={['#050F09', '#081A0E', '#050F09']} style={StyleSheet.absoluteFill} />
-      <LinearGradient
-        colors={['rgba(82,183,136,0.22)', 'rgba(82,183,136,0.06)', 'transparent']}
-        locations={[0, 0.4, 0.7]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
+      <StatusBar barStyle="dark-content" />
+      <LinearGradient colors={['#F4F9F6', '#EBF4EF', '#F4F9F6']} style={StyleSheet.absoluteFill} />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
@@ -66,7 +62,7 @@ export default function SignInScreen({ navigation }: Props) {
         >
           {/* Back */}
           <TouchableOpacity onPress={() => navigation.goBack()} style={S.backBtn}>
-            <Ionicons name="chevron-back" size={22} color="rgba(242,250,245,0.85)" />
+            <Ionicons name="chevron-back" size={22} color="#0D1810" />
           </TouchableOpacity>
 
           {/* Header */}
@@ -81,7 +77,7 @@ export default function SignInScreen({ navigation }: Props) {
               <TextInput
                 style={S.input}
                 placeholder="your@email.com"
-                placeholderTextColor="rgba(242,250,245,0.28)"
+                placeholderTextColor="rgba(13,24,16,0.30)"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -102,32 +98,32 @@ export default function SignInScreen({ navigation }: Props) {
               <TextInput
                 style={[S.input, { flex: 1 }]}
                 placeholder="Your password"
-                placeholderTextColor="rgba(242,250,245,0.28)"
+                placeholderTextColor="rgba(13,24,16,0.30)"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
               />
               <TouchableOpacity onPress={() => setShowPassword(v => !v)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color="rgba(242,250,245,0.40)" />
+                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color="rgba(13,24,16,0.40)" />
               </TouchableOpacity>
             </Field>
 
             {error ? (
               <View style={S.errorBox}>
-                <Ionicons name="alert-circle-outline" size={15} color="#E07A5F" />
+                <Ionicons name="alert-circle-outline" size={15} color="#C0472B" />
                 <Text style={S.errorText}>{error}</Text>
               </View>
             ) : null}
 
             <TouchableOpacity style={[S.submitBtn, loading && { opacity: 0.65 }]} onPress={handleSignIn} disabled={loading} activeOpacity={0.85}>
               <LinearGradient
-                colors={['#72F0AB', '#3ECF82', '#1A9E5A']}
+                colors={['#52C48A', '#2D6A4F']}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
                 style={S.submitGradient}
               >
                 {loading
-                  ? <ActivityIndicator color="#050F09" />
+                  ? <ActivityIndicator color="#FFFFFF" />
                   : <Text style={S.submitBtnText}>Sign In</Text>}
               </LinearGradient>
             </TouchableOpacity>
@@ -146,64 +142,58 @@ export default function SignInScreen({ navigation }: Props) {
 }
 
 const S = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#050F09' },
+  root: { flex: 1, backgroundColor: '#F4F9F6' },
   scroll: { paddingHorizontal: SPACING.xl, paddingBottom: 60, minHeight: height * 0.9 },
 
   backBtn: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.09)',
     alignItems: 'center', justifyContent: 'center',
     marginBottom: SPACING.xxxl,
   },
 
   headerBlock: { marginBottom: SPACING.xxxl, gap: 6 },
-  headerTitle: {
-    fontSize: 38, fontWeight: '800', color: '#FFFFFF', letterSpacing: -1,
-    textShadowColor: 'rgba(114,240,171,0.45)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 20,
-  },
-  headerSub: { fontSize: 16, color: 'rgba(242,250,245,0.60)', fontWeight: '500' },
+  headerTitle: { fontSize: 36, fontWeight: '800', color: '#0D1810', letterSpacing: -1 },
+  headerSub: { fontSize: 16, color: 'rgba(13,24,16,0.55)', fontWeight: '500' },
 
   form: { gap: SPACING.lg },
 
   labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   fieldLabel: {
-    fontSize: 11, fontWeight: '700', color: '#72F0AB',
+    fontSize: 11, fontWeight: '700', color: '#2D6A4F',
     letterSpacing: 1.2, textTransform: 'uppercase',
-    textShadowColor: 'rgba(114,240,171,0.35)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 6,
   },
-  forgotLink: { fontSize: 13, color: 'rgba(114,240,171,0.80)', fontWeight: '600' },
+  forgotLink: { fontSize: 13, color: '#2D6A4F', fontWeight: '600' },
 
   inputWrap: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14, borderWidth: 1, borderColor: 'rgba(0,0,0,0.10)',
     paddingHorizontal: SPACING.base, height: 54,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 4,
   },
-  input: { flex: 1, fontSize: 15, color: '#F2FAF5', fontWeight: '500' },
+  input: { flex: 1, fontSize: 15, color: '#0D1810', fontWeight: '500' },
 
   errorBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: 'rgba(224,122,95,0.12)',
-    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(224,122,95,0.25)',
+    backgroundColor: 'rgba(192,71,43,0.08)',
+    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(192,71,43,0.20)',
     paddingHorizontal: SPACING.base, paddingVertical: 12,
   },
-  errorText: { fontSize: 13, color: '#E07A5F', flex: 1, fontWeight: '500' },
+  errorText: { fontSize: 13, color: '#C0472B', flex: 1, fontWeight: '500' },
 
   submitBtn: {
     borderRadius: 16, height: 56, overflow: 'hidden',
     marginTop: 8,
-    shadowColor: '#52B788', shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.55, shadowRadius: 20, elevation: 10,
+    shadowColor: '#2D6A4F', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.30, shadowRadius: 16, elevation: 8,
   },
   submitGradient: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  submitBtnText: { color: '#050F09', fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
+  submitBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
 
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: SPACING.xxxl },
-  footerText: { fontSize: 14, color: 'rgba(242,250,245,0.50)', fontWeight: '500' },
-  footerLink: { fontSize: 14, color: '#72F0AB', fontWeight: '700' },
+  footerText: { fontSize: 14, color: 'rgba(13,24,16,0.45)', fontWeight: '500' },
+  footerLink: { fontSize: 14, color: '#2D6A4F', fontWeight: '700' },
 });

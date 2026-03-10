@@ -498,10 +498,10 @@ export default function FamilyScreen() {
 
       {/* Scrollable content */}
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>MY HEALTH</Text>
+        <Text style={[styles.sectionLabel, { color: colors.primary }]}>MY HEALTH</Text>
         {selfMember && <HeroCard member={selfMember} onPress={handleCardTap} />}
 
-        <Text style={[styles.sectionLabel, { marginTop: SPACING.lg, color: colors.textTertiary }]}>FAMILY MEMBERS</Text>
+        <Text style={[styles.sectionLabel, { marginTop: SPACING.lg, color: colors.primary }]}>FAMILY MEMBERS</Text>
 
         <View style={[styles.gridContainer, { height: gridHeight }]}>
           {familyMembers.map((member, i) => (

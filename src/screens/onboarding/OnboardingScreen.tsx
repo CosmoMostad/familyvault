@@ -7,10 +7,11 @@ import {
   Dimensions,
   ScrollView,
   SafeAreaView,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { COLORS, FONTS, SPACING } from '../../lib/design';
+import { LIGHT_COLORS as COLORS, FONTS, SPACING } from '../../lib/design';
 
 const { width } = Dimensions.get('window');
 
@@ -72,6 +73,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" />
       {/* Skip button */}
       <TouchableOpacity style={styles.skipButton} onPress={handleFinish}>
         <Text style={styles.skipText}>Skip</Text>

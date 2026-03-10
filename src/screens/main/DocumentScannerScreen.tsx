@@ -180,7 +180,7 @@ export default function DocumentScannerScreen({ navigation, route }: Props) {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color="#00B4A6" />
       </View>
     );

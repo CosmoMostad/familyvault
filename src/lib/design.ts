@@ -30,29 +30,31 @@ export const DARK_COLORS = {
 };
 
 // ── Light Palette ─────────────────────────────────────────────────────────────
+// Light mode = vivid forest green background, pure white cards.
+// Background uses the same brand green family as the splash screen (#52B788).
 export const LIGHT_COLORS = {
-  background: '#74C69D',
-  surface: '#FFFFFF',
-  surfaceAlt: '#FFFFFF',
+  background: '#52B788',           // brand green — same as splash/icon
+  surface: '#FFFFFF',              // white cards that pop off the green
+  surfaceAlt: '#F4FAF7',
   surfaceSolid: '#FFFFFF',
-  primary: '#2D6A4F',             // dark forest green — readable on white
+  primary: '#2D6A4F',             // dark forest green for accents on white cards
   primaryDark: '#1B4332',
   primaryLight: '#52B788',
-  primaryMuted: 'rgba(45,106,79,0.10)',
-  primaryGlow: 'rgba(45,106,79,0.12)',
+  primaryMuted: 'rgba(45,106,79,0.12)',
+  primaryGlow: 'rgba(45,106,79,0.15)',
   rose: '#C0472B',
   roseLight: 'rgba(192,71,43,0.10)',
   amber: '#9A5800',
   amberLight: 'rgba(154,88,0,0.10)',
-  textPrimary: '#0D1810',         // near-black
+  textPrimary: '#0D1810',          // dark text — 7.6:1 contrast on #52B788 ✓
   textSecondary: 'rgba(13,24,16,0.72)',
   textTertiary: 'rgba(13,24,16,0.52)',
   textInverse: '#FFFFFF',
   border: 'rgba(0,0,0,0.10)',
   borderStrong: 'rgba(45,106,79,0.30)',
   divider: 'rgba(0,0,0,0.07)',
-  shadow: 'rgba(0,0,0,0.18)',
-  overlay: 'rgba(116,198,157,0.92)',
+  shadow: 'rgba(0,0,0,0.20)',
+  overlay: 'rgba(45,106,79,0.92)',
   legacyBackground: '#FAF7F4',
   legacySurface: '#FFFFFF',
 };
@@ -72,8 +74,8 @@ export const DARK_GRADIENTS = {
 
 // ── Light Gradients ───────────────────────────────────────────────────────────
 export const LIGHT_GRADIENTS = {
-  background: ['#74C69D', '#95D5B2', '#B7E4C7'] as const,  // vivid mint → lighter
-  topGlow: ['rgba(45,106,79,0.22)', 'rgba(45,106,79,0.06)', 'transparent'] as const,
+  background: ['#2D6A4F', '#40916C', '#52B788'] as const,  // forest green → brand green
+  topGlow: ['rgba(27,67,50,0.60)', 'rgba(27,67,50,0.20)', 'transparent'] as const,
   card: ['rgba(255,255,255,0.98)', 'rgba(255,255,255,0.85)'] as const,
   primaryBtn: ['#52C48A', '#2D6A4F'] as const,
   sectionAccent: ['rgba(45,106,79,0.10)', 'transparent'] as const,

@@ -44,6 +44,7 @@ export default function ThemedBackground() {
 }
 
 const blobs = StyleSheet.create({
+  // On light mode (forest green bg): blobs are darker/lighter green for depth
   topRight: {
     position: 'absolute',
     top: -100,
@@ -51,7 +52,7 @@ const blobs = StyleSheet.create({
     width: 300,
     height: 300,
     borderRadius: 150,
-    backgroundColor: 'rgba(27,67,50,0.22)',
+    backgroundColor: 'rgba(27,67,50,0.40)',   // darker forest — punches through
   },
   bottomLeft: {
     position: 'absolute',
@@ -60,7 +61,7 @@ const blobs = StyleSheet.create({
     width: 260,
     height: 260,
     borderRadius: 130,
-    backgroundColor: 'rgba(27,67,50,0.16)',
+    backgroundColor: 'rgba(116,198,157,0.30)', // lighter mint — brighter spot
   },
   midRight: {
     position: 'absolute',
@@ -69,7 +70,7 @@ const blobs = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: 'rgba(45,106,79,0.18)',
+    backgroundColor: 'rgba(27,67,50,0.30)',
   },
   topLeft: {
     position: 'absolute',
@@ -78,6 +79,6 @@ const blobs = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: 'rgba(82,183,136,0.20)',
+    backgroundColor: 'rgba(149,213,178,0.35)', // bright accent
   },
 });

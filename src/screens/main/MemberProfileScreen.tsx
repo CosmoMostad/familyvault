@@ -19,6 +19,7 @@ import {
 } from '../../lib/types';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
 import ProfileBotanical from '../../components/ProfileBotanical';
+import ThemedBackground from '../../components/ThemedBackground';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MemberProfile'>;
@@ -516,8 +517,9 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
   const { width: screenW, height: screenH } = Dimensions.get('window');
 
   return (
-    <KeyboardAvoidingView style={[{ flex: 1 }, styles.container]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <StatusBar barStyle="dark-content" />
+    <KeyboardAvoidingView style={[{ flex: 1 }, styles.container, { backgroundColor: colors.background }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <ThemedBackground />
       <ProfileBotanical width={screenW} height={screenH} />
       <ScrollView
         style={{ flex: 1, backgroundColor: 'transparent' }}

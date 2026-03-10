@@ -1,51 +1,30 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  Switch,
-  SafeAreaView,
-  Linking,
-  Share,
-  TextInput,
-  Modal,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView,
+  Alert, Switch, SafeAreaView, Linking, Share, TextInput,
+  Modal, ActivityIndicator, KeyboardAvoidingView, Platform, StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
+import { COLORS, FONTS, SPACING } from '../../lib/design';
 
-// ── Small change-credential modal ──────────────────────────────────────────
+// ─── Change Credential Modal ──────────────────────────────────────────────────
 
 function ChangeModal({
-  visible,
-  title,
-  fields,
-  onClose,
-  onSave,
-  saving,
+  visible, title, fields, onClose, onSave, saving,
 }: {
-  visible: boolean;
-  title: string;
+  visible: boolean; title: string;
   fields: { label: string; value: string; set: (v: string) => void; secure?: boolean; placeholder?: string }[];
-  onClose: () => void;
-  onSave: () => void;
-  saving: boolean;
+  onClose: () => void; onSave: () => void; saving: boolean;
 }) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={modal.backdrop}>
           <View style={modal.sheet}>
+            <View style={modal.handle} />
             <Text style={modal.title}>{title}</Text>
             {fields.map((f, i) => (
               <View key={i} style={modal.field}>
@@ -55,7 +34,7 @@ function ChangeModal({
                   value={f.value}
                   onChangeText={f.set}
                   placeholder={f.placeholder ?? ''}
-                  placeholderTextColor={COLORS.textTertiary}
+                  placeholderTextColor="rgba(237,247,241,0.30)"
                   secureTextEntry={f.secure}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -67,12 +46,11 @@ function ChangeModal({
                 <Text style={modal.cancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[modal.saveBtn, saving && { opacity: 0.65 }]}
-                onPress={onSave}
-                disabled={saving}
+                style={[modal.saveBtn, saving && { opacity: 0.6 }]}
+                onPress={onSave} disabled={saving}
               >
                 {saving
-                  ? <ActivityIndicator size="small" color="#fff" />
+                  ? <ActivityIndicator size="small" color="#090D0B" />
                   : <Text style={modal.saveText}>Save</Text>}
               </TouchableOpacity>
             </View>
@@ -84,120 +62,82 @@ function ChangeModal({
 }
 
 const modal = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    paddingHorizontal: SPACING.xl,
-  },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: SPACING.xl,
-    gap: SPACING.base,
+    backgroundColor: '#111A14', borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    padding: SPACING.xl, gap: SPACING.base,
+    borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.09)',
   },
-  title: { ...FONTS.h3, color: COLORS.textPrimary, marginBottom: SPACING.sm },
+  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.15)', alignSelf: 'center', marginBottom: SPACING.sm },
+  title: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4, letterSpacing: -0.3 },
   field: { gap: 6 },
-  label: { fontSize: 11, fontWeight: '700', color: COLORS.textTertiary, letterSpacing: 0.6 },
+  label: { fontSize: 11, fontWeight: '700', color: COLORS.primary, letterSpacing: 1.2, textTransform: 'uppercase' },
   input: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    paddingHorizontal: SPACING.base,
-    height: 50,
-    fontSize: 15,
-    color: COLORS.textPrimary,
+    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: SPACING.base, height: 52, fontSize: 15, color: COLORS.textPrimary,
   },
-  actions: { flexDirection: 'row', gap: SPACING.md, marginTop: SPACING.sm },
+  actions: { flexDirection: 'row', gap: SPACING.md, marginTop: 4 },
   cancelBtn: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 1, height: 50, borderRadius: 14, borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center',
   },
-  cancelText: { ...FONTS.body, color: COLORS.textSecondary, fontWeight: '500' },
+  cancelText: { fontSize: 15, color: COLORS.textSecondary, fontWeight: '600' },
   saveBtn: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 1, height: 50, borderRadius: 14, backgroundColor: COLORS.primary,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5, shadowRadius: 14,
   },
-  saveText: { ...FONTS.body, color: '#fff', fontWeight: '700' },
+  saveText: { fontSize: 15, color: '#090D0B', fontWeight: '800' },
 });
 
-// ── Row component ───────────────────────────────────────────────────────────
+// ─── Row ─────────────────────────────────────────────────────────────────────
 
 function Row({
-  icon,
-  iconColor = COLORS.textSecondary,
-  label,
-  value,
-  onPress,
-  isLast = false,
-  rightElement,
-  destructive = false,
+  icon, iconColor = 'rgba(237,247,241,0.5)', label, value,
+  onPress, isLast = false, rightElement, destructive = false,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
-  iconColor?: string;
-  label: string;
-  value?: string;
-  onPress?: () => void;
-  isLast?: boolean;
-  rightElement?: React.ReactNode;
-  destructive?: boolean;
+  icon: keyof typeof Ionicons.glyphMap; iconColor?: string;
+  label: string; value?: string; onPress?: () => void;
+  isLast?: boolean; rightElement?: React.ReactNode; destructive?: boolean;
 }) {
   const content = (
-    <View style={[rowS.row, !isLast && rowS.border]}>
-      <View style={[rowS.iconBg, { backgroundColor: `${iconColor}18` }]}>
-        <Ionicons name={icon} size={18} color={iconColor} />
+    <View style={[row.row, !isLast && row.divider]}>
+      <View style={[row.iconBg, { backgroundColor: `${iconColor}1A` }]}>
+        <Ionicons name={icon} size={17} color={iconColor} />
       </View>
-      <Text style={[rowS.label, destructive && { color: COLORS.rose }]}>{label}</Text>
-      <View style={rowS.right}>
-        {value ? <Text style={rowS.value}>{value}</Text> : null}
-        {rightElement ?? (onPress ? <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} /> : null)}
+      <Text style={[row.label, destructive && { color: COLORS.rose }]}>{label}</Text>
+      <View style={row.right}>
+        {value ? <Text style={row.value}>{value}</Text> : null}
+        {rightElement ?? (onPress ? <Ionicons name="chevron-forward" size={15} color="rgba(237,247,241,0.25)" /> : null)}
       </View>
     </View>
   );
-  if (onPress) return <TouchableOpacity onPress={onPress} activeOpacity={0.7}>{content}</TouchableOpacity>;
+  if (onPress) return <TouchableOpacity onPress={onPress} activeOpacity={0.65}>{content}</TouchableOpacity>;
   return content;
 }
 
-const rowS = StyleSheet.create({
+const row = StyleSheet.create({
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.base,
-    gap: SPACING.md,
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 14, paddingHorizontal: SPACING.base, gap: SPACING.md,
   },
-  border: { borderBottomWidth: 1, borderBottomColor: COLORS.divider },
-  iconBg: {
-    width: 32, height: 32, borderRadius: 8,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  label: { ...FONTS.body, color: COLORS.textPrimary, flex: 1 },
+  divider: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  iconBg: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  label: { fontSize: 15, color: COLORS.textPrimary, flex: 1, fontWeight: '500' },
   right: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-  value: { ...FONTS.bodySmall, color: COLORS.textSecondary },
+  value: { fontSize: 13, color: COLORS.textSecondary },
 });
 
-// ── SettingsScreen ──────────────────────────────────────────────────────────
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function SettingsScreen() {
   const { profile, session, signOut } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-
-  // Email change modal
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [savingEmail, setSavingEmail] = useState(false);
-
-  // Password change modal
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -215,12 +155,10 @@ export default function SettingsScreen() {
     try {
       const { error } = await supabase.auth.updateUser({ email: newEmail.trim() });
       if (error) throw error;
-      setShowEmailModal(false);
-      setNewEmail('');
+      setShowEmailModal(false); setNewEmail('');
       Alert.alert('Check your email', 'A confirmation link has been sent to your new email address.');
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
-    } finally { setSavingEmail(false); }
+    } catch (e: any) { Alert.alert('Error', e.message); }
+    finally { setSavingEmail(false); }
   }
 
   async function handleChangePassword() {
@@ -231,270 +169,223 @@ export default function SettingsScreen() {
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
-      setShowPasswordModal(false);
-      setNewPassword('');
-      setConfirmPassword('');
+      setShowPasswordModal(false); setNewPassword(''); setConfirmPassword('');
       Alert.alert('Done', 'Your password has been updated.');
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
-    } finally { setSavingPassword(false); }
+    } catch (e: any) { Alert.alert('Error', e.message); }
+    finally { setSavingPassword(false); }
   }
 
   async function handleSignOut() {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+    Alert.alert('Sign Out', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: async () => { try { await signOut(); } catch (e: any) { Alert.alert('Error', e.message); } } },
     ]);
   }
 
   async function handleDeleteAccount() {
-    Alert.alert(
-      'Delete Account',
-      'This will permanently delete your account and all associated health data. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete Account',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert(
-              'Are you absolutely sure?',
-              'All family profiles, health records, and calendar data will be permanently deleted.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Yes, Delete Everything',
-                  style: 'destructive',
-                  onPress: async () => {
-                    try {
-                      // Delete user data via Supabase (RLS cascade handles family_members, health_info, etc.)
-                      const { error } = await supabase.rpc('delete_user_account');
-                      if (error) throw error;
-                      await signOut();
-                    } catch (e: any) {
-                      Alert.alert('Error', 'Something went wrong. Please try again.');
-                    }
-                  },
-                },
-              ]
-            );
+    Alert.alert('Delete Account', 'This permanently deletes your account and all health data. Cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete Account', style: 'destructive',
+        onPress: () => Alert.alert('Are you absolutely sure?', 'All family profiles, health records, and data will be permanently deleted.', [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Yes, Delete Everything', style: 'destructive',
+            onPress: async () => {
+              try {
+                const { error } = await supabase.rpc('delete_user_account');
+                if (error) throw error;
+                await signOut();
+              } catch (e: any) { Alert.alert('Error', 'Something went wrong. Please try again.'); }
+            },
           },
-        },
-      ]
-    );
+        ]),
+      },
+    ]);
   }
 
   const userEmail = session?.user?.email ?? '';
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.headerArea}>
-          <Text style={styles.pageTitle}>Settings</Text>
-        </View>
-
-        {/* Profile card */}
-        {profile && (
-          <View style={styles.profileCard}>
-            <View style={styles.profileAvatar}>
-              <Text style={styles.profileAvatarText}>{getInitials(profile.full_name)}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.profileName}>{profile.full_name}</Text>
-              {userEmail ? <Text style={styles.profileEmail}>{userEmail}</Text> : null}
-            </View>
-            <View style={styles.profileBadge}>
-              <Text style={styles.profileBadgeText}>Free</Text>
-            </View>
-          </View>
-        )}
-
-        {/* Account */}
-        <Text style={styles.sectionLabel}>Account</Text>
-        <View style={styles.card}>
-          <Row
-            icon="mail-outline"
-            iconColor={COLORS.textSecondary}
-            label="Change Email"
-            value={userEmail ? userEmail.split('@')[0] + '…' : ''}
-            onPress={() => { setNewEmail(''); setShowEmailModal(true); }}
-          />
-          <Row
-            icon="lock-closed-outline"
-            iconColor={COLORS.textSecondary}
-            label="Change Password"
-            onPress={() => { setNewPassword(''); setConfirmPassword(''); setShowPasswordModal(true); }}
-            isLast
-          />
-        </View>
-
-        {/* App */}
-        <Text style={styles.sectionLabel}>App</Text>
-        <View style={styles.card}>
-          <Row
-            icon="notifications-outline"
-            iconColor={COLORS.primary}
-            label="Appointment Reminders"
-            rightElement={
-              <Switch
-                value={notificationsEnabled}
-                onValueChange={setNotificationsEnabled}
-                trackColor={{ false: COLORS.border, true: COLORS.primaryMuted }}
-                thumbColor={notificationsEnabled ? COLORS.primary : COLORS.textTertiary}
-              />
-            }
-          />
-          <Row
-            icon="star-outline"
-            iconColor="#F59E0B"
-            label="Rate Wren Health"
-            onPress={() => Linking.openURL('https://apps.apple.com')}
-          />
-          <Row
-            icon="share-outline"
-            iconColor={COLORS.primary}
-            label="Share with a Friend"
-            onPress={() => Share.share({ message: 'Check out Wren Health — a family health manager app: https://wrenhealth.app' })}
-            isLast
-          />
-        </View>
-
-        {/* Support */}
-        <Text style={styles.sectionLabel}>Support</Text>
-        <View style={styles.card}>
-          <Row
-            icon="help-circle-outline"
-            iconColor={COLORS.primary}
-            label="Help & FAQ"
-            onPress={() => Linking.openURL('https://wrenhealth.app/help')}
-          />
-          <Row
-            icon="chatbubble-ellipses-outline"
-            iconColor={COLORS.primary}
-            label="Contact Support"
-            onPress={() => Linking.openURL('mailto:support@wrenhealth.app')}
-          />
-          <Row
-            icon="shield-checkmark-outline"
-            iconColor={COLORS.primaryLight}
-            label="Privacy Policy"
-            onPress={() => Linking.openURL('https://wrenhealth.app/privacy')}
-          />
-          <Row
-            icon="document-text-outline"
-            iconColor={COLORS.textSecondary}
-            label="Terms of Service"
-            onPress={() => Linking.openURL('https://wrenhealth.app/terms')}
-            isLast
-          />
-        </View>
-
-        {/* About */}
-        <Text style={styles.sectionLabel}>About</Text>
-        <View style={styles.card}>
-          <Row
-            icon="leaf-outline"
-            iconColor={COLORS.primary}
-            label="Wren Health"
-            value="v1.0.0"
-            isLast
-          />
-        </View>
-
-        {/* Sign out */}
-        <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} activeOpacity={0.85}>
-          <Ionicons name="log-out-outline" size={18} color={COLORS.rose} />
-          <Text style={styles.signOutText}>Sign Out</Text>
-        </TouchableOpacity>
-
-        {/* Delete account */}
-        <TouchableOpacity style={styles.deleteAccountBtn} onPress={handleDeleteAccount} activeOpacity={0.85}>
-          <Text style={styles.deleteAccountText}>Delete Account</Text>
-        </TouchableOpacity>
-
-        <View style={{ height: SPACING.xxl }} />
-      </ScrollView>
-
-      {/* Email change modal */}
-      <ChangeModal
-        visible={showEmailModal}
-        title="Change Email"
-        fields={[{ label: 'NEW EMAIL', value: newEmail, set: setNewEmail, placeholder: 'new@email.com' }]}
-        onClose={() => setShowEmailModal(false)}
-        onSave={handleChangeEmail}
-        saving={savingEmail}
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient colors={['#090D0B', '#0D1810', '#090D0B']} style={StyleSheet.absoluteFill} />
+      <LinearGradient
+        colors={['rgba(82,183,136,0.14)', 'rgba(82,183,136,0.04)', 'transparent']}
+        locations={[0, 0.35, 0.7]}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
       />
 
-      {/* Password change modal */}
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+
+          {/* Header */}
+          <View style={styles.headerArea}>
+            <Text style={styles.pageTitle}>Settings</Text>
+          </View>
+
+          {/* Profile card */}
+          {profile && (
+            <View style={styles.profileCard}>
+              <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.profileAvatar}>
+                <Text style={styles.profileAvatarText}>{getInitials(profile.full_name)}</Text>
+              </LinearGradient>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.profileName}>{profile.full_name}</Text>
+                {userEmail ? <Text style={styles.profileEmail}>{userEmail}</Text> : null}
+              </View>
+              <View style={styles.profileBadge}>
+                <Text style={styles.profileBadgeText}>Free</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Account */}
+          <Text style={styles.sectionLabel}>ACCOUNT</Text>
+          <View style={styles.card}>
+            <Row
+              icon="mail-outline" iconColor={COLORS.primary}
+              label="Change Email"
+              value={userEmail ? userEmail.split('@')[0] + '…' : ''}
+              onPress={() => { setNewEmail(''); setShowEmailModal(true); }}
+            />
+            <Row
+              icon="lock-closed-outline" iconColor={COLORS.primaryLight}
+              label="Change Password"
+              onPress={() => { setNewPassword(''); setConfirmPassword(''); setShowPasswordModal(true); }}
+              isLast
+            />
+          </View>
+
+          {/* App */}
+          <Text style={styles.sectionLabel}>APP</Text>
+          <View style={styles.card}>
+            <Row
+              icon="notifications-outline" iconColor={COLORS.primary}
+              label="Appointment Reminders"
+              rightElement={
+                <Switch
+                  value={notificationsEnabled}
+                  onValueChange={setNotificationsEnabled}
+                  trackColor={{ false: 'rgba(255,255,255,0.1)', true: 'rgba(82,183,136,0.5)' }}
+                  thumbColor={notificationsEnabled ? COLORS.primary : 'rgba(237,247,241,0.4)'}
+                />
+              }
+            />
+            <Row
+              icon="star-outline" iconColor="#F59E0B"
+              label="Rate Wren Health"
+              onPress={() => Linking.openURL('https://apps.apple.com')}
+            />
+            <Row
+              icon="share-outline" iconColor={COLORS.primary}
+              label="Share with a Friend"
+              onPress={() => Share.share({ message: 'Check out Wren Health — a family health manager app: https://wrenhealth.app' })}
+              isLast
+            />
+          </View>
+
+          {/* Support */}
+          <Text style={styles.sectionLabel}>SUPPORT</Text>
+          <View style={styles.card}>
+            <Row icon="help-circle-outline" iconColor={COLORS.primary} label="Help & FAQ" onPress={() => Linking.openURL('https://wrenhealth.app/help')} />
+            <Row icon="chatbubble-ellipses-outline" iconColor={COLORS.primaryLight} label="Contact Support" onPress={() => Linking.openURL('mailto:support@wrenhealth.app')} />
+            <Row icon="shield-checkmark-outline" iconColor={COLORS.primary} label="Privacy Policy" onPress={() => Linking.openURL('https://wrenhealth.app/privacy')} />
+            <Row icon="document-text-outline" iconColor="rgba(237,247,241,0.5)" label="Terms of Service" onPress={() => Linking.openURL('https://wrenhealth.app/terms')} isLast />
+          </View>
+
+          {/* About */}
+          <Text style={styles.sectionLabel}>ABOUT</Text>
+          <View style={styles.card}>
+            <Row icon="leaf-outline" iconColor={COLORS.primary} label="Wren Health" value="v1.0.0" isLast />
+          </View>
+
+          {/* Sign out */}
+          <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} activeOpacity={0.8}>
+            <Ionicons name="log-out-outline" size={18} color={COLORS.rose} />
+            <Text style={styles.signOutText}>Sign Out</Text>
+          </TouchableOpacity>
+
+          {/* Delete account — subtle, as it should be */}
+          <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteAccount} activeOpacity={0.7}>
+            <Text style={styles.deleteText}>Delete Account</Text>
+          </TouchableOpacity>
+
+          <View style={{ height: 80 }} />
+        </ScrollView>
+      </SafeAreaView>
+
       <ChangeModal
-        visible={showPasswordModal}
-        title="Change Password"
+        visible={showEmailModal} title="Change Email"
+        fields={[{ label: 'NEW EMAIL', value: newEmail, set: setNewEmail, placeholder: 'new@email.com' }]}
+        onClose={() => setShowEmailModal(false)} onSave={handleChangeEmail} saving={savingEmail}
+      />
+      <ChangeModal
+        visible={showPasswordModal} title="Change Password"
         fields={[
           { label: 'NEW PASSWORD', value: newPassword, set: setNewPassword, placeholder: 'At least 8 characters', secure: true },
           { label: 'CONFIRM PASSWORD', value: confirmPassword, set: setConfirmPassword, placeholder: 'Repeat password', secure: true },
         ]}
-        onClose={() => setShowPasswordModal(false)}
-        onSave={handleChangePassword}
-        saving={savingPassword}
+        onClose={() => setShowPasswordModal(false)} onSave={handleChangePassword} saving={savingPassword}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  root: { flex: 1, backgroundColor: '#090D0B' },
   content: { paddingHorizontal: SPACING.xl, paddingTop: SPACING.base },
-  headerArea: { marginBottom: SPACING.xl, paddingTop: SPACING.sm },
-  pageTitle: { ...FONTS.h2, color: COLORS.textPrimary },
+
+  headerArea: { paddingTop: SPACING.sm, marginBottom: SPACING.xl },
+  pageTitle: { fontSize: 28, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.6 },
+
   profileCard: {
-    ...CARD,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: SPACING.base,
-    marginBottom: SPACING.xl,
-    gap: SPACING.md,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)',
+    flexDirection: 'row', alignItems: 'center',
+    padding: SPACING.base, marginBottom: SPACING.xl, gap: SPACING.md,
+    shadowColor: 'rgba(82,183,136,0.25)', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1, shadowRadius: 16, elevation: 6,
   },
   profileAvatar: {
     width: 52, height: 52, borderRadius: 26,
-    backgroundColor: COLORS.primaryMuted,
     alignItems: 'center', justifyContent: 'center',
+    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5, shadowRadius: 10,
   },
-  profileAvatarText: { ...FONTS.h4, color: COLORS.primary, fontWeight: '700' },
-  profileName: { ...FONTS.h4, color: COLORS.textPrimary },
-  profileEmail: { ...FONTS.caption, color: COLORS.textSecondary, marginTop: 2 },
+  profileAvatarText: { fontSize: 18, fontWeight: '800', color: '#090D0B', letterSpacing: -0.5 },
+  profileName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, letterSpacing: -0.2 },
+  profileEmail: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
   profileBadge: {
-    backgroundColor: COLORS.primaryMuted,
-    borderRadius: 20,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 4,
+    backgroundColor: 'rgba(82,183,136,0.12)',
+    borderRadius: 20, paddingHorizontal: SPACING.md, paddingVertical: 4,
+    borderWidth: 1, borderColor: 'rgba(82,183,136,0.25)',
   },
-  profileBadgeText: { ...FONTS.caption, color: COLORS.primary, fontWeight: '600' },
+  profileBadgeText: { fontSize: 12, color: COLORS.primary, fontWeight: '700' },
+
   sectionLabel: {
-    ...FONTS.label,
-    color: COLORS.textTertiary,
-    textTransform: 'uppercase',
-    marginBottom: SPACING.sm,
-    marginTop: SPACING.base,
+    fontSize: 11, fontWeight: '700', color: COLORS.primary,
+    letterSpacing: 1.4, textTransform: 'uppercase',
+    marginBottom: SPACING.sm, marginTop: SPACING.base, paddingLeft: 2,
   },
-  card: { ...CARD, overflow: 'hidden', marginBottom: SPACING.sm },
+
+  card: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)',
+    overflow: 'hidden', marginBottom: 4,
+    shadowColor: 'rgba(82,183,136,0.15)', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1, shadowRadius: 16, elevation: 4,
+  },
+
   signOutBtn: {
-    ...CARD,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 52,
-    gap: SPACING.sm,
-    marginTop: SPACING.base,
-    backgroundColor: COLORS.roseLight,
-    borderWidth: 0,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: SPACING.sm, height: 52, borderRadius: 16, marginTop: SPACING.xl,
+    backgroundColor: 'rgba(224,122,95,0.10)',
+    borderWidth: 1, borderColor: 'rgba(224,122,95,0.25)',
   },
-  signOutText: { ...FONTS.h4, color: COLORS.rose, fontWeight: '600' },
-  deleteAccountBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: SPACING.base,
-    marginTop: SPACING.sm,
-  },
-  deleteAccountText: { ...FONTS.bodySmall, color: COLORS.textTertiary, fontWeight: '500' },
+  signOutText: { fontSize: 15, color: COLORS.rose, fontWeight: '700' },
+
+  deleteBtn: { alignItems: 'center', paddingVertical: SPACING.base, marginTop: SPACING.sm },
+  deleteText: { fontSize: 13, color: 'rgba(237,247,241,0.25)', fontWeight: '500' },
 });

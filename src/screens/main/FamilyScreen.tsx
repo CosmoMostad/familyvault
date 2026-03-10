@@ -477,12 +477,13 @@ export default function FamilyScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="light-content" />
 
       {/* Gradient background */}
+      <LinearGradient colors={['#090D0B', '#0D1810', '#090D0B']} style={StyleSheet.absoluteFill} />
       <LinearGradient
-        colors={['rgba(45,106,79,0.09)', 'rgba(45,106,79,0.03)', '#FAF7F4']}
-        locations={[0, 0.28, 0.55]}
+        colors={['rgba(82,183,136,0.18)', 'rgba(82,183,136,0.06)', 'transparent']}
+        locations={[0, 0.35, 0.7]}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
@@ -639,8 +640,8 @@ export default function FamilyScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#FAF7F4' },
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FAF7F4' },
+  root: { flex: 1, backgroundColor: '#090D0B' },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#090D0B' },
 
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -652,13 +653,13 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', gap: 4 },
   iconBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: 'rgba(45,106,79,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.07)',
     alignItems: 'center', justifyContent: 'center', position: 'relative',
   },
   badge: {
     position: 'absolute', top: 5, right: 5, minWidth: 15, height: 15, borderRadius: 8,
     backgroundColor: '#E53E3E', alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 2, borderWidth: 1.5, borderColor: '#FAF7F4',
+    paddingHorizontal: 2, borderWidth: 1.5, borderColor: '#090D0B',
   },
   badgeText: { fontSize: 8, fontWeight: '700', color: '#fff' },
 
@@ -672,15 +673,16 @@ const styles = StyleSheet.create({
 
   // ── Hero card ──
   heroCard: {
-    borderRadius: 24, backgroundColor: '#fff',
-    borderWidth: 1, borderColor: 'rgba(45,106,79,0.10)',
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
     overflow: 'hidden', marginBottom: SPACING.lg,
-    shadowColor: '#2D6A4F', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.10, shadowRadius: 20, elevation: 4,
+    shadowColor: 'rgba(82,183,136,0.35)', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 1, shadowRadius: 24, elevation: 8,
   },
   heroGlow: {
     position: 'absolute', top: -40, right: -40, width: 140, height: 140,
-    borderRadius: 70, backgroundColor: 'rgba(45,106,79,0.06)',
+    borderRadius: 70, backgroundColor: 'rgba(82,183,136,0.08)',
   },
   heroInner: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 16 },
   heroAvatar: {
@@ -692,12 +694,13 @@ const styles = StyleSheet.create({
   heroPhoto: { width: 72, height: 72, borderRadius: 36, flexShrink: 0 },
   heroAvatarText: { fontSize: 26, fontWeight: '800', color: '#fff', letterSpacing: -1 },
   heroInfo: { flex: 1 },
-  heroName: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, letterSpacing: -0.4, marginBottom: 4 },
-  heroDob: { fontSize: 13, color: '#5a7a62', fontWeight: '500', marginBottom: 8 },
+  heroName: { fontSize: 20, fontWeight: '700', color: '#EDF7F1', letterSpacing: -0.4, marginBottom: 4 },
+  heroDob: { fontSize: 13, color: 'rgba(237,247,241,0.60)', fontWeight: '500', marginBottom: 8 },
   heroTagRow: { flexDirection: 'row' },
   tagSelf: {
-    backgroundColor: 'rgba(45,106,79,0.10)', paddingHorizontal: 10,
+    backgroundColor: 'rgba(82,183,136,0.15)', paddingHorizontal: 10,
     paddingVertical: 3, borderRadius: 20,
+    borderWidth: 1, borderColor: 'rgba(82,183,136,0.3)',
   },
   tagSelfText: { fontSize: 11, fontWeight: '700', color: COLORS.primary },
 
@@ -705,15 +708,15 @@ const styles = StyleSheet.create({
   gridContainer: { width: '100%', position: 'relative' },
 
   gridCard: {
-    backgroundColor: '#fff', borderRadius: 20,
-    borderWidth: 1, borderColor: 'rgba(45,106,79,0.08)',
-    shadowColor: '#2D6A4F', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 12, elevation: 2,
+    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)',
+    shadowColor: 'rgba(82,183,136,0.2)', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1, shadowRadius: 16, elevation: 4,
     overflow: 'hidden',
   },
   gridCardTarget: {
-    borderColor: COLORS.primary, borderWidth: 2,
-    shadowOpacity: 0.20, shadowRadius: 20,
+    borderColor: COLORS.primary, borderWidth: 1.5,
+    shadowColor: COLORS.primary, shadowOpacity: 1, shadowRadius: 24,
   },
   gridCardInner: {
     flex: 1, padding: 14, alignItems: 'center',
@@ -721,26 +724,27 @@ const styles = StyleSheet.create({
   },
   gridAvatar: {
     width: 58, height: 58, borderRadius: 29,
-    backgroundColor: 'rgba(45,106,79,0.10)',
+    backgroundColor: 'rgba(82,183,136,0.12)',
     alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(82,183,136,0.2)',
   },
   gridPhoto: { width: 58, height: 58, borderRadius: 29 },
   gridAvatarText: { fontSize: 20, fontWeight: '800', color: COLORS.primary },
   gridName: {
-    fontSize: 14, fontWeight: '700', color: COLORS.textPrimary,
+    fontSize: 14, fontWeight: '700', color: '#EDF7F1',
     textAlign: 'center', letterSpacing: -0.2, lineHeight: 18,
   },
-  gridDob: { fontSize: 11, color: '#8a9e8d', fontWeight: '500', textAlign: 'center' },
+  gridDob: { fontSize: 11, color: 'rgba(237,247,241,0.50)', fontWeight: '500', textAlign: 'center' },
 
   // ── Add card ──
   addCard: {
     borderRadius: 20, borderWidth: 1.5, borderStyle: 'dashed',
-    borderColor: 'rgba(45,106,79,0.22)', backgroundColor: 'rgba(45,106,79,0.03)',
+    borderColor: 'rgba(82,183,136,0.22)', backgroundColor: 'rgba(82,183,136,0.04)',
     alignItems: 'center', justifyContent: 'center', gap: 6,
   },
   addIcon: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: 'rgba(45,106,79,0.10)',
+    backgroundColor: 'rgba(82,183,136,0.12)',
     alignItems: 'center', justifyContent: 'center',
   },
   addLabel: { fontSize: 12, fontWeight: '600', color: COLORS.primary, textAlign: 'center', lineHeight: 16 },
@@ -770,16 +774,16 @@ const dotMenu = StyleSheet.create({
   backdrop: { flex: 1 },
   menu: {
     position: 'absolute', top: 92, right: H_PAD,
-    backgroundColor: '#fff', borderRadius: 12,
+    backgroundColor: '#111A14', borderRadius: 16,
     shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.14, shadowRadius: 20, elevation: 12,
+    shadowOpacity: 0.6, shadowRadius: 24, elevation: 12,
     minWidth: 180, overflow: 'hidden',
-    borderWidth: 1, borderColor: COLORS.border,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)',
   },
   item: {
     flexDirection: 'row', alignItems: 'center', gap: SPACING.md,
     paddingVertical: SPACING.base, paddingHorizontal: SPACING.base,
   },
-  itemText: { ...FONTS.body, color: COLORS.textPrimary, fontWeight: '500' },
-  divider: { height: 1, backgroundColor: COLORS.border, marginHorizontal: SPACING.sm },
+  itemText: { fontSize: 15, color: '#EDF7F1', fontWeight: '500' },
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginHorizontal: SPACING.sm },
 });

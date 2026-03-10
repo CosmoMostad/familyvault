@@ -31,7 +31,7 @@ export const DARK_COLORS = {
 
 // ── Light Palette ─────────────────────────────────────────────────────────────
 export const LIGHT_COLORS = {
-  background: '#F4F9F6',
+  background: '#74C69D',
   surface: '#FFFFFF',
   surfaceAlt: '#FFFFFF',
   surfaceSolid: '#FFFFFF',
@@ -51,8 +51,8 @@ export const LIGHT_COLORS = {
   border: 'rgba(0,0,0,0.10)',
   borderStrong: 'rgba(45,106,79,0.30)',
   divider: 'rgba(0,0,0,0.07)',
-  shadow: 'rgba(0,0,0,0.10)',
-  overlay: 'rgba(244,249,246,0.92)',
+  shadow: 'rgba(0,0,0,0.18)',
+  overlay: 'rgba(116,198,157,0.92)',
   legacyBackground: '#FAF7F4',
   legacySurface: '#FFFFFF',
 };
@@ -72,10 +72,10 @@ export const DARK_GRADIENTS = {
 
 // ── Light Gradients ───────────────────────────────────────────────────────────
 export const LIGHT_GRADIENTS = {
-  background: ['#F4F9F6', '#EBF4EF', '#F4F9F6'] as const,
-  topGlow: ['rgba(45,106,79,0.08)', 'rgba(45,106,79,0.02)', 'transparent'] as const,
+  background: ['#74C69D', '#95D5B2', '#B7E4C7'] as const,  // vivid mint → lighter
+  topGlow: ['rgba(45,106,79,0.22)', 'rgba(45,106,79,0.06)', 'transparent'] as const,
   card: ['rgba(255,255,255,0.98)', 'rgba(255,255,255,0.85)'] as const,
-  primaryBtn: ['#5BC898', '#2D6A4F'] as const,
+  primaryBtn: ['#52C48A', '#2D6A4F'] as const,
   sectionAccent: ['rgba(45,106,79,0.10)', 'transparent'] as const,
   danger: ['rgba(192,71,43,0.12)', 'transparent'] as const,
 };

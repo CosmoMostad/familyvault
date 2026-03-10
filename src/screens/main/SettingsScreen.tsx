@@ -10,6 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { supabase } from '../../lib/supabase';
 import { SPACING } from '../../lib/design';
+import ThemedBackground from '../../components/ThemedBackground';
 
 // ─── Change Credential Modal ──────────────────────────────────────────────────
 
@@ -145,7 +146,7 @@ const row = StyleSheet.create({
 
 export default function SettingsScreen() {
   const { profile, session, signOut } = useAuth();
-  const { isDark, toggleTheme, colors, gradients } = useTheme();
+  const { isDark, toggleTheme, colors } = useTheme();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -222,13 +223,7 @@ export default function SettingsScreen() {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      <LinearGradient colors={gradients.background as any} style={StyleSheet.absoluteFill} />
-      <LinearGradient
-        colors={gradients.topGlow as any}
-        locations={[0, 0.35, 0.7]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
+      <ThemedBackground />
 
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -240,7 +235,7 @@ export default function SettingsScreen() {
 
           {/* Profile card */}
           {profile && (
-            <View style={[styles.profileCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={[styles.profileCard, { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: colors.shadow }]}>
               <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.profileAvatar}>
                 <Text style={[styles.profileAvatarText, { color: colors.textInverse }]}>{getInitials(profile.full_name)}</Text>
               </LinearGradient>
@@ -253,7 +248,7 @@ export default function SettingsScreen() {
 
           {/* Account */}
           <Text style={[styles.sectionLabel, { color: colors.primary }]}>ACCOUNT</Text>
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: colors.shadow }]}>
             <Row
               icon="mail-outline" iconColor='#60A5FA'
               label="Change Email"
@@ -270,7 +265,7 @@ export default function SettingsScreen() {
 
           {/* App */}
           <Text style={[styles.sectionLabel, { color: colors.primary }]}>APP</Text>
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: colors.shadow }]}>
             <Row
               icon="notifications-outline" iconColor='#A78BFA'
               label="Appointment Reminders"
@@ -311,7 +306,7 @@ export default function SettingsScreen() {
 
           {/* Support */}
           <Text style={[styles.sectionLabel, { color: colors.primary }]}>SUPPORT</Text>
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: colors.shadow }]}>
             <Row icon="help-circle-outline" iconColor='#60A5FA' label="Help & FAQ" onPress={() => Linking.openURL('https://wrenhealth.app/help')} />
             <Row icon="chatbubble-ellipses-outline" iconColor='#93C5FD' label="Contact Support" onPress={() => Linking.openURL('mailto:support@wrenhealth.app')} />
             <Row icon="shield-checkmark-outline" iconColor={colors.primary} label="Privacy Policy" onPress={() => Linking.openURL('https://wrenhealth.app/privacy')} />
@@ -320,7 +315,7 @@ export default function SettingsScreen() {
 
           {/* About */}
           <Text style={[styles.sectionLabel, { color: colors.primary }]}>ABOUT</Text>
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: colors.shadow }]}>
             <Row icon="leaf-outline" iconColor={colors.primary} label="Wren Health" value="v1.0.0" isLast />
           </View>
 

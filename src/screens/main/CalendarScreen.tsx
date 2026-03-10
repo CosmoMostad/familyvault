@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
+import ThemedBackground from '../../components/ThemedBackground';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TimePickerWheel, to24Hour, formatTime12 } from '../../components/TimePickerWheel';
 import { sendPushToUser } from '../../lib/notifications';
@@ -1686,7 +1687,7 @@ const csw = StyleSheet.create({
 export default function CalendarScreen() {
   const { session } = useAuth();
   const navigation = useNavigation();
-  const { isDark, colors, gradients } = useTheme();
+  const { isDark, colors } = useTheme();
   const [calendars, setCalendars] = useState<CalendarData[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -1850,13 +1851,7 @@ export default function CalendarScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      <LinearGradient colors={gradients.background as any} style={StyleSheet.absoluteFill} />
-      <LinearGradient
-        colors={gradients.topGlow as any}
-        locations={[0, 0.35, 0.7]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
+      <ThemedBackground />
       <SafeAreaView style={{ backgroundColor: 'transparent' }}>
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Calendar</Text>

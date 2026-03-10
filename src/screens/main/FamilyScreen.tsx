@@ -43,6 +43,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { FamilyMember, RootStackParamList } from '../../lib/types';
 import { COLORS, SPACING } from '../../lib/design';
 import NotificationsDrawer from '../../components/NotificationsDrawer';
+import ThemedBackground from '../../components/ThemedBackground';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -237,7 +238,7 @@ function HeroCard({ member, onPress }: {
       ref={ref as any}
       activeOpacity={0.9}
       onPress={() => onPress(member, ref as React.RefObject<View>)}
-      style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+      style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: colors.shadow }]}
     >
       <LinearGradient
         colors={isDark
@@ -321,7 +322,7 @@ function ExpandOverlay({
 export default function FamilyScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { session } = useAuth();
-  const { isDark, colors, gradients } = useTheme();
+  const { isDark, colors } = useTheme();
 
   const [selfMember, setSelfMember] = useState<FamilyMember | null>(null);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
@@ -457,13 +458,7 @@ export default function FamilyScreen() {
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      <LinearGradient colors={gradients.background as any} style={StyleSheet.absoluteFill} />
-      <LinearGradient
-        colors={gradients.topGlow as any}
-        locations={[0, 0.35, 0.7]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
+      <ThemedBackground />
 
       {/* Header */}
       <SafeAreaView>
@@ -471,7 +466,7 @@ export default function FamilyScreen() {
           <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>My Accounts</Text>
           <View style={styles.headerActions}>
             <TouchableOpacity
-              style={[styles.iconBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)' }]}
+              style={[styles.iconBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.30)' }]}
               onPress={() => setNotifVisible(true)}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
@@ -483,7 +478,7 @@ export default function FamilyScreen() {
               )}
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.iconBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)' }]}
+              style={[styles.iconBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.30)' }]}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setShowDotMenu(true);

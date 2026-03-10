@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { SPACING } from '../../lib/design';
+import ThemedBackground from '../../components/ThemedBackground';
 import { RootStackParamList } from '../../lib/types';
 import NotificationsDrawer from '../../components/NotificationsDrawer';
 
@@ -56,7 +57,7 @@ function SharedCard({ share }: { share: AcceptedShare }) {
 
   return (
     <TouchableOpacity
-      style={[styles.sharedCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+      style={[styles.sharedCard, { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: colors.shadow }]}
       activeOpacity={0.8}
       onPress={() => navigation.navigate('MemberProfile', { memberId: share.account_id, memberName: share.member_name })}
     >
@@ -97,7 +98,7 @@ function SharedCard({ share }: { share: AcceptedShare }) {
 
 export default function SharedScreen() {
   const { user } = useAuth();
-  const { isDark, colors, gradients } = useTheme();
+  const { isDark, colors } = useTheme();
   const [shares, setShares] = useState<AcceptedShare[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
@@ -151,20 +152,14 @@ export default function SharedScreen() {
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      <LinearGradient colors={gradients.background as any} style={StyleSheet.absoluteFill} />
-      <LinearGradient
-        colors={gradients.topGlow as any}
-        locations={[0, 0.35, 0.7]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
+      <ThemedBackground />
 
       {/* Header */}
       <SafeAreaView>
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Shared With Me</Text>
           <TouchableOpacity
-            style={[styles.iconBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)' }]}
+            style={[styles.iconBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.30)' }]}
             onPress={() => setNotifVisible(true)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >

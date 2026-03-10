@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   View,
+  StatusBar,
   Text,
   TextInput,
   TouchableOpacity,
@@ -14,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { supabase } from '../../lib/supabase';
 import { RootStackParamList } from '../../lib/types';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, SPACING } from '../../lib/design';
 
 type Props = {
@@ -56,19 +58,19 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
               style={styles.backButton}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
+              <Ionicons name="chevron-back" size={24} color={'#F2FAF5'} />
             </TouchableOpacity>
           </View>
 
           {sent ? (
             <View style={styles.sentState}>
               <View style={styles.sentIcon}>
-                <Ionicons name="checkmark-circle" size={48} color={COLORS.primary} />
+                <Ionicons name="checkmark-circle" size={48} color={'#72F0AB'} />
               </View>
               <Text style={styles.sentTitle}>Check your email</Text>
               <Text style={styles.sentDesc}>
                 We've sent a password reset link to{'\n'}
-                <Text style={{ fontWeight: '600', color: COLORS.textPrimary }}>{email}</Text>
+                <Text style={{ fontWeight: '600', color: '#F2FAF5' }}>{email}</Text>
               </Text>
               <TouchableOpacity style={styles.backToSignIn} onPress={() => navigation.navigate('SignIn')}>
                 <Text style={styles.backToSignInText}>Back to Sign In</Text>
@@ -87,11 +89,11 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
                 <View style={styles.fieldGroup}>
                   <Text style={styles.fieldLabel}>Email</Text>
                   <View style={styles.inputWrapper}>
-                    <Ionicons name="mail-outline" size={18} color={COLORS.textTertiary} style={styles.inputIcon} />
+                    <Ionicons name="mail-outline" size={18} color={'rgba(242,250,245,0.40)'} style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
                       placeholder="your@email.com"
-                      placeholderTextColor={COLORS.textTertiary}
+                      placeholderTextColor={'rgba(242,250,245,0.28)'}
                       value={email}
                       onChangeText={setEmail}
                       keyboardType="email-address"
@@ -130,39 +132,39 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: '#050F09' },
   content: { flex: 1, paddingHorizontal: SPACING.xl },
   header: { paddingTop: SPACING.base, paddingBottom: SPACING.lg },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.surfaceAlt,
+    backgroundColor: 'rgba(255,255,255,0.07)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   titleArea: { marginBottom: SPACING.xxl },
-  title: { ...FONTS.h2, color: COLORS.textPrimary, marginBottom: SPACING.sm },
-  subtitle: { ...FONTS.body, color: COLORS.textSecondary },
+  title: { ...FONTS.h2, color: '#F2FAF5', marginBottom: SPACING.sm },
+  subtitle: { ...FONTS.body, color: 'rgba(242,250,245,0.70)' },
   form: { gap: SPACING.lg },
   fieldGroup: { gap: SPACING.xs },
   fieldLabel: {
     ...FONTS.label,
-    color: COLORS.textSecondary,
+    color: 'rgba(242,250,245,0.70)',
     textTransform: 'uppercase',
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: 'rgba(255,255,255,0.07)',
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255,255,255,0.12)',
     paddingHorizontal: SPACING.base,
     height: 52,
   },
   inputIcon: { marginRight: SPACING.sm },
-  input: { flex: 1, ...FONTS.body, color: COLORS.textPrimary },
+  input: { flex: 1, ...FONTS.body, color: '#F2FAF5' },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -174,7 +176,7 @@ const styles = StyleSheet.create({
   },
   errorText: { ...FONTS.caption, color: COLORS.rose, flex: 1 },
   submitButton: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#050F09',
     borderRadius: 14,
     height: 52,
     alignItems: 'center',
@@ -187,16 +189,16 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: COLORS.primaryMuted,
+    backgroundColor: 'rgba(82,183,136,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SPACING.xl,
   },
-  sentTitle: { ...FONTS.h2, color: COLORS.textPrimary, marginBottom: SPACING.md, textAlign: 'center' },
-  sentDesc: { ...FONTS.body, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 24 },
+  sentTitle: { ...FONTS.h2, color: '#F2FAF5', marginBottom: SPACING.md, textAlign: 'center' },
+  sentDesc: { ...FONTS.body, color: 'rgba(242,250,245,0.70)', textAlign: 'center', lineHeight: 24 },
   backToSignIn: {
     marginTop: SPACING.xxl,
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#050F09',
     borderRadius: 14,
     height: 52,
     width: '100%',

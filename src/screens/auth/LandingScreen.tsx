@@ -1,17 +1,10 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  StatusBar,
-  SafeAreaView,
-  Dimensions,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar, SafeAreaView, Dimensions } from 'react-native';
 import Svg, { Ellipse, Circle, Path } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../lib/types';
-import { COLORS, FONTS, SPACING } from '../../lib/design';
+import { SPACING } from '../../lib/design';
 import AuthBotanical from '../../components/AuthBotanical';
 
 function WrenBird({ size = 72 }: { size?: number }) {
@@ -26,36 +19,57 @@ function WrenBird({ size = 72 }: { size?: number }) {
   );
 }
 
-const { width: screenWidth, height } = Dimensions.get('window');
+const { width: W, height: H } = Dimensions.get('window');
 
-type Props = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'Landing'>;
-};
+type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'Landing'> };
 
 export default function LandingScreen({ navigation }: Props) {
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+      <StatusBar barStyle="light-content" />
 
-      {/* Full-screen botanical overlay */}
-      <AuthBotanical width={screenWidth} height={height} />
+      {/* Deep dark background */}
+      <LinearGradient colors={['#050F09', '#081A0E', '#050F09']} style={StyleSheet.absoluteFill} />
+
+      {/* Atmospheric glow — top center */}
+      <LinearGradient
+        colors={['rgba(82,183,136,0.28)', 'rgba(82,183,136,0.08)', 'transparent']}
+        locations={[0, 0.4, 0.75]}
+        style={[StyleSheet.absoluteFill, { top: -100 }]}
+        pointerEvents="none"
+      />
+
+      {/* Radial center glow behind the bird */}
+      <View style={styles.centerGlow} pointerEvents="none" />
+
+      {/* Botanical overlay — low opacity on dark */}
+      <AuthBotanical width={W} height={H} />
 
       <SafeAreaView style={styles.safe}>
-        {/* ── Logo + tagline centered ── */}
+        {/* ── Logo ── */}
         <View style={styles.center}>
-          <WrenBird size={72} />
+          <View style={styles.birdWrap}>
+            <WrenBird size={72} />
+          </View>
+
           <Text style={styles.brand}>Wren Health</Text>
           <Text style={styles.tagline}>Your family's health,{'\n'}organized and secure.</Text>
         </View>
 
-        {/* ── Bottom action area ── */}
+        {/* ── CTAs ── */}
         <View style={styles.actions}>
           <TouchableOpacity
             style={styles.primaryBtn}
             onPress={() => navigation.navigate('SignUp')}
             activeOpacity={0.88}
           >
-            <Text style={styles.primaryBtnText}>Create Account</Text>
+            <LinearGradient
+              colors={['#72F0AB', '#3ECF82', '#1A9E5A']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={styles.primaryBtnGradient}
+            >
+              <Text style={styles.primaryBtnText}>Create Account</Text>
+            </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -79,83 +93,71 @@ export default function LandingScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: COLORS.primary,
-  },
-  safe: {
-    flex: 1,
-    justifyContent: 'space-between',
+  root: { flex: 1, backgroundColor: '#050F09' },
+  safe: { flex: 1, justifyContent: 'space-between' },
+
+  centerGlow: {
+    position: 'absolute',
+    width: 320, height: 320,
+    borderRadius: 160,
+    top: '18%', alignSelf: 'center',
+    backgroundColor: 'rgba(72,200,130,0.10)',
+    shadowColor: '#52B788',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 80,
   },
 
-  // Center logo + tagline
   center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: SPACING.xxl,
-    gap: SPACING.md,
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: SPACING.xxl, gap: SPACING.md,
+  },
+  birdWrap: {
+    shadowColor: '#72F0AB',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 30,
   },
   brand: {
-    fontSize: 44,
-    fontWeight: '700',
-    color: '#fff',
-    letterSpacing: -1,
+    fontSize: 48, fontWeight: '800', color: '#FFFFFF',
+    letterSpacing: -1.5,
+    textShadowColor: 'rgba(114,240,171,0.55)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 24,
   },
   tagline: {
-    fontSize: 18,
-    color: 'rgba(255,255,255,0.72)',
-    textAlign: 'center',
-    lineHeight: 27,
-    fontWeight: '400',
+    fontSize: 18, color: 'rgba(242,250,245,0.70)',
+    textAlign: 'center', lineHeight: 28, fontWeight: '500',
   },
 
-  // Bottom actions
-  actions: {
-    paddingHorizontal: SPACING.xl,
-    paddingBottom: SPACING.xxl,
-    gap: SPACING.md,
-  },
+  actions: { paddingHorizontal: SPACING.xl, paddingBottom: SPACING.xxxl, gap: SPACING.md },
+
   primaryBtn: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 5,
+    borderRadius: 16, height: 56, overflow: 'hidden',
+    shadowColor: '#52B788',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  primaryBtnText: {
-    color: COLORS.primary,
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.1,
+  primaryBtnGradient: {
+    flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 16,
   },
+  primaryBtnText: { color: '#050F09', fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
+
   secondaryBtn: {
-    borderRadius: 14,
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.4)',
+    borderRadius: 16, height: 56,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: 'rgba(114,240,171,0.30)',
+    backgroundColor: 'rgba(114,240,171,0.06)',
   },
   secondaryBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#A8F5C4', fontSize: 16, fontWeight: '700',
+    textShadowColor: 'rgba(114,240,171,0.4)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
   },
-  legal: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.5)',
-    textAlign: 'center',
-    lineHeight: 18,
-    marginTop: SPACING.xs,
-  },
-  legalLink: {
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: '500',
-  },
+
+  legal: { fontSize: 12, color: 'rgba(242,250,245,0.38)', textAlign: 'center', lineHeight: 18, marginTop: SPACING.xs },
+  legalLink: { color: 'rgba(114,240,171,0.65)', fontWeight: '600' },
 });

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   View,
+  StatusBar,
   Text,
   TouchableOpacity,
   StyleSheet,
@@ -13,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { RootStackParamList } from '../../lib/types';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SPACING } from '../../lib/design';
 import AuthBotanical from '../../components/AuthBotanical';
 
@@ -46,7 +48,7 @@ export default function ConfirmEmailScreen({ navigation, route }: Props) {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: COLORS.primary }}>
+    <View style={{ flex: 1, backgroundColor: '#050F09' }}>
       {/* Green header */}
       <View style={[styles.greenHeader, { paddingTop: insets.top + SPACING.base }]}>
         <AuthBotanical width={screenWidth} height={240} />
@@ -63,7 +65,7 @@ export default function ConfirmEmailScreen({ navigation, route }: Props) {
       <View style={styles.card}>
         {/* Envelope icon */}
         <View style={styles.iconWrap}>
-          <Ionicons name="mail" size={36} color={COLORS.primary} />
+          <Ionicons name="mail" size={36} color={'#72F0AB'} />
         </View>
 
         <Text style={styles.bodyTitle}>Confirm your email</Text>
@@ -81,7 +83,7 @@ export default function ConfirmEmailScreen({ navigation, route }: Props) {
 
         {resent ? (
           <View style={styles.successBox}>
-            <Ionicons name="checkmark-circle-outline" size={15} color={COLORS.primary} />
+            <Ionicons name="checkmark-circle-outline" size={15} color={'#72F0AB'} />
             <Text style={styles.successText}>Email resent — check your inbox.</Text>
           </View>
         ) : null}
@@ -100,10 +102,10 @@ export default function ConfirmEmailScreen({ navigation, route }: Props) {
           activeOpacity={0.85}
         >
           {resending ? (
-            <ActivityIndicator color={COLORS.primary} size="small" />
+            <ActivityIndicator color={'#72F0AB'} size="small" />
           ) : (
             <>
-              <Ionicons name="refresh-outline" size={16} color={COLORS.primary} style={{ marginRight: 6 }} />
+              <Ionicons name="refresh-outline" size={16} color={'#72F0AB'} style={{ marginRight: 6 }} />
               <Text style={styles.resendBtnText}>Resend confirmation email</Text>
             </>
           )}
@@ -123,7 +125,7 @@ export default function ConfirmEmailScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   greenHeader: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#050F09',
     paddingHorizontal: SPACING.xl,
     paddingBottom: 72,
     overflow: 'hidden',
@@ -140,7 +142,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 28, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
   headerSub: { fontSize: 15, color: 'rgba(255,255,255,0.75)', fontWeight: '400' },
   card: {
-    backgroundColor: COLORS.background,
+    backgroundColor: '#050F09',
     marginHorizontal: SPACING.xl,
     marginTop: -28,
     borderRadius: 24,
@@ -155,21 +157,21 @@ const styles = StyleSheet.create({
   },
   iconWrap: {
     width: 72, height: 72, borderRadius: 36,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: 'rgba(82,183,136,0.15)',
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 4,
   },
   bodyTitle: {
     fontSize: 20, fontWeight: '700',
-    color: COLORS.textPrimary, letterSpacing: -0.3,
+    color: '#F2FAF5', letterSpacing: -0.3,
   },
   bodyText: {
-    fontSize: 14, color: COLORS.textSecondary,
+    fontSize: 14, color: 'rgba(242,250,245,0.70)',
     textAlign: 'center', lineHeight: 21,
   },
   emailText: {
     fontSize: 15, fontWeight: '600',
-    color: COLORS.textPrimary, textAlign: 'center',
+    color: '#F2FAF5', textAlign: 'center',
   },
   divider: {
     width: '100%', height: 1,
@@ -177,7 +179,7 @@ const styles = StyleSheet.create({
     marginVertical: SPACING.xs,
   },
   resendLabel: {
-    fontSize: 13, color: COLORS.textSecondary, textAlign: 'center',
+    fontSize: 13, color: 'rgba(242,250,245,0.70)', textAlign: 'center',
   },
   successBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -185,7 +187,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.base, paddingVertical: 10,
     width: '100%',
   },
-  successText: { fontSize: 13, color: COLORS.primary, flex: 1 },
+  successText: { fontSize: 13, color: '#72F0AB', flex: 1 },
   errorBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: COLORS.roseLight,
@@ -196,13 +198,13 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 13, color: COLORS.rose, flex: 1 },
   resendBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: COLORS.primary,
+    borderWidth: 1.5, borderColor: 'rgba(114,240,171,0.35)',
     borderRadius: 14, height: 50, width: '100%',
     marginTop: 4,
   },
-  resendBtnText: { fontSize: 15, fontWeight: '600', color: COLORS.primary },
+  resendBtnText: { fontSize: 15, fontWeight: '600', color: '#72F0AB' },
   signinBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#050F09',
     borderRadius: 14, height: 54, width: '100%',
     alignItems: 'center', justifyContent: 'center',
     shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 },

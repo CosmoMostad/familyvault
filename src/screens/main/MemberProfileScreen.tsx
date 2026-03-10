@@ -12,6 +12,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   FamilyMember, HealthInfo, RootStackParamList,
   EmergencyContact, Doctor,
@@ -72,19 +73,20 @@ function SectionBlock({
   saving?: boolean;
   children: React.ReactNode;
 }) {
+  const { colors } = useTheme();
   return (
-    <View style={sec.card}>
+    <View style={[sec.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       {/* Header row — always just title + chevron */}
       <TouchableOpacity
         style={sec.header}
         onPress={editing ? undefined : onToggle}
         activeOpacity={editing ? 1 : 0.7}
       >
-        <Text style={sec.title}>{title}</Text>
+        <Text style={[sec.title, { color: colors.textPrimary }]}>{title}</Text>
         <Ionicons
           name={(isOpen || editing) ? 'chevron-up' : 'chevron-down'}
           size={18}
-          color={COLORS.textTertiary}
+          color={colors.textTertiary}
         />
       </TouchableOpacity>
 
@@ -147,15 +149,20 @@ function FieldInput({ label, value, onChangeText, placeholder, keyboardType, mul
   label?: string; value: string; onChangeText: (v: string) => void;
   placeholder?: string; keyboardType?: any; multiline?: boolean; autoCapitalize?: any;
 }) {
+  const { colors } = useTheme();
   return (
     <View style={f.group}>
-      {label ? <Text style={f.label}>{label}</Text> : null}
+      {label ? <Text style={[f.label, { color: colors.textSecondary }]}>{label}</Text> : null}
       <TextInput
-        style={[f.input, multiline && f.inputMulti]}
+        style={[f.input, multiline && f.inputMulti, {
+          backgroundColor: colors.surfaceSolid,
+          borderColor: colors.border,
+          color: colors.textPrimary,
+        }]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder ?? ''}
-        placeholderTextColor={COLORS.textTertiary}
+        placeholderTextColor={colors.textTertiary}
         keyboardType={keyboardType}
         multiline={multiline}
         autoCapitalize={autoCapitalize ?? 'sentences'}
@@ -167,10 +174,11 @@ function FieldInput({ label, value, onChangeText, placeholder, keyboardType, mul
 
 // Always renders even when empty — shows "—" placeholder
 function DisplayField({ label, value, onPress }: { label: string; value?: string | null; onPress?: () => void }) {
+  const { colors } = useTheme();
   const inner = (
     <View style={f.row}>
-      <Text style={f.rowLabel}>{label}</Text>
-      <Text style={[f.rowValue, !value && f.rowEmpty, onPress && { color: COLORS.primary }]} numberOfLines={2}>
+      <Text style={[f.rowLabel, { color: colors.textSecondary }]}>{label}</Text>
+      <Text style={[f.rowValue, !value && { color: colors.textTertiary }, onPress && { color: colors.primary }]} numberOfLines={2}>
         {value || '—'}
       </Text>
     </View>
@@ -179,10 +187,11 @@ function DisplayField({ label, value, onPress }: { label: string; value?: string
 }
 
 function EditButton({ onPress }: { onPress: () => void }) {
+  const { colors } = useTheme();
   return (
     <TouchableOpacity style={f.editBtn} onPress={onPress} activeOpacity={0.7}>
-      <Ionicons name="pencil-outline" size={14} color={COLORS.primary} />
-      <Text style={f.editBtnText}>Edit</Text>
+      <Ionicons name="pencil-outline" size={14} color={colors.primary} />
+      <Text style={[f.editBtnText, { color: colors.primary }]}>Edit</Text>
     </TouchableOpacity>
   );
 }
@@ -249,6 +258,7 @@ const f = StyleSheet.create({
 export default function MemberProfileScreen({ navigation, route }: Props) {
   const { memberId, memberName } = route.params;
   const { session } = useAuth();
+  const { isDark, colors } = useTheme();
   const [member, setMember] = useState<FamilyMember | null>(null);
   const [healthInfo, setHealthInfo] = useState<HealthInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -288,7 +298,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
   useEffect(() => {
     navigation.setOptions({
       title: memberName,
-      headerStyle: { backgroundColor: COLORS.background },
+      headerStyle: { backgroundColor: colors.background },
       headerTintColor: COLORS.textPrimary,
       headerShadowVisible: false,
     });
@@ -496,8 +506,8 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
     }
   }
 
-  if (loading) return <View style={styles.loading}><ActivityIndicator size="large" color={COLORS.primary} /></View>;
-  if (!member) return <View style={styles.loading}><Text style={FONTS.body}>Member not found.</Text></View>;
+  if (loading) return <View style={[styles.loading, { backgroundColor: colors.background }]}><ActivityIndicator size="large" color={COLORS.primary} /></View>;
+  if (!member) return <View style={[styles.loading, { backgroundColor: colors.background }]}><Text style={FONTS.body}>Member not found.</Text></View>;
 
   const hi = healthInfo;
   const age = getAge(member.dob);
@@ -530,15 +540,15 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
                 </View>
               </View>
             ) : (
-              <View style={styles.avatar}>
-                <Ionicons name="camera-outline" size={26} color={COLORS.textTertiary} />
+              <View style={[styles.avatar, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
+                <Ionicons name="camera-outline" size={26} color={colors.textTertiary} />
               </View>
             )}
           </TouchableOpacity>
           <View style={styles.heroInfo}>
-            <Text style={styles.heroName}>{member.full_name}</Text>
+            <Text style={[styles.heroName, { color: colors.textPrimary }]}>{member.full_name}</Text>
             {member.dob ? (
-              <Text style={styles.heroDob}>
+              <Text style={[styles.heroDob, { color: colors.textSecondary }]}>
                 {formatDob(member.dob)}
               </Text>
             ) : null}
@@ -556,11 +566,11 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
               { icon: 'document-text-outline' as const, label: 'Documents', onPress: () => navigation.navigate('DocumentScanner', { memberId, memberName }) },
             ]
           ).map((a, i) => (
-            <TouchableOpacity key={i} style={styles.actionBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); a.onPress(); }} activeOpacity={0.7}>
-              <View style={styles.actionIconBg}>
-                <Ionicons name={a.icon} size={20} color={COLORS.primary} />
+            <TouchableOpacity key={i} style={[styles.actionBtn, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); a.onPress(); }} activeOpacity={0.7}>
+              <View style={[styles.actionIconBg, { backgroundColor: colors.primaryMuted }]}>
+                <Ionicons name={a.icon} size={20} color={colors.primary} />
               </View>
-              <Text style={styles.actionLabel}>{a.label}</Text>
+              <Text style={[styles.actionLabel, { color: colors.textPrimary }]}>{a.label}</Text>
             </TouchableOpacity>
           ))}
         </View>

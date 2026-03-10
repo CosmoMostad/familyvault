@@ -11,6 +11,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList } from '../../lib/types';
 import { COLORS, FONTS, SPACING } from '../../lib/design';
 
@@ -44,6 +45,7 @@ function formatDob(d: Date): string {
 
 export default function SetupSelfScreen({ navigation, onSetupComplete }: Props) {
   const { session } = useAuth();
+  const { isDark, colors } = useTheme();
   const [name, setName] = useState('');
   const [dob, setDob] = useState<Date>(defaultDob());
   const [showDobPicker, setShowDobPicker] = useState(false);
@@ -106,7 +108,7 @@ export default function SetupSelfScreen({ navigation, onSetupComplete }: Props) 
         style={styles.kav}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
 
           {/* ── Hero row: bird + heading ── */}
           <View style={styles.heroRow}>

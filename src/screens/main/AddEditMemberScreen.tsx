@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList } from '../../lib/types';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
 
@@ -71,6 +72,7 @@ function formatDob(d: Date): string {
 
 export default function AddEditMemberScreen({ navigation, route }: Props) {
   const { user } = useAuth();
+  const { isDark, colors } = useTheme();
   const { memberId } = route.params ?? {};
   const isEditing = !!memberId;
 
@@ -112,7 +114,7 @@ export default function AddEditMemberScreen({ navigation, route }: Props) {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"

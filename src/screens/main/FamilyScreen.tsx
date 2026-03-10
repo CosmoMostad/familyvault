@@ -248,7 +248,6 @@ function HeroCard({ member, onPress }: {
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
-      <View style={[styles.heroGlow, { backgroundColor: colors.primaryMuted }]} pointerEvents="none" />
       <View style={styles.heroInner}>
         {member.photo_url ? (
           <Image source={{ uri: member.photo_url }} style={styles.heroPhoto} />
@@ -262,11 +261,6 @@ function HeroCard({ member, onPress }: {
           {dob ? (
             <Text style={[styles.heroDob, { color: colors.textSecondary }]}>{dob}{age ? `  ·  ${age}` : ''}</Text>
           ) : null}
-          <View style={styles.heroTagRow}>
-            <View style={[styles.tagSelf, { backgroundColor: colors.primaryMuted, borderColor: colors.borderStrong }]}>
-              <Text style={[styles.tagSelfText, { color: colors.primary }]}>My Profile</Text>
-            </View>
-          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -523,7 +517,7 @@ export default function FamilyScreen() {
                 width: CARD_W,
                 height: CARD_H,
                 borderColor: colors.borderStrong,
-                backgroundColor: colors.primaryMuted,
+                backgroundColor: colors.surface,
               },
             ]}
             onPress={() => {

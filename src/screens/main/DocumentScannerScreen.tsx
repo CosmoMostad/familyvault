@@ -21,6 +21,7 @@ import { supabase } from '../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { Document, RootStackParamList } from '../../lib/types';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { COLORS, FONTS, SPACING } from '../../lib/design';
 
 type Props = {
@@ -31,6 +32,7 @@ type Props = {
 export default function DocumentScannerScreen({ navigation, route }: Props) {
   const { memberId, memberName } = route.params;
   const { user } = useAuth();
+  const { isDark, colors } = useTheme();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -185,7 +187,7 @@ export default function DocumentScannerScreen({ navigation, route }: Props) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {uploading && (
         <View style={styles.uploadOverlay}>
           <ActivityIndicator size="large" color="#FFFFFF" />

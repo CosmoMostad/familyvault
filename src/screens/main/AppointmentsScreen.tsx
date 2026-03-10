@@ -11,6 +11,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList } from '../../lib/types';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
 import { TimePickerWheel, to24Hour, formatTime12 } from '../../components/TimePickerWheel';
@@ -318,6 +319,7 @@ function AddAppointmentModal({
 export default function AppointmentsScreen({ navigation, route }: Props) {
   const { memberId, memberName } = route.params ?? {};
   const { session } = useAuth();
+  const { isDark, colors } = useTheme();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [canEdit, setCanEdit] = useState(false);
@@ -330,7 +332,7 @@ export default function AppointmentsScreen({ navigation, route }: Props) {
   useEffect(() => {
     navigation.setOptions({
       title: memberName ? `${memberName}'s Appointments` : 'Appointments',
-      headerStyle: { backgroundColor: COLORS.background },
+      headerStyle: { backgroundColor: colors.background },
       headerTintColor: COLORS.textPrimary,
       headerShadowVisible: false,
       headerRight: () => null, // will update after access check
@@ -463,7 +465,7 @@ export default function AppointmentsScreen({ navigation, route }: Props) {
   const past = [...appointments.filter(a => new Date(a.datetime) < now)].reverse();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={styles.content}

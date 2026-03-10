@@ -33,6 +33,7 @@ import { RouteProp } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList } from '../../lib/types';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
 import { sendPushToUser } from '../../lib/notifications';
@@ -83,6 +84,7 @@ function StepIndicator({ current }: { current: number }) {
 export default function ShareAccountScreen({ navigation, route }: Props) {
   const { memberId, memberName } = route.params;
   const { user } = useAuth();
+  const { isDark, colors } = useTheme();
   const [step, setStep] = useState<Step>(1);
   const [email, setEmail] = useState('');
   const [fields, setFields] = useState<FieldToggle[]>(DEFAULT_FIELDS);
@@ -151,7 +153,7 @@ export default function ShareAccountScreen({ navigation, route }: Props) {
   // — Success state —
   if (step === 'success') {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <StatusBar barStyle="dark-content" />
         <SafeAreaView style={styles.safeArea}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
@@ -180,7 +182,7 @@ export default function ShareAccountScreen({ navigation, route }: Props) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar barStyle="dark-content" />

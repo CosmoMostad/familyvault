@@ -1,18 +1,26 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
-  Dimensions, StatusBar,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
 import { RootStackParamList } from '../../lib/types';
-import { SPACING } from '../../lib/design';
+import { COLORS, FONTS, SPACING } from '../../lib/design';
+import AuthBotanical from '../../components/AuthBotanical';
 
-const { height } = Dimensions.get('window');
+const { width: screenWidth, height } = Dimensions.get('window');
+
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'SignUp'> };
 
 export default function SignUpScreen({ navigation }: Props) {
@@ -26,176 +34,163 @@ export default function SignUpScreen({ navigation }: Props) {
   const [error, setError] = useState('');
 
   async function handleSignUp() {
-    if (!fullName.trim() || !email.trim() || !password.trim()) {
-      setError('Please fill in all fields.'); return;
-    }
+    if (!fullName.trim() || !email.trim() || !password.trim()) { setError('Please fill in all fields.'); return; }
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
     setError(''); setLoading(true);
-    try {
-      await signUp(email.trim(), password, fullName.trim());
-      navigation.navigate('ConfirmEmail', { email: email.trim() });
-    }
-    catch (e: any) { setError(e.message || 'Something went wrong.'); }
+    try { await signUp(email.trim(), password, fullName.trim()); }
+    catch (e: any) { setError(e.message || 'Sign up failed. Please try again.'); }
     finally { setLoading(false); }
   }
 
-  const fields = [
-    { label: 'Full Name', icon: 'person-outline', value: fullName, set: setFullName, keyboard: 'default', cap: 'words' as const },
-    { label: 'Email', icon: 'mail-outline', value: email, set: setEmail, keyboard: 'email-address', cap: 'none' as const },
-  ];
-
   return (
-    <View style={S.root}>
-      <StatusBar barStyle="dark-content" />
-      <LinearGradient colors={['#F4F9F6', '#EBF4EF', '#F4F9F6']} style={StyleSheet.absoluteFill} />
-
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView
-          contentContainerStyle={[S.scroll, { paddingTop: insets.top + SPACING.base }]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <TouchableOpacity onPress={() => navigation.goBack()} style={S.backBtn}>
-            <Ionicons name="chevron-back" size={22} color="#0D1810" />
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: COLORS.primary }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: COLORS.primary }}
+        contentContainerStyle={{ minHeight: height }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Green header */}
+        <View style={[styles.greenHeader, { paddingTop: insets.top + SPACING.base }]}>
+          <AuthBotanical width={screenWidth} height={240} />
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={22} color="rgba(255,255,255,0.9)" />
           </TouchableOpacity>
-
-          <View style={S.headerBlock}>
-            <Text style={S.headerTitle}>Create account</Text>
-            <Text style={S.headerSub}>Your family's health, all in one place</Text>
+          <View style={styles.headerTextBlock}>
+            <Text style={styles.headerTitle}>Create account</Text>
+            <Text style={styles.headerSub}>Your family's health, all in one place</Text>
           </View>
+        </View>
 
-          <View style={S.form}>
-            {fields.map((f) => (
+        {/* Card */}
+        <View style={styles.card}>
+          <View style={styles.form}>
+            {[
+              { label: 'Full Name', icon: 'person-outline', value: fullName, onChange: setFullName, placeholder: 'Your full name', props: { autoCapitalize: 'words' as const } },
+              { label: 'Email', icon: 'mail-outline', value: email, onChange: setEmail, placeholder: 'your@email.com', props: { keyboardType: 'email-address' as const, autoCapitalize: 'none' as const } },
+            ].map((f) => (
               <View key={f.label} style={{ gap: 6 }}>
-                <Text style={S.fieldLabel}>{f.label.toUpperCase()}</Text>
-                <View style={S.inputWrap}>
-                  <Ionicons name={f.icon as any} size={18} color="rgba(45,106,79,0.50)" style={{ marginRight: 10 }} />
+                <Text style={styles.fieldLabel}>{f.label.toUpperCase()}</Text>
+                <View style={styles.inputWrap}>
+                  <Ionicons name={f.icon as any} size={18} color={COLORS.textTertiary} style={{ marginRight: 10 }} />
                   <TextInput
-                    style={S.input}
-                    placeholder={f.label}
-                    placeholderTextColor="rgba(13,24,16,0.30)"
+                    style={styles.input}
+                    placeholder={f.placeholder}
+                    placeholderTextColor={COLORS.textTertiary}
                     value={f.value}
-                    onChangeText={f.set}
-                    keyboardType={f.keyboard as any}
-                    autoCapitalize={f.cap}
+                    onChangeText={f.onChange}
                     autoCorrect={false}
+                    {...f.props}
                   />
                 </View>
               </View>
             ))}
 
             <View style={{ gap: 6 }}>
-              <Text style={S.fieldLabel}>PASSWORD</Text>
-              <View style={S.inputWrap}>
-                <Ionicons name="lock-closed-outline" size={18} color="rgba(45,106,79,0.50)" style={{ marginRight: 10 }} />
+              <Text style={styles.fieldLabel}>PASSWORD</Text>
+              <View style={styles.inputWrap}>
+                <Ionicons name="lock-closed-outline" size={18} color={COLORS.textTertiary} style={{ marginRight: 10 }} />
                 <TextInput
-                  style={[S.input, { flex: 1 }]}
+                  style={[styles.input, { flex: 1 }]}
                   placeholder="At least 8 characters"
-                  placeholderTextColor="rgba(13,24,16,0.30)"
+                  placeholderTextColor={COLORS.textTertiary}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                 />
                 <TouchableOpacity onPress={() => setShowPassword(v => !v)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color="rgba(13,24,16,0.40)" />
+                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={COLORS.textTertiary} />
                 </TouchableOpacity>
               </View>
             </View>
 
             {error ? (
-              <View style={S.errorBox}>
-                <Ionicons name="alert-circle-outline" size={15} color="#C0472B" />
-                <Text style={S.errorText}>{error}</Text>
+              <View style={styles.errorBox}>
+                <Ionicons name="alert-circle-outline" size={15} color={COLORS.rose} />
+                <Text style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
 
-            <TouchableOpacity style={[S.submitBtn, loading && { opacity: 0.65 }]} onPress={handleSignUp} disabled={loading} activeOpacity={0.85}>
-              <LinearGradient
-                colors={['#52C48A', '#2D6A4F']}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                style={S.submitGradient}
-              >
-                {loading
-                  ? <ActivityIndicator color="#FFFFFF" />
-                  : <Text style={S.submitBtnText}>Create Account</Text>}
-              </LinearGradient>
+            <TouchableOpacity style={[styles.submitBtn, loading && { opacity: 0.65 }]} onPress={handleSignUp} disabled={loading} activeOpacity={0.85}>
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Create Account</Text>}
             </TouchableOpacity>
 
-            <Text style={S.legal}>
-              By signing up you agree to our{' '}
-              <Text style={S.legalLink}>Privacy Policy</Text>
-              {' and '}
-              <Text style={S.legalLink}>Terms</Text>
+            <Text style={styles.legal}>
+              By creating an account you agree to our{' '}
+              <Text style={{ color: COLORS.primary }}>Privacy Policy</Text>
+              {' & '}
+              <Text style={{ color: COLORS.primary }}>Terms</Text>
             </Text>
           </View>
 
-          <View style={S.footer}>
-            <Text style={S.footerText}>Already have an account? </Text>
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Already have an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
-              <Text style={S.footerLink}>Sign in</Text>
+              <Text style={styles.footerLink}>Sign In</Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
-const S = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F4F9F6' },
-  scroll: { paddingHorizontal: SPACING.xl, paddingBottom: 60, minHeight: height * 0.9 },
-
+const styles = StyleSheet.create({
+  greenHeader: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.xl,
+    paddingBottom: 72,
+    overflow: 'hidden',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
   backBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.06)',
-    borderWidth: 1, borderColor: 'rgba(0,0,0,0.09)',
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center', justifyContent: 'center',
-    marginBottom: SPACING.xxxl,
+    marginBottom: SPACING.xl,
   },
-
-  headerBlock: { marginBottom: SPACING.xxxl, gap: 6 },
-  headerTitle: { fontSize: 36, fontWeight: '800', color: '#0D1810', letterSpacing: -1 },
-  headerSub: { fontSize: 16, color: 'rgba(13,24,16,0.55)', fontWeight: '500' },
-
+  headerTextBlock: { gap: 4 },
+  headerTitle: { fontSize: 28, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+  headerSub: { fontSize: 15, color: 'rgba(255,255,255,0.75)', fontWeight: '400' },
+  card: {
+    backgroundColor: COLORS.background,
+    marginHorizontal: SPACING.xl,
+    marginTop: -28,
+    borderRadius: 24,
+    padding: SPACING.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.09,
+    shadowRadius: 20,
+    elevation: 8,
+    marginBottom: SPACING.xxl,
+  },
   form: { gap: SPACING.lg },
-
-  fieldLabel: {
-    fontSize: 11, fontWeight: '700', color: '#2D6A4F',
-    letterSpacing: 1.2, textTransform: 'uppercase',
-  },
-
+  fieldLabel: { fontSize: 11, fontWeight: '700', color: COLORS.textTertiary, letterSpacing: 0.6 },
   inputWrap: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14, borderWidth: 1, borderColor: 'rgba(0,0,0,0.10)',
-    paddingHorizontal: SPACING.base, height: 54,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4,
+    backgroundColor: COLORS.surface,
+    borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border,
+    paddingHorizontal: SPACING.base, height: 52,
   },
-  input: { flex: 1, fontSize: 15, color: '#0D1810', fontWeight: '500' },
-
+  input: { flex: 1, fontSize: 15, color: COLORS.textPrimary },
   errorBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: 'rgba(192,71,43,0.08)',
-    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(192,71,43,0.20)',
-    paddingHorizontal: SPACING.base, paddingVertical: 12,
+    backgroundColor: COLORS.roseLight, borderRadius: 10,
+    paddingHorizontal: SPACING.base, paddingVertical: 10,
   },
-  errorText: { fontSize: 13, color: '#C0472B', flex: 1, fontWeight: '500' },
-
+  errorText: { fontSize: 13, color: COLORS.rose, flex: 1 },
   submitBtn: {
-    borderRadius: 16, height: 56, overflow: 'hidden',
-    marginTop: 8,
-    shadowColor: '#2D6A4F', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.30, shadowRadius: 16, elevation: 8,
+    backgroundColor: COLORS.primary, borderRadius: 14, height: 54,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25, shadowRadius: 10, elevation: 4, marginTop: 4,
   },
-  submitGradient: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  submitBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
-
-  legal: { fontSize: 12, color: 'rgba(13,24,16,0.38)', textAlign: 'center', lineHeight: 18 },
-  legalLink: { color: '#2D6A4F', fontWeight: '600' },
-
-  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: SPACING.xxxl },
-  footerText: { fontSize: 14, color: 'rgba(13,24,16,0.45)', fontWeight: '500' },
-  footerLink: { fontSize: 14, color: '#2D6A4F', fontWeight: '700' },
+  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  legal: { fontSize: 12, color: COLORS.textTertiary, textAlign: 'center', lineHeight: 18 },
+  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: SPACING.xl },
+  footerText: { fontSize: 14, color: COLORS.textSecondary },
+  footerLink: { fontSize: 14, color: COLORS.primary, fontWeight: '600' },
 });

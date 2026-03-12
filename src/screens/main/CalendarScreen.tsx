@@ -13,6 +13,35 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
 import ThemedBackground from '../../components/ThemedBackground';
 import CalendarBotanical from '../../components/CalendarBotanical';
+import TutorialOverlay, { TutorialStep } from '../../components/TutorialOverlay';
+import { isTutorialDone, markTutorialDone } from '../../lib/tutorial';
+
+const CALENDAR_TUTORIAL: TutorialStep[] = [
+  {
+    type: 'intro',
+    badge: 'Calendar',
+    title: 'Every appointment, all in one place.',
+    body: 'Track health visits for every family member. Wren will check in after each one to help you log what happened.',
+  },
+  {
+    type: 'spotlight',
+    spotYFrac: 0.22,
+    spotHFrac: 0.38,
+    tooltipSide: 'below',
+    title: 'Your appointments.',
+    body: 'Upcoming visits appear here, organized by date. Tap any appointment to see the full details and notes.',
+  },
+  {
+    type: 'spotlight',
+    spotYFrac: 0.80,
+    spotHFrac: 0.10,
+    spotXLeft: 230,
+    spotXRight: 16,
+    tooltipSide: 'above',
+    title: 'Add an appointment.',
+    body: 'Tap here to log any health visit — name, date, location, family member, and notes.',
+  },
+];
 import { LinearGradient } from 'expo-linear-gradient';
 import { TimePickerWheel, to24Hour, formatTime12 } from '../../components/TimePickerWheel';
 import { sendPushToUser } from '../../lib/notifications';
@@ -1722,6 +1751,11 @@ export default function CalendarScreen() {
 
   useFocusEffect(useCallback(() => { loadAll(); }, [session]));
 
+  const [showTutorial, setShowTutorial] = useState(false);
+  useFocusEffect(useCallback(() => {
+    isTutorialDone('calendar').then(done => { if (!done) setShowTutorial(true); });
+  }, []));
+
   // Drive tab bar badge from pending invite count
   React.useEffect(() => {
     navigation.setOptions({
@@ -2134,6 +2168,13 @@ export default function CalendarScreen() {
         onCreatePress={() => setShowCreate(true)}
         onClose={() => setShowSwitcher(false)}
       />
+
+      {showTutorial && (
+        <TutorialOverlay
+          steps={CALENDAR_TUTORIAL}
+          onComplete={() => { setShowTutorial(false); markTutorialDone('calendar'); }}
+        />
+      )}
     </View>
   );
 }

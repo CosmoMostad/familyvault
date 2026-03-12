@@ -13,6 +13,35 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { SPACING } from '../../lib/design';
 import ThemedBackground from '../../components/ThemedBackground';
 import SharedBotanical from '../../components/SharedBotanical';
+import TutorialOverlay, { TutorialStep } from '../../components/TutorialOverlay';
+import { isTutorialDone, markTutorialDone } from '../../lib/tutorial';
+
+const SHARED_TUTORIAL: TutorialStep[] = [
+  {
+    type: 'intro',
+    badge: 'Shared With Me',
+    title: 'Care together, seamlessly.',
+    body: 'When someone grants you access to their health profile, it lives here — ready whenever you need it.',
+  },
+  {
+    type: 'spotlight',
+    spotYFrac: 0.10,
+    spotHFrac: 0.09,
+    spotXLeft: 16,
+    spotXRight: 80,
+    tooltipSide: 'below',
+    title: 'Incoming invites.',
+    body: 'When someone shares a profile with you, you\'ll see an invitation here to accept or decline.',
+  },
+  {
+    type: 'spotlight',
+    spotYFrac: 0.25,
+    spotHFrac: 0.32,
+    tooltipSide: 'below',
+    title: 'Shared profiles.',
+    body: 'Accepted profiles appear here. Tap any card to view — or edit, if you\'ve been given that permission.',
+  },
+];
 import { RootStackParamList } from '../../lib/types';
 import NotificationsDrawer from '../../components/NotificationsDrawer';
 
@@ -107,6 +136,11 @@ export default function SharedScreen() {
   const [notifVisible, setNotifVisible] = useState(false);
 
   useFocusEffect(useCallback(() => { fetchShares(); }, [user]));
+
+  const [showTutorial, setShowTutorial] = useState(false);
+  useFocusEffect(useCallback(() => {
+    isTutorialDone('shared').then(done => { if (!done) setShowTutorial(true); });
+  }, []));
 
   async function fetchShares() {
     if (!user) return;
@@ -242,6 +276,13 @@ export default function SharedScreen() {
         onClose={() => { setNotifVisible(false); fetchShares(); }}
         onCountChange={(count) => setPendingCount(count)}
       />
+
+      {showTutorial && (
+        <TutorialOverlay
+          steps={SHARED_TUTORIAL}
+          onComplete={() => { setShowTutorial(false); markTutorialDone('shared'); }}
+        />
+      )}
     </View>
   );
 }

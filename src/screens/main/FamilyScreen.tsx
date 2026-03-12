@@ -46,6 +46,43 @@ import { COLORS, SPACING } from '../../lib/design';
 import NotificationsDrawer from '../../components/NotificationsDrawer';
 import ThemedBackground from '../../components/ThemedBackground';
 import FamilyBotanical from '../../components/FamilyBotanical';
+import TutorialOverlay, { TutorialStep } from '../../components/TutorialOverlay';
+import { isTutorialDone, markTutorialDone } from '../../lib/tutorial';
+
+const FAMILY_TUTORIAL: TutorialStep[] = [
+  {
+    type: 'intro',
+    badge: 'My Accounts',
+    title: 'Your family\'s health, organized.',
+    body: 'This is where every health profile lives — yours first, then everyone you care for.',
+  },
+  {
+    type: 'spotlight',
+    spotYFrac: 0.15,
+    spotHFrac: 0.115,
+    tooltipSide: 'below',
+    title: 'Your health profile.',
+    body: 'Tap to add your medications, allergies, physicians, insurance, and documents.',
+  },
+  {
+    type: 'spotlight',
+    spotYFrac: 0.30,
+    spotHFrac: 0.24,
+    tooltipSide: 'below',
+    title: 'Everyone you care for.',
+    body: 'Add family members of any age. Each gets their own complete health profile.',
+  },
+  {
+    type: 'spotlight',
+    spotYFrac: 0.065,
+    spotHFrac: 0.075,
+    spotXLeft: 180,
+    spotXRight: 8,
+    tooltipSide: 'below',
+    title: 'Notifications and options.',
+    body: 'Get alerts for upcoming appointments. Manage sharing and account settings here.',
+  },
+];
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -365,6 +402,11 @@ export default function FamilyScreen() {
 
   useFocusEffect(useCallback(() => { fetchData(); }, [session]));
 
+  const [showTutorial, setShowTutorial] = useState(false);
+  useFocusEffect(useCallback(() => {
+    isTutorialDone('family').then(done => { if (!done) setShowTutorial(true); });
+  }, []));
+
   function handleDragStart(id: string) {
     setDraggingId(id);
     familyMembers.forEach((m, i) => {
@@ -595,6 +637,13 @@ export default function FamilyScreen() {
           </View>
         </Pressable>
       </Modal>
+
+      {showTutorial && (
+        <TutorialOverlay
+          steps={FAMILY_TUTORIAL}
+          onComplete={() => { setShowTutorial(false); markTutorialDone('family'); }}
+        />
+      )}
     </View>
   );
 }

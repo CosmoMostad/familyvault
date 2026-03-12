@@ -23,6 +23,7 @@ import { Document, RootStackParamList } from '../../lib/types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { COLORS, FONTS, SPACING } from '../../lib/design';
+import { recognizeText } from '../../lib/ocr';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'DocumentScanner'>;
@@ -37,6 +38,7 @@ export default function DocumentScannerScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+  const [showExtractedText, setShowExtractedText] = useState(false);
 
   useEffect(() => {
     navigation.setOptions({ title: `Documents · ${memberName}` });
@@ -135,11 +137,18 @@ export default function DocumentScannerScreen({ navigation, route }: Props) {
 
       const { data: urlData } = supabase.storage.from('documents').getPublicUrl(fileName);
 
+      // Run OCR on the compressed image
+      let textContent = '';
+      try {
+        textContent = await recognizeText(compressed.uri);
+      } catch {}
+
       const { error: dbError } = await supabase.from('documents').insert({
         member_id: memberId,
         name: `Document ${new Date().toLocaleDateString()}`,
         url: urlData.publicUrl,
         type: 'image',
+        text_content: textContent || null,
       });
 
       if (dbError) throw dbError;
@@ -243,6 +252,22 @@ export default function DocumentScannerScreen({ navigation, route }: Props) {
                   resizeMode="contain"
                 />
                 <Text style={styles.modalDocName}>{selectedDoc.name}</Text>
+                {selectedDoc.text_content ? (
+                  <View style={{ width: '100%', marginTop: 12 }}>
+                    <TouchableOpacity
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                      onPress={() => setShowExtractedText(v => !v)}
+                    >
+                      <Ionicons name={showExtractedText ? 'chevron-up' : 'chevron-down'} size={16} color="rgba(255,255,255,0.7)" />
+                      <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '600' }}>Extracted Text</Text>
+                    </TouchableOpacity>
+                    {showExtractedText && (
+                      <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, lineHeight: 19, marginTop: 8 }}>
+                        {selectedDoc.text_content}
+                      </Text>
+                    )}
+                  </View>
+                ) : null}
                 <View style={styles.modalActions}>
                   <TouchableOpacity style={styles.modalDeleteButton} onPress={() => handleDelete(selectedDoc)}>
                     <Text style={styles.modalDeleteText}>🗑️ Delete</Text>

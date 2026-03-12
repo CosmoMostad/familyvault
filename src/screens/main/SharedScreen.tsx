@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, SafeAreaView, StatusBar, Image,
+  ActivityIndicator, SafeAreaView, StatusBar, Image, useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -12,6 +12,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { SPACING } from '../../lib/design';
 import ThemedBackground from '../../components/ThemedBackground';
+import SharedBotanical from '../../components/SharedBotanical';
 import { RootStackParamList } from '../../lib/types';
 import NotificationsDrawer from '../../components/NotificationsDrawer';
 
@@ -99,6 +100,7 @@ function SharedCard({ share }: { share: AcceptedShare }) {
 export default function SharedScreen() {
   const { user } = useAuth();
   const { colors } = useTheme();
+  const { width: screenW, height: screenH } = useWindowDimensions();
   const [shares, setShares] = useState<AcceptedShare[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
@@ -153,6 +155,7 @@ export default function SharedScreen() {
       <StatusBar barStyle='dark-content' />
 
       <ThemedBackground />
+      <SharedBotanical width={screenW} height={screenH} />
 
       {/* Header */}
       <SafeAreaView>

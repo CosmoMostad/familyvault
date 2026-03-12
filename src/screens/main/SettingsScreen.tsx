@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   Alert, Switch, SafeAreaView, Linking, Share, TextInput,
-  Modal, ActivityIndicator, KeyboardAvoidingView, Platform, StatusBar,
+  Modal, ActivityIndicator, KeyboardAvoidingView, Platform, StatusBar, useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,6 +11,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { supabase } from '../../lib/supabase';
 import { SPACING } from '../../lib/design';
 import ThemedBackground from '../../components/ThemedBackground';
+import SettingsBotanical from '../../components/SettingsBotanical';
 
 // ─── Change Credential Modal ──────────────────────────────────────────────────
 
@@ -147,6 +148,7 @@ const row = StyleSheet.create({
 export default function SettingsScreen() {
   const { profile, session, signOut } = useAuth();
   const { colors } = useTheme();
+  const { width: screenW, height: screenH } = useWindowDimensions();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -224,6 +226,7 @@ export default function SettingsScreen() {
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <StatusBar barStyle='dark-content' />
       <ThemedBackground />
+      <SettingsBotanical width={screenW} height={screenH} />
 
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>

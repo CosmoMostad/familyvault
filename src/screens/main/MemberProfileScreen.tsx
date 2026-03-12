@@ -3,7 +3,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert, TextInput, KeyboardAvoidingView,
-  Platform, StatusBar, Linking, Image,
+  Platform, StatusBar, Linking, Image, Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -19,13 +19,25 @@ import {
 } from '../../lib/types';
 import { COLORS, FONTS, SPACING, CARD } from '../../lib/design';
 import ThemedBackground from '../../components/ThemedBackground';
+import BarcodeScannerModal from '../../components/BarcodeScannerModal';
+import { sendPushToUser } from '../../lib/notifications';
+import { scheduleRefillReminder, cancelRefillReminders } from '../../lib/appointmentNotifications';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MemberProfile'>;
   route: RouteProp<RootStackParamList, 'MemberProfile'>;
 };
 
-type Section = 'general' | 'medical' | 'insurance' | 'emergency' | 'physicians' | null;
+type Section = 'general' | 'medical' | 'insurance' | 'emergency' | 'physicians' | 'carelog' | null;
+
+interface CaregiverNote {
+  id: string;
+  member_id: string;
+  author_id: string;
+  author_name: string;
+  note: string;
+  created_at: string;
+}
 
 // Fields use free text inputs — no dropdown/chip selectors
 
@@ -251,6 +263,34 @@ const f = StyleSheet.create({
   },
   addBtnText: { ...FONTS.body, color: COLORS.primary, fontWeight: '600' },
   removeBtn: { padding: 4 },
+  callOfficeBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: COLORS.primary, borderRadius: 10, paddingVertical: 12,
+    marginTop: SPACING.sm,
+  },
+  callOfficeBtnText: { fontSize: 15, fontWeight: '600', color: '#fff' },
+  addNoteBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: SPACING.sm, marginTop: SPACING.sm,
+  },
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center', alignItems: 'center', padding: SPACING.xl,
+  },
+  modalCard: {
+    width: '100%', borderRadius: 16, padding: SPACING.xl,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15, shadowRadius: 12, elevation: 5,
+  },
+  modalBtn: {
+    alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 14, borderRadius: 10,
+  },
+  fieldInput: {
+    backgroundColor: COLORS.surfaceAlt, borderRadius: 10, borderWidth: 1.5,
+    borderColor: COLORS.border, paddingHorizontal: SPACING.base,
+    fontSize: 15, color: COLORS.textPrimary,
+  },
 });
 
 // ── Main screen ──────────────────────────────────────────────────────────────
@@ -287,6 +327,8 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
   // Insurance editable state
   const [eInsProvider, setEInsProvider] = useState('');
   const [eInsPolicyNum, setEInsPolicyNum] = useState('');
+  const [eInsGroupNum, setEInsGroupNum] = useState('');
+  const [eInsMemberId, setEInsMemberId] = useState('');
 
   // Emergency contacts editable state
   const [eContacts, setEContacts] = useState<EmergencyContact[]>([]);
@@ -294,6 +336,21 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
   // Physicians editable state
   const [eDocName, setEDocName] = useState('');
   const [eDocPhone, setEDocPhone] = useState('');
+
+  // Medication extended fields
+  const [ePharmacyPhone, setEPharmacyPhone] = useState('');
+  const [eRxNumber, setERxNumber] = useState('');
+  const [eDaysSupply, setEDaysSupply] = useState('');
+  const [eRefillDate, setERefillDate] = useState('');
+
+  // Barcode scanner
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+
+  // Caregiver log
+  const [careNotes, setCareNotes] = useState<CaregiverNote[]>([]);
+  const [showCareNoteModal, setShowCareNoteModal] = useState(false);
+  const [careNoteText, setCareNoteText] = useState('');
+  const [savingCareNote, setSavingCareNote] = useState(false);
 
   useEffect(() => {
     navigation.setOptions({
@@ -318,6 +375,15 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
       // Fetch shares (owner-only, returns empty for non-owners)
       const { data: sharesData } = await supabase.rpc('get_shared_with', { p_member_id: memberId });
       setShares(sharesData ?? []);
+
+      // Fetch caregiver notes
+      const { data: notesData } = await supabase
+        .from('caregiver_notes')
+        .select('*')
+        .eq('member_id', memberId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      setCareNotes(notesData ?? []);
 
       // Determine edit access
       if (memberRes.data) {
@@ -435,9 +501,16 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
       setEMedsText((healthInfo?.medications || []).map(m => [m.name, m.dosage, m.frequency].filter(Boolean).join(' - ')).join('\n'));
       setEPastSurgeries(healthInfo?.past_surgeries || '');
       setEConditionsText((healthInfo?.conditions || []).map(c => c.name).join('\n'));
+      const med0 = healthInfo?.medications?.[0];
+      setEPharmacyPhone(med0?.pharmacy_phone || '');
+      setERxNumber(med0?.rx_number || '');
+      setEDaysSupply(med0?.days_supply?.toString() || '');
+      setERefillDate(med0?.refill_reminder_date || '');
     } else if (section === 'insurance') {
       setEInsProvider(healthInfo?.insurance?.carrier || '');
       setEInsPolicyNum(healthInfo?.insurance?.policy_number || '');
+      setEInsGroupNum(healthInfo?.insurance?.group_number || '');
+      setEInsMemberId(healthInfo?.insurance?.member_id || '');
     } else if (section === 'emergency') {
       setEContacts(JSON.parse(JSON.stringify(healthInfo?.emergency_contacts || [])));
     } else if (section === 'physicians') {
@@ -461,7 +534,7 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
       } else {
         const hi = healthInfo;
         const insurance = eInsProvider || eInsPolicyNum
-          ? { carrier: eInsProvider, policy_number: eInsPolicyNum, group_number: hi?.insurance?.group_number || '', member_id: hi?.insurance?.member_id }
+          ? { carrier: eInsProvider, policy_number: eInsPolicyNum, group_number: eInsGroupNum || hi?.insurance?.group_number || '', member_id: eInsMemberId || hi?.insurance?.member_id }
           : null;
         const doctor = eDocName ? { name: eDocName, phone: eDocPhone, address: '', specialty: '' } : null;
 
@@ -471,7 +544,13 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
             ? eAllergiesText.trim() ? [{ name: eAllergiesText.trim(), severity: 'Mild' as const }] : []
             : (hi?.allergies || []),
           medications: section === 'medical'
-            ? eMedsText.trim() ? [{ name: eMedsText.trim(), dosage: '', frequency: '' }] : []
+            ? eMedsText.trim() ? [{
+                name: eMedsText.trim(), dosage: '', frequency: '',
+                pharmacy_phone: ePharmacyPhone || undefined,
+                rx_number: eRxNumber || undefined,
+                days_supply: eDaysSupply ? parseInt(eDaysSupply, 10) : undefined,
+                refill_reminder_date: eRefillDate || undefined,
+              }] : []
             : (hi?.medications || []),
           conditions: section === 'medical'
             ? eConditionsText.trim() ? [{ name: eConditionsText.trim() }] : []
@@ -494,9 +573,31 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
         // Blood type lives on family_members
         if (section === 'medical') {
           await supabase.from('family_members').update({ blood_type: eBlood || null }).eq('id', memberId);
+          // Schedule refill reminder if refill date is set
+          if (eRefillDate && eMedsText.trim()) {
+            scheduleRefillReminder({
+              id: memberId + '-med-0',
+              name: eMedsText.trim().split('\n')[0],
+              member_name: member?.full_name || memberName,
+              refill_date: new Date(eRefillDate),
+            }).catch(() => {});
+          }
         }
       }
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      // Care circle notification: notify profile owner if someone else is editing
+      if (member && member.owner_id !== session?.user?.id) {
+        const { data: myProfile } = await supabase
+          .from('profiles').select('full_name, email').eq('id', session?.user?.id).single();
+        const authorName = myProfile?.full_name || myProfile?.email || 'Someone';
+        sendPushToUser(
+          member.owner_id,
+          'Wren Health Update',
+          `${authorName} updated ${member.full_name}'s profile`,
+        ).catch(() => {});
+      }
+
       setEditingSection(null);
       fetchData();
     } catch (e: any) {
@@ -666,7 +767,21 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
               <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.sm }} />
               <FieldInput label="ALLERGIES" value={eAllergiesText} onChangeText={setEAllergiesText} placeholder="List allergies here" multiline />
               <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.sm }} />
-              <FieldInput label="CURRENT MEDICATIONS" value={eMedsText} onChangeText={setEMedsText} placeholder="List medications here" multiline />
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <Text style={[f.label, { marginBottom: 0 }]}>CURRENT MEDICATIONS</Text>
+                <TouchableOpacity
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, backgroundColor: COLORS.primaryMuted }}
+                  onPress={() => setShowBarcodeScanner(true)}
+                >
+                  <Ionicons name="barcode-outline" size={14} color={COLORS.primary} />
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: COLORS.primary }}>Scan Barcode</Text>
+                </TouchableOpacity>
+              </View>
+              <FieldInput value={eMedsText} onChangeText={setEMedsText} placeholder="List medications here" multiline />
+              <FieldInput label="PHARMACY PHONE" value={ePharmacyPhone} onChangeText={setEPharmacyPhone} placeholder="Pharmacy phone number" keyboardType="phone-pad" autoCapitalize="none" />
+              <FieldInput label="RX NUMBER" value={eRxNumber} onChangeText={setERxNumber} placeholder="Prescription number" autoCapitalize="none" />
+              <FieldInput label="DAYS SUPPLY" value={eDaysSupply} onChangeText={setEDaysSupply} placeholder="e.g. 30, 90" keyboardType="number-pad" autoCapitalize="none" />
+              <FieldInput label="REFILL REMINDER DATE" value={eRefillDate} onChangeText={setERefillDate} placeholder="YYYY-MM-DD" autoCapitalize="none" />
               <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.sm }} />
               <FieldInput label="PAST SURGERIES" value={ePastSurgeries} onChangeText={setEPastSurgeries} placeholder="Describe any past surgeries" multiline />
               <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.sm }} />
@@ -677,6 +792,26 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
               <DisplayField label="Blood Type" value={member.blood_type} />
               <DisplayField label="Allergies" value={hi?.allergies?.[0]?.name} />
               <DisplayField label="Current Medications" value={hi?.medications?.[0]?.name} />
+              {hi?.medications?.[0]?.pharmacy_phone ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, paddingVertical: SPACING.sm }}>
+                  <TouchableOpacity
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.primaryMuted, borderRadius: 10, paddingHorizontal: SPACING.md, paddingVertical: 8 }}
+                    onPress={() => Linking.openURL(`tel:${hi!.medications[0].pharmacy_phone}`)}
+                  >
+                    <Ionicons name="call-outline" size={14} color={COLORS.primary} />
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: COLORS.primary }}>Call Pharmacy</Text>
+                  </TouchableOpacity>
+                  {hi.medications[0].rx_number ? (
+                    <Text style={{ fontSize: 12, color: COLORS.textSecondary }}>Rx# {hi.medications[0].rx_number}</Text>
+                  ) : null}
+                </View>
+              ) : null}
+              {hi?.medications?.[0]?.refill_reminder_date ? (
+                <DisplayField label="Refill Reminder" value={hi.medications[0].refill_reminder_date} />
+              ) : null}
+              {hi?.medications?.[0]?.days_supply ? (
+                <DisplayField label="Days Supply" value={`${hi.medications[0].days_supply} days`} />
+              ) : null}
               <DisplayField label="Past Surgeries" value={hi?.past_surgeries} />
               <DisplayField label="Past Medical History" value={hi?.conditions?.[0]?.name} />
               {canEdit && <EditButton onPress={() => startEditing('medical')} />}
@@ -698,13 +833,44 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
         >
           {editingSection === 'insurance' ? (
             <>
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-end', paddingVertical: 6, paddingHorizontal: SPACING.md, borderRadius: 8, backgroundColor: COLORS.primaryMuted, marginBottom: SPACING.sm }}
+                onPress={async () => {
+                  const perm = await ImagePicker.requestCameraPermissionsAsync();
+                  if (!perm.granted) { Alert.alert('Camera Access', 'Please allow camera access.'); return; }
+                  const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+                  if (result.canceled || !result.assets?.[0]) return;
+                  try {
+                    const { recognizeText } = await import('../../lib/ocr');
+                    const { parseInsuranceCard } = await import('../../lib/ocr');
+                    const text = await recognizeText(result.assets[0].uri);
+                    if (text) {
+                      const parsed = parseInsuranceCard(text);
+                      if (parsed.member_id) setEInsMemberId(parsed.member_id);
+                      if (parsed.group_number) setEInsGroupNum(parsed.group_number);
+                      Alert.alert('Scan Complete', 'Extracted fields have been pre-filled. Please review and save.');
+                    } else {
+                      Alert.alert('No Text Found', 'Could not extract text from the image. Try again with better lighting.');
+                    }
+                  } catch {
+                    Alert.alert('OCR Unavailable', 'Text recognition is not available. Please enter information manually.');
+                  }
+                }}
+              >
+                <Ionicons name="camera-outline" size={14} color={COLORS.primary} />
+                <Text style={{ fontSize: 12, fontWeight: '600', color: COLORS.primary }}>Scan Insurance Card</Text>
+              </TouchableOpacity>
               <FieldInput label="PROVIDER" value={eInsProvider} onChangeText={setEInsProvider} placeholder="e.g. Blue Cross Blue Shield" autoCapitalize="words" />
               <FieldInput label="POLICY NUMBER" value={eInsPolicyNum} onChangeText={setEInsPolicyNum} placeholder="Policy number" autoCapitalize="none" />
+              <FieldInput label="GROUP NUMBER" value={eInsGroupNum} onChangeText={setEInsGroupNum} placeholder="Group number" autoCapitalize="none" />
+              <FieldInput label="MEMBER ID" value={eInsMemberId} onChangeText={setEInsMemberId} placeholder="Member ID" autoCapitalize="none" />
             </>
           ) : (
             <>
               <DisplayField label="Provider" value={hi?.insurance?.carrier} />
               <DisplayField label="Policy Number" value={hi?.insurance?.policy_number} />
+              <DisplayField label="Group Number" value={hi?.insurance?.group_number} />
+              <DisplayField label="Member ID" value={hi?.insurance?.member_id} />
               {canEdit && <EditButton onPress={() => startEditing('insurance')} />}
             </>
           )}
@@ -787,17 +953,23 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
           ) : (
             <>
               {hi?.primary_doctor?.name ? (
-                <View style={f.listItem}>
-                  <View style={f.listItemContent}>
-                    <Text style={f.listItemName}>{hi.primary_doctor.name}</Text>
-                    {hi.primary_doctor.phone ? <Text style={f.listItemSub}>{hi.primary_doctor.phone}</Text> : null}
+                <>
+                  <View style={f.listItem}>
+                    <View style={f.listItemContent}>
+                      <Text style={f.listItemName}>{hi.primary_doctor.name}</Text>
+                      {hi.primary_doctor.phone ? <Text style={f.listItemSub}>{hi.primary_doctor.phone}</Text> : null}
+                    </View>
                   </View>
                   {hi.primary_doctor.phone ? (
-                    <TouchableOpacity onPress={() => Linking.openURL(`tel:${hi!.primary_doctor!.phone}`)}>
-                      <Ionicons name="call-outline" size={18} color={COLORS.primary} />
+                    <TouchableOpacity
+                      style={f.callOfficeBtn}
+                      onPress={() => Linking.openURL(`tel:${hi!.primary_doctor!.phone}`)}
+                    >
+                      <Ionicons name="call" size={16} color="#fff" />
+                      <Text style={f.callOfficeBtnText}>Call Office</Text>
                     </TouchableOpacity>
                   ) : null}
-                </View>
+                </>
               ) : (
                 <>
                   <DisplayField label="Physician Name" value={null} />
@@ -806,6 +978,43 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
               )}
               {canEdit && <EditButton onPress={() => startEditing('physicians')} />}
             </>
+          )}
+        </SectionBlock>
+
+        {/* ────────────────────────────────────────
+            CAREGIVER HANDOFF LOG
+        ──────────────────────────────────────── */}
+        <SectionBlock
+          title="Care Log"
+          isOpen={openSections.has('carelog')}
+          onToggle={() => toggleSection('carelog')}
+          editing={false}
+          onSave={() => {}}
+          onCancel={() => {}}
+        >
+          {careNotes.length === 0 ? (
+            <Text style={f.emptyHint}>No caregiver notes yet.</Text>
+          ) : (
+            careNotes.map((cn) => (
+              <View key={cn.id} style={[f.listItem, { flexDirection: 'column', alignItems: 'flex-start', gap: 4 }]}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: COLORS.textPrimary }}>{cn.author_name}</Text>
+                  <Text style={{ fontSize: 11, color: COLORS.textTertiary }}>
+                    {new Date(cn.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 14, color: COLORS.textSecondary, lineHeight: 20 }}>{cn.note}</Text>
+              </View>
+            ))
+          )}
+          {canEdit && (
+            <TouchableOpacity
+              style={f.addNoteBtn}
+              onPress={() => { setCareNoteText(''); setShowCareNoteModal(true); }}
+            >
+              <Ionicons name="add-circle-outline" size={18} color={COLORS.primary} />
+              <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.primary, marginLeft: 6 }}>Add Note</Text>
+            </TouchableOpacity>
           )}
         </SectionBlock>
 
@@ -853,6 +1062,78 @@ export default function MemberProfileScreen({ navigation, route }: Props) {
 
         <View style={{ height: 60 }} />
       </ScrollView>
+
+      {/* Barcode Scanner Modal */}
+      <BarcodeScannerModal
+        visible={showBarcodeScanner}
+        onClose={() => setShowBarcodeScanner(false)}
+        onScanned={(data) => {
+          setShowBarcodeScanner(false);
+          const parts: string[] = [];
+          if (data.brand_name) parts.push(data.brand_name);
+          if (data.generic_name) parts.push(`(${data.generic_name})`);
+          if (data.strength) parts.push(data.strength);
+          if (data.dosage_form) parts.push(data.dosage_form);
+          if (parts.length) setEMedsText(parts.join(' '));
+        }}
+      />
+
+      {/* Add Care Note Modal */}
+      <Modal visible={showCareNoteModal} transparent animationType="fade">
+        <View style={f.modalOverlay}>
+          <View style={[f.modalCard, { backgroundColor: COLORS.surface }]}>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: COLORS.textPrimary, marginBottom: SPACING.base }}>Add Care Note</Text>
+            <TextInput
+              style={[f.fieldInput, { height: 120, textAlignVertical: 'top', paddingTop: 12 }]}
+              multiline
+              placeholder="What happened during this shift? Updates, observations, concerns..."
+              placeholderTextColor={COLORS.textTertiary}
+              value={careNoteText}
+              onChangeText={setCareNoteText}
+            />
+            <View style={{ flexDirection: 'row', gap: SPACING.sm, marginTop: SPACING.base }}>
+              <TouchableOpacity
+                style={[f.modalBtn, { backgroundColor: COLORS.surfaceAlt, flex: 1 }]}
+                onPress={() => setShowCareNoteModal(false)}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '600', color: COLORS.textSecondary }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[f.modalBtn, { backgroundColor: COLORS.primary, flex: 1 }]}
+                onPress={async () => {
+                  if (!careNoteText.trim()) return;
+                  setSavingCareNote(true);
+                  const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('full_name')
+                    .eq('user_id', session?.user?.id)
+                    .single();
+                  const authorName = profile?.full_name || 'Unknown';
+                  const { error } = await supabase.from('caregiver_notes').insert({
+                    member_id: memberId,
+                    author_id: session?.user?.id,
+                    author_name: authorName,
+                    note: careNoteText.trim(),
+                  });
+                  setSavingCareNote(false);
+                  if (!error) {
+                    setShowCareNoteModal(false);
+                    fetchData();
+                  } else {
+                    Alert.alert('Error', 'Could not save note.');
+                  }
+                }}
+              >
+                {savingCareNote ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff' }}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }

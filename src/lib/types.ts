@@ -33,6 +33,10 @@ export interface Medication {
   name: string;
   dosage: string;
   frequency: string;
+  pharmacy_phone?: string;
+  rx_number?: string;
+  days_supply?: number;
+  refill_reminder_date?: string;
 }
 
 export interface Condition {
@@ -45,6 +49,7 @@ export interface Insurance {
   policy_number: string;
   group_number: string;
   member_id?: string;
+  phone?: string;
 }
 
 export interface EmergencyContact {
@@ -88,6 +93,7 @@ export interface Document {
   name: string;
   url: string;
   type: string;
+  text_content?: string;
   created_at: string;
 }
 

@@ -19,6 +19,7 @@ import {
   ActivityIndicator,
   ScrollView,
   Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -44,6 +45,7 @@ import { FamilyMember, RootStackParamList } from '../../lib/types';
 import { COLORS, SPACING } from '../../lib/design';
 import NotificationsDrawer from '../../components/NotificationsDrawer';
 import ThemedBackground from '../../components/ThemedBackground';
+import FamilyBotanical from '../../components/FamilyBotanical';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -315,6 +317,7 @@ export default function FamilyScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { session } = useAuth();
   const { colors } = useTheme();
+  const { width: screenW, height: screenH } = useWindowDimensions();
 
   const [selfMember, setSelfMember] = useState<FamilyMember | null>(null);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
@@ -451,6 +454,7 @@ export default function FamilyScreen() {
       <StatusBar barStyle='dark-content' />
 
       <ThemedBackground />
+      <FamilyBotanical width={screenW} height={screenH} />
 
       {/* Header */}
       <SafeAreaView>
